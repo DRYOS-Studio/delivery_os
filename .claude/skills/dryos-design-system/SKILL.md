@@ -82,67 +82,80 @@ body.dark {
 }
 ```
 
-### Tailwind config
+### Tailwind 4 — CSS-first config via `@theme`
 
-Em `tailwind.config.ts`, mapear os tokens:
+**Tailwind 4 não usa mais `tailwind.config.ts`.** Tokens entram em `globals.css` num bloco `@theme inline { ... }` logo após `@import "tailwindcss";`. Cada `--color-X` vira a classe `bg-X`, `text-X`, `border-X`. Cada `--font-X` vira `font-X`. Cada `--radius-X` vira `rounded-X`. Cada `--shadow-X` vira `shadow-X`.
 
-```typescript
-import type { Config } from 'tailwindcss';
+```css
+/* src/styles/globals.css */
+@import "tailwindcss";
 
-export default {
-  content: ['./src/**/*.{ts,tsx}'],
-  theme: {
-    extend: {
-      colors: {
-        bg: 'var(--bg)',
-        surface: 'var(--surface)',
-        card: 'var(--card)',
-        ink: {
-          DEFAULT: 'var(--ink)',
-          soft: 'var(--ink-soft)',
-        },
-        mute: {
-          DEFAULT: 'var(--mute)',
-          soft: 'var(--mute-soft)',
-        },
-        oak: {
-          DEFAULT: 'var(--oak)',
-          light: 'var(--oak-light)',
-          50: 'var(--oak-50)',
-        },
-        sage: {
-          DEFAULT: 'var(--sage)',
-          bg: 'var(--sage-bg)',
-          deep: 'var(--sage-deep)',
-        },
-        line: {
-          DEFAULT: 'var(--line)',
-          strong: 'var(--line-strong)',
-        },
-        critical: { DEFAULT: 'var(--critical)', bg: 'var(--critical-bg)' },
-        warning: { DEFAULT: 'var(--warning)', bg: 'var(--warning-bg)' },
-        ok: { DEFAULT: 'var(--ok)', bg: 'var(--ok-bg)' },
-      },
-      fontFamily: {
-        display: ['var(--font-display)'],
-        body: ['var(--font-body)'],
-        mono: ['var(--font-mono)'],
-      },
-      borderRadius: {
-        sm: 'var(--radius-sm)',
-        DEFAULT: 'var(--radius)',
-        lg: 'var(--radius-lg)',
-        pill: 'var(--radius-pill)',
-      },
-      boxShadow: {
-        sm: 'var(--shadow-sm)',
-        md: 'var(--shadow-md)',
-        lg: 'var(--shadow-lg)',
-      },
-    },
-  },
-} satisfies Config;
+:root {
+  /* CSS vars dos tokens — ver bloco "Cores" acima. Definidos no :root pra suportar
+     dark mode via `body.dark`. */
+  --bg: #FAFAF8;
+  --oak: #1F3A2A;
+  /* ... resto dos tokens ... */
+}
+
+body.dark {
+  --bg: #0E0E0C;
+  --oak: #93B596;
+  /* ... overrides dark ... */
+}
+
+/* Tokens expostos como classes Tailwind: */
+@theme inline {
+  /* Cores → classes bg-/text-/border-/ring- */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-mute: var(--mute);
+  --color-mute-soft: var(--mute-soft);
+  --color-oak: var(--oak);
+  --color-oak-light: var(--oak-light);
+  --color-oak-50: var(--oak-50);
+  --color-sage: var(--sage);
+  --color-sage-bg: var(--sage-bg);
+  --color-sage-deep: var(--sage-deep);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-critical: var(--critical);
+  --color-critical-bg: var(--critical-bg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-ok: var(--ok);
+  --color-ok-bg: var(--ok-bg);
+
+  /* Fontes → classes font-display/body/mono. As vars `--font-funnel-display`,
+     `--font-onest`, `--font-jetbrains-mono` vêm do next/font/google no layout. */
+  --font-display: var(--font-funnel-display);
+  --font-body: var(--font-onest);
+  --font-mono: var(--font-jetbrains-mono);
+
+  /* Radii → classes rounded-sm/DEFAULT/lg/pill */
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 99px;
+
+  /* Shadows → classes shadow-sm/md/lg */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
 ```
+
+**Como usar:**
+- `<div className="bg-card text-ink-soft">` em vez de `bg-[var(--card)]`
+- `<span className="font-mono text-[10px] text-mute">`
+- `<button className="rounded-pill bg-oak-50 text-oak">`
+
+**Adicionar token novo**: 1 linha em `:root` + 1 linha em `@theme inline`. Não tem mais arquivo separado pra editar.
+
+**PostCSS plugin**: `postcss.config.mjs` usa `"@tailwindcss/postcss": {}` (gerado pelo create-next-app).
 
 ### Tipografia
 
