@@ -53,7 +53,12 @@
 
 ## Active Blockers
 
-_None._
+### B-002: Docker Desktop unable to start
+
+**Discovered:** 2026-05-15 durante T9 (apply local migration).
+**Impact:** `supabase start` falha — não consegue pull/extract image do Postgres. Bloqueia T9 (apply), T10 (gen types), T11 (lib/db/client.ts tipado).
+**Workaround:** `supabase init` rodou OK (gerou config.toml + supabase/.gitignore, comitados). Resto da week-01-setup foi entregue sem tocar DB.
+**Resolution:** Usuário precisa (a) reparar Docker Desktop (restart, reinstall, free disk — / em 76%), OU (b) pivotar pra Supabase remoto (criar projeto via MCP `create_project` ou usar `project_ref` existente; aplicar via `apply_migration`).
 
 ## Resolved Blockers
 
