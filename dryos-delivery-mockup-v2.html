@@ -1,0 +1,3342 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DRYOS Delivery — Mockup v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Funnel+Display:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #FAFAF8;
+  --surface: #F2F2EE;
+  --card: #FFFFFF;
+  --ink: #0A0A0A;
+  --ink-soft: #1A1A1A;
+  --oak: #1F3A2A;
+  --oak-light: #4A6A52;
+  --oak-50: #1F3A2A0F;
+  --sage: #93B596;
+  --sage-bg: #93B59624;
+  --sage-deep: #5C8866;
+  --mute: #6B6B68;
+  --mute-soft: #9A9A95;
+  --line: rgba(26, 26, 26, 0.08);
+  --line-strong: rgba(26, 26, 26, 0.14);
+
+  --critical: #B33A3A;
+  --critical-bg: #B33A3A1A;
+  --warning: #B5751F;
+  --warning-bg: #B5751F1A;
+  --ok: #2F6B3D;
+  --ok-bg: #2F6B3D1A;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.08);
+
+  --radius: 10px;
+  --radius-sm: 6px;
+  --radius-lg: 14px;
+  --radius-pill: 99px;
+
+  --font-display: 'Funnel Display', serif;
+  --font-body: 'Onest', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+body.dark {
+  --bg: #0E0E0C;
+  --surface: #1A1A18;
+  --card: #16161410;
+  --ink: #FAFAF8;
+  --ink-soft: #E8E8E5;
+  --oak: #93B596;
+  --oak-light: #B5C9B6;
+  --oak-50: #93B5961F;
+  --sage: #93B596;
+  --sage-bg: #93B59624;
+  --mute: #9A9A95;
+  --mute-soft: #6B6B68;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --card: #1A1A18;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--ink-soft);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background 0.3s, color 0.3s;
+}
+
+/* ─────────────── MOCKUP NAVIGATION ─────────────── */
+.mockup-nav {
+  position: fixed; top: 0; left: 0; right: 0;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  z-index: 1000;
+  padding: 0.6rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.mockup-nav__brand {
+  color: var(--mute);
+  display: flex; align-items: center; gap: 0.5rem;
+}
+
+.mockup-nav__brand strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.mockup-nav__dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--sage);
+}
+
+.mockup-nav__tabs {
+  display: flex;
+  gap: 0.25rem;
+  background: var(--surface);
+  padding: 0.25rem;
+  border-radius: var(--radius-pill);
+}
+
+.mockup-nav__tab {
+  background: none;
+  border: none;
+  color: var(--mute);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--radius-pill);
+  transition: all 0.2s;
+}
+
+.mockup-nav__tab:hover { color: var(--ink); }
+.mockup-nav__tab.active {
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+
+.mockup-nav__theme {
+  background: var(--card);
+  border: 1px solid var(--line-strong);
+  color: var(--ink-soft);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius-pill);
+  display: flex; align-items: center; gap: 0.4rem;
+  transition: all 0.2s;
+}
+
+.mockup-nav__theme:hover {
+  border-color: var(--ink);
+}
+
+main { padding-top: 3rem; }
+
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* ─────────────── ICONES ─────────────── */
+.icon {
+  width: 16px; height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+.icon.sm { width: 14px; height: 14px; }
+.icon.lg { width: 20px; height: 20px; }
+
+/* ─────────────── LAYOUT ─────────────── */
+.layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: calc(100vh - 3rem);
+}
+
+.sidebar {
+  background: var(--card);
+  border-right: 1px solid var(--line);
+  padding: 1.5rem 1rem;
+  position: sticky;
+  top: 3rem;
+  height: calc(100vh - 3rem);
+  overflow-y: auto;
+}
+
+.sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.sidebar__logo {
+  width: 28px; height: 28px;
+  background: var(--ink);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bg);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.sidebar__name {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.sidebar__plan {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--mute);
+  padding: 0.1rem 0.4rem;
+  background: var(--surface);
+  border-radius: var(--radius-pill);
+  margin-left: auto;
+}
+
+.sidebar__divider {
+  height: 1px;
+  background: var(--line);
+  margin: 1rem 0.25rem;
+}
+
+.sidebar__group {
+  margin-bottom: 0.5rem;
+}
+
+.sidebar__label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--mute-soft);
+  padding: 0 0.5rem;
+  margin-bottom: 0.4rem;
+  letter-spacing: 0.04em;
+}
+
+.sidebar__item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem 0.6rem;
+  margin-bottom: 0.15rem;
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+}
+
+.sidebar__item .icon {
+  color: var(--mute);
+  transition: color 0.15s;
+}
+
+.sidebar__item:hover {
+  background: var(--surface);
+}
+.sidebar__item:hover .icon { color: var(--oak); }
+
+.sidebar__item.active {
+  background: var(--oak-50);
+  color: var(--oak);
+}
+.sidebar__item.active .icon { color: var(--oak); }
+
+.sidebar__count {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--mute);
+}
+
+.sidebar__footer {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  right: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.sidebar__avatar {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--oak);
+  color: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.sidebar__user-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 0.05rem;
+}
+
+.sidebar__user-role {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--mute);
+}
+
+.content {
+  padding: 1.75rem 2rem;
+  max-width: 1280px;
+  width: 100%;
+}
+
+/* ─────────────── HEADER DE PÁGINA ─────────────── */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.75rem;
+  gap: 2rem;
+}
+
+.page-title {
+  font-family: var(--font-display);
+  font-size: 1.875rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  margin-bottom: 0.3rem;
+  line-height: 1.1;
+}
+
+.page-subtitle {
+  font-size: 13px;
+  color: var(--mute);
+  max-width: 60ch;
+}
+
+.page-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.btn--primary {
+  background: var(--ink);
+  color: var(--bg);
+}
+.btn--primary:hover {
+  background: var(--oak);
+}
+
+.btn--ghost {
+  background: var(--card);
+  color: var(--ink-soft);
+  border-color: var(--line-strong);
+}
+.btn--ghost:hover {
+  background: var(--surface);
+  border-color: var(--ink);
+}
+
+.btn--sage {
+  background: var(--sage);
+  color: var(--ink);
+}
+.btn--sage:hover {
+  background: var(--sage-deep);
+  color: var(--bg);
+}
+
+/* ─────────────── TABS / FILTROS ─────────────── */
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  background: var(--surface);
+  padding: 0.25rem;
+  border-radius: var(--radius);
+  margin-bottom: 1.5rem;
+  width: fit-content;
+}
+
+.tab {
+  padding: 0.4rem 0.9rem;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--mute);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.tab:hover { color: var(--ink); }
+.tab.active {
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+
+.tab__count {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 0.05rem 0.35rem;
+  background: var(--bg);
+  border-radius: var(--radius-pill);
+  color: var(--mute);
+}
+
+.tab.active .tab__count {
+  background: var(--oak-50);
+  color: var(--oak);
+}
+
+/* ─────────────── SECTION HEADER ─────────────── */
+.section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 2rem 0 1rem;
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+
+.section-title__count {
+  margin-left: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--mute);
+  font-weight: 400;
+}
+
+.section-action {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--oak);
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.section-action:hover { color: var(--ink); }
+
+/* ─────────────── PILLS / BADGES ─────────────── */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--mute);
+  white-space: nowrap;
+}
+
+.pill--oak { background: var(--oak-50); color: var(--oak); }
+.pill--sage { background: var(--sage-bg); color: var(--sage-deep); }
+.pill--ok { background: var(--ok-bg); color: var(--ok); }
+.pill--warning { background: var(--warning-bg); color: var(--warning); }
+.pill--critical { background: var(--critical-bg); color: var(--critical); }
+
+.pill__dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* ─────────────── CARDS DE OPERAÇÃO ─────────────── */
+.ops-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.op-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.op-card:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.op-card__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.op-card__client {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.op-card__status {
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+.op-card__since {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--mute);
+}
+
+.op-card__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--line);
+}
+
+.op-card__people {
+  display: flex;
+  align-items: center;
+  gap: -0.5rem;
+}
+
+.op-card__avatar {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--oak);
+  color: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 10px;
+  border: 2px solid var(--card);
+}
+
+.op-card__avatar:not(:first-child) {
+  margin-left: -8px;
+}
+
+/* ─────────────── OPERAÇÃO ABERTA ─────────────── */
+.op-hero {
+  background: var(--oak);
+  color: var(--bg);
+  border-radius: var(--radius-lg);
+  padding: 2rem 2.25rem;
+  margin-bottom: 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+body.dark .op-hero {
+  background: linear-gradient(135deg, #1A1A18 0%, #232520 100%);
+  border: 1px solid var(--line);
+}
+
+.op-hero::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -10%;
+  width: 60%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(147, 181, 150, 0.15) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.op-hero__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
+  position: relative;
+  z-index: 1;
+}
+
+.op-hero__breadcrumb {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: rgba(250, 250, 248, 0.6);
+}
+
+body.dark .op-hero__breadcrumb {
+  color: var(--mute);
+}
+
+.op-hero__breadcrumb a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.op-hero__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.op-hero__btn {
+  background: rgba(250, 250, 248, 0.1);
+  color: var(--bg);
+  border: 1px solid rgba(250, 250, 248, 0.2);
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.15s;
+}
+
+.op-hero__btn:hover {
+  background: rgba(250, 250, 248, 0.18);
+}
+
+body.dark .op-hero__btn {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+
+.op-hero__title {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  color: var(--bg);
+  margin-bottom: 0.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+body.dark .op-hero__title { color: var(--ink); }
+
+.op-hero__line {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--sage);
+  color: var(--ink);
+  padding: 0.25rem 0.7rem;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  margin-bottom: 1rem;
+  position: relative;
+  z-index: 1;
+}
+
+.op-hero__meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1.5rem;
+  padding-top: 1.25rem;
+  margin-top: 1.25rem;
+  border-top: 1px solid rgba(250, 250, 248, 0.15);
+  position: relative;
+  z-index: 1;
+}
+
+body.dark .op-hero__meta {
+  border-top-color: var(--line);
+}
+
+.op-hero__meta-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: rgba(250, 250, 248, 0.6);
+  margin-bottom: 0.25rem;
+}
+
+body.dark .op-hero__meta-label { color: var(--mute); }
+
+.op-hero__meta-value {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--bg);
+}
+
+body.dark .op-hero__meta-value { color: var(--ink); }
+
+/* SEÇÕES INTERNAS */
+.op-section-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+/* VILÕES */
+.villains-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.villain-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.villain-card__top {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.villain-card__avatar {
+  width: 48px; height: 48px;
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.villain-card__avatar svg {
+  width: 32px; height: 32px;
+}
+
+.villain-card__name {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  margin-bottom: 0.15rem;
+}
+
+.villain-card__quote {
+  font-style: italic;
+  font-size: 12px;
+  color: var(--mute);
+  line-height: 1.4;
+}
+
+.villain-card__progress {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.65rem;
+}
+
+.villain-card__pct {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.villain-card__delta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--sage-deep);
+  font-weight: 500;
+}
+
+.villain-card__bar {
+  height: 8px;
+  background: var(--card);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.villain-card__bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--oak), var(--sage));
+  border-radius: var(--radius-pill);
+  transition: width 0.5s ease;
+}
+
+.villain-card__severity {
+  margin-top: 0.65rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* FRENTES TABELA */
+.frente-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.frente-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  transition: all 0.15s;
+  cursor: pointer;
+}
+
+.frente-row:hover {
+  background: var(--oak-50);
+}
+
+.frente-row__icon {
+  width: 36px; height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--oak);
+  border: 1px solid var(--line);
+}
+
+.frente-row__main {
+  min-width: 0;
+}
+
+.frente-row__title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 0.15rem;
+}
+
+.frente-row__status {
+  font-size: 12px;
+  color: var(--mute);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.frente-row__pills {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.frente-row__people {
+  display: flex;
+}
+
+/* BRIEFING */
+.briefing-card {
+  background: var(--sage-bg);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  border-left: 3px solid var(--sage);
+}
+
+.briefing-card__text {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--ink);
+  margin-bottom: 1rem;
+}
+
+.briefing-card__text em {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--sage-deep);
+  background: var(--card);
+  padding: 0.05rem 0.35rem;
+  border-radius: var(--radius-sm);
+}
+
+body.dark .briefing-card__text em {
+  color: var(--sage);
+  background: var(--bg);
+}
+
+.briefing-card__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--mute);
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(147, 181, 150, 0.25);
+}
+
+/* TIMELINE */
+.timeline-v2 {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.timeline-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  border-left: 3px solid var(--oak);
+}
+
+.timeline-card.internal {
+  border-left-color: var(--mute);
+}
+
+.timeline-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.timeline-card__date {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--mute);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.timeline-card__title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 0.4rem;
+}
+
+.timeline-card__decisions {
+  list-style: none;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.timeline-card__decisions li {
+  padding: 0.25rem 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.timeline-card__decisions li .icon {
+  color: var(--oak);
+  margin-top: 0.15rem;
+}
+
+/* FINANCEIRO */
+.financial-v2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.financial-v2__item {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  position: relative;
+}
+
+.financial-v2__icon {
+  width: 32px; height: 32px;
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--oak);
+  margin-bottom: 0.85rem;
+}
+
+.financial-v2__label {
+  font-size: 12px;
+  color: var(--mute);
+  margin-bottom: 0.3rem;
+}
+
+.financial-v2__value {
+  font-family: var(--font-display);
+  font-size: 1.625rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  line-height: 1;
+  margin-bottom: 0.35rem;
+}
+
+.financial-v2__sub {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--mute);
+}
+
+/* CREDENCIAIS */
+.cred-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cred-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 1.1rem;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+}
+
+.cred-card__icon {
+  width: 36px; height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--oak);
+  border: 1px solid var(--line);
+}
+
+.cred-card__main { flex: 1; }
+
+.cred-card__name {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 0.15rem;
+}
+
+.cred-card__meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--mute);
+}
+
+/* ─────────────── PAINEL DO ADMIN ─────────────── */
+.dash-greeting {
+  margin-bottom: 1.75rem;
+}
+
+.dash-greeting__title {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  margin-bottom: 0.25rem;
+}
+
+.dash-greeting__title em {
+  font-style: normal;
+  color: var(--oak);
+}
+
+.dash-greeting__sub {
+  font-size: 13px;
+  color: var(--mute);
+}
+
+/* KPI CARDS */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.kpi-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.85rem;
+}
+
+.kpi-card__icon {
+  width: 32px; height: 32px;
+  border-radius: var(--radius-sm);
+  background: var(--oak-50);
+  color: var(--oak);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.kpi-card__icon.sage {
+  background: var(--sage-bg);
+  color: var(--sage-deep);
+}
+
+body.dark .kpi-card__icon.sage { color: var(--sage); }
+
+.kpi-card__label {
+  font-size: 12px;
+  color: var(--mute);
+  margin-bottom: 0.35rem;
+}
+
+.kpi-card__value {
+  font-family: var(--font-display);
+  font-size: 1.875rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  line-height: 1;
+  margin-bottom: 0.65rem;
+}
+
+.kpi-card__value sup {
+  font-size: 0.85rem;
+  font-weight: 400;
+  vertical-align: top;
+  color: var(--mute);
+  margin-right: 0.15rem;
+}
+
+.kpi-card__chart {
+  height: 50px;
+  width: 100%;
+  margin: 0 -0.25rem 0.5rem;
+}
+
+.kpi-card__delta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 12px;
+}
+
+.kpi-card__delta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-pill);
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+
+.kpi-card__delta-text {
+  color: var(--mute);
+  font-size: 11px;
+}
+
+/* AÇÃO BLOCOS */
+.dash-blocks {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.dash-block {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+
+.dash-block__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.dash-block__title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dash-block__title-icon {
+  width: 24px; height: 24px;
+  border-radius: var(--radius-sm);
+  background: var(--critical-bg);
+  color: var(--critical);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dash-block__title-icon.warning { background: var(--warning-bg); color: var(--warning); }
+.dash-block__title-icon.ok { background: var(--ok-bg); color: var(--ok); }
+
+.dash-block__count {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+
+.dash-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--line);
+  gap: 1rem;
+}
+
+.dash-item:last-child { border-bottom: none; }
+
+.dash-item__main {
+  min-width: 0;
+}
+
+.dash-item__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 0.15rem;
+}
+
+.dash-item__sub {
+  font-size: 11px;
+  color: var(--mute);
+  font-family: var(--font-mono);
+}
+
+/* AGGR */
+.aggr-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.cap-row {
+  display: grid;
+  grid-template-columns: 130px 1fr 50px;
+  gap: 0.85rem;
+  align-items: center;
+  padding: 0.6rem 0;
+}
+
+.cap-name {
+  font-size: 13px;
+  color: var(--ink);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cap-name__dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--oak);
+}
+
+.cap-bar {
+  height: 8px;
+  background: var(--surface);
+  border-radius: var(--radius-pill);
+  position: relative;
+  overflow: visible;
+}
+
+.cap-bar__fill {
+  height: 100%;
+  background: var(--oak);
+  border-radius: var(--radius-pill);
+  position: relative;
+}
+
+.cap-bar__fill.over {
+  background: var(--critical);
+}
+
+.cap-bar__100 {
+  position: absolute;
+  top: -3px; bottom: -3px;
+  left: 100%;
+  width: 1.5px;
+  background: var(--mute);
+  border-radius: 1px;
+}
+
+.cap-pct {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink);
+  text-align: right;
+}
+
+.cap-pct.over { color: var(--critical); }
+
+/* CARTEIRA VILÕES */
+.carteira-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.carteira-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.carteira-list__label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--mute);
+  margin-bottom: 0.4rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.carteira-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+}
+
+.carteira-item__avatar {
+  width: 24px; height: 24px;
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  border: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.carteira-item__name {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.carteira-item__pct {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--sage-deep);
+}
+
+.carteira-item__pct.low { color: var(--mute); }
+
+body.dark .carteira-item__pct { color: var(--sage); }
+
+/* PIPELINE */
+.pipeline-table {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.pipeline-table__header {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 80px;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  background: var(--surface);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mute);
+  font-weight: 500;
+}
+
+.pipeline-table__row {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 80px;
+  gap: 1rem;
+  padding: 0.9rem 1.25rem;
+  border-top: 1px solid var(--line);
+  align-items: center;
+  font-size: 13px;
+}
+
+.pipeline-table__row:hover {
+  background: var(--surface);
+}
+
+.pipeline-table__client {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.pipeline-table__date {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+/* ─────────────── LINK PÚBLICO V2 ─────────────── */
+.public-v2 {
+  background: var(--bg);
+  min-height: calc(100vh - 3rem);
+}
+
+.public-v2__header {
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  padding: 1.25rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.public-v2__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.public-v2__logo {
+  width: 32px; height: 32px;
+  background: var(--ink);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bg);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.public-v2__brand-name {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.public-v2__title-bar {
+  font-size: 13px;
+  color: var(--mute);
+}
+
+.public-v2__title-bar strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.public-v2__content {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 3rem 2rem 5rem;
+}
+
+/* HERO V2 */
+.public-v2__hero {
+  background: linear-gradient(135deg, var(--oak) 0%, #2a4d39 100%);
+  color: var(--bg);
+  border-radius: var(--radius-lg);
+  padding: 3.5rem 3rem;
+  margin-bottom: 2rem;
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2rem;
+  align-items: center;
+}
+
+body.dark .public-v2__hero {
+  background: linear-gradient(135deg, #1A1A18 0%, #232520 100%);
+  border: 1px solid var(--line);
+}
+
+.public-v2__hero::before {
+  content: '';
+  position: absolute;
+  top: -30%;
+  right: -10%;
+  width: 50%;
+  height: 160%;
+  background: radial-gradient(circle, rgba(147, 181, 150, 0.25) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.public-v2__hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+.public-v2__hero-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(147, 181, 150, 0.2);
+  color: var(--sage);
+  padding: 0.3rem 0.85rem;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  margin-bottom: 1.25rem;
+}
+
+.public-v2__hero-title {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+  color: var(--bg);
+  margin-bottom: 1rem;
+}
+
+body.dark .public-v2__hero-title { color: var(--ink); }
+
+.public-v2__hero-title em {
+  font-style: normal;
+  color: var(--sage);
+}
+
+.public-v2__hero-lede {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 400;
+  line-height: 1.55;
+  color: rgba(250, 250, 248, 0.85);
+  max-width: 45ch;
+}
+
+body.dark .public-v2__hero-lede { color: var(--mute); }
+
+.public-v2__hero-stat {
+  background: rgba(250, 250, 248, 0.08);
+  border: 1px solid rgba(250, 250, 248, 0.15);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem 1.75rem;
+  text-align: center;
+  backdrop-filter: blur(10px);
+  position: relative;
+  z-index: 1;
+}
+
+body.dark .public-v2__hero-stat {
+  background: var(--surface);
+  border-color: var(--line-strong);
+}
+
+.public-v2__hero-stat-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: rgba(250, 250, 248, 0.7);
+  margin-bottom: 0.5rem;
+}
+
+body.dark .public-v2__hero-stat-label { color: var(--mute); }
+
+.public-v2__hero-stat-value {
+  font-family: var(--font-display);
+  font-size: 3rem;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  color: var(--sage);
+  line-height: 1;
+  margin-bottom: 0.4rem;
+}
+
+.public-v2__hero-stat-sub {
+  font-size: 11px;
+  color: rgba(250, 250, 248, 0.7);
+}
+
+body.dark .public-v2__hero-stat-sub { color: var(--mute); }
+
+/* SECTION V2 */
+.public-v2__section {
+  margin-bottom: 3rem;
+}
+
+.public-v2__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.public-v2__section-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.public-v2__section-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--mute);
+  padding: 0.3rem 0.7rem;
+  background: var(--surface);
+  border-radius: var(--radius-pill);
+}
+
+/* VILÕES V2 */
+.public-villains {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.public-villain-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.75rem;
+  display: grid;
+  grid-template-columns: 120px 1fr 140px;
+  gap: 2rem;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.public-villain-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.public-villain-card__avatar {
+  width: 120px; height: 120px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+}
+
+.public-villain-card__name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.public-villain-card__name {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.public-villain-card__narrative {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin-bottom: 0.85rem;
+  max-width: 55ch;
+}
+
+.public-villain-card__bar {
+  height: 6px;
+  background: var(--surface);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.public-villain-card__bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--oak), var(--sage));
+  border-radius: var(--radius-pill);
+}
+
+.public-villain-card__progress {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1.5rem;
+  background: var(--surface);
+  border-radius: var(--radius);
+}
+
+.public-villain-card__pct {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  color: var(--sage-deep);
+  margin-bottom: 0.35rem;
+}
+
+body.dark .public-villain-card__pct { color: var(--sage); }
+
+.public-villain-card__pct-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--mute);
+}
+
+/* WINS V2 */
+.public-wins {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.public-win-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.public-win-card:hover {
+  border-color: var(--sage);
+  box-shadow: var(--shadow-md);
+}
+
+.public-win-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.85rem;
+}
+
+.public-win-card__icon {
+  width: 36px; height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--sage-bg);
+  color: var(--sage-deep);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body.dark .public-win-card__icon { color: var(--sage); }
+
+.public-win-card__date {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--mute);
+}
+
+.public-win-card__title {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  margin-bottom: 0.5rem;
+}
+
+.public-win-card__text {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin-bottom: 0.85rem;
+}
+
+.public-win-card__impact {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--line);
+}
+
+/* NEXT */
+.public-next-list {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.public-next-row {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid var(--line);
+  align-items: center;
+}
+
+.public-next-row:first-child { border-top: none; }
+
+.public-next-row__num {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--oak-50);
+  color: var(--oak);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.public-next-row__text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.public-next-row__eta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 0.25rem 0.7rem;
+  background: var(--surface);
+  border-radius: var(--radius-pill);
+  color: var(--mute);
+}
+
+/* TEAM */
+.public-team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.public-team-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.public-team-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.public-team-card__avatar {
+  width: 64px; height: 64px;
+  margin: 0 auto 0.85rem;
+  border-radius: 50%;
+  background: var(--oak);
+  color: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.public-team-card__name {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 0.2rem;
+}
+
+.public-team-card__role {
+  font-size: 11px;
+  color: var(--mute);
+}
+
+/* REVEAL */
+.reveal {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.reveal.in { opacity: 1; transform: translateY(0); }
+
+/* RESPONSIVE */
+@media (max-width: 1000px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .dash-blocks { grid-template-columns: 1fr; }
+  .aggr-grid { grid-template-columns: 1fr; }
+  .public-villain-card { grid-template-columns: 1fr; text-align: center; }
+}
+
+</style>
+</head>
+<body>
+
+<!-- MOCKUP NAVIGATION -->
+<nav class="mockup-nav">
+  <div class="mockup-nav__brand">
+    <div class="mockup-nav__dot"></div>
+    Mockup v2 · <strong>DRYOS Delivery</strong>
+  </div>
+  <div class="mockup-nav__tabs">
+    <button class="mockup-nav__tab active" data-screen="home">Home</button>
+    <button class="mockup-nav__tab" data-screen="operacao">Operação aberta</button>
+    <button class="mockup-nav__tab" data-screen="admin">Painel</button>
+    <button class="mockup-nav__tab" data-screen="public">Link público</button>
+  </div>
+  <button class="mockup-nav__theme" id="themeToggle">
+    <svg class="icon sm" viewBox="0 0 24 24"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707"/><circle cx="12" cy="12" r="4"/></svg>
+    <span>Modo escuro</span>
+  </button>
+</nav>
+
+<main>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- TELA 1: HOME                                                 -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section class="screen active" id="screen-home">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar__brand">
+        <div class="sidebar__logo">D</div>
+        <div class="sidebar__name">DRYOS</div>
+        <div class="sidebar__plan">Delivery</div>
+      </div>
+
+      <div class="sidebar__divider"></div>
+
+      <div class="sidebar__group">
+        <div class="sidebar__label">Espaço de trabalho</div>
+        <div class="sidebar__item active">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M3 12l9-9 9 9M5 10v10h14V10"/></svg>
+          Home
+          <span class="sidebar__count">12</span>
+        </div>
+        <div class="sidebar__item">
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2M16 3.13a4 4 0 010 7.75M21 21v-2a4 4 0 00-3-3.87"/></svg>
+          Clientes
+          <span class="sidebar__count">11</span>
+        </div>
+        <div class="sidebar__item">
+          <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          Operações
+          <span class="sidebar__count">17</span>
+        </div>
+        <div class="sidebar__item">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+          Pessoas
+        </div>
+      </div>
+
+      <div class="sidebar__divider"></div>
+
+      <div class="sidebar__group">
+        <div class="sidebar__label">Admin</div>
+        <div class="sidebar__item">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2zM22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+          Catálogo
+        </div>
+        <div class="sidebar__item">
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33h0a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51h0a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82v0a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          Configurações
+        </div>
+      </div>
+
+      <div class="sidebar__footer">
+        <div class="sidebar__avatar">R</div>
+        <div>
+          <div class="sidebar__user-name">Rafael</div>
+          <div class="sidebar__user-role">Admin</div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="content">
+      <div class="page-header reveal">
+        <div>
+          <h1 class="page-title">Operações</h1>
+          <p class="page-subtitle">Bom dia, Rafael. Você tem 12 operações ativas e 2 em janela crítica essa semana.</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn--ghost">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            Nova operação
+          </button>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active">Em construção <span class="tab__count">4</span></button>
+        <button class="tab">Em operação <span class="tab__count">11</span></button>
+        <button class="tab">Janela crítica <span class="tab__count">2</span></button>
+        <button class="tab">Todas</button>
+      </div>
+
+      <div class="ops-grid reveal">
+        <!-- Card 1 -->
+        <div class="op-card">
+          <div class="op-card__top">
+            <span class="pill pill--oak">
+              <span class="pill__dot"></span>
+              Core
+            </span>
+            <span class="pill pill--warning">Go-live em 11d</span>
+          </div>
+          <div class="op-card__client">Acorp Eventos</div>
+          <div class="op-card__status">Aguardando aprovação do escopo de Aegis pelo Jane <span class="op-card__since">— desde 10/05</span></div>
+          <div class="op-card__footer">
+            <div class="op-card__people">
+              <div class="op-card__avatar">B</div>
+              <div class="op-card__avatar" style="background:var(--sage-deep)">D</div>
+            </div>
+            <button class="btn btn--ghost" style="padding:0.25rem 0.6rem; font-size:11px">
+              Abrir →
+            </button>
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="op-card">
+          <div class="op-card__top">
+            <span class="pill pill--oak">
+              <span class="pill__dot"></span>
+              Studio Insight
+            </span>
+            <span class="pill">Entrega em 19d</span>
+          </div>
+          <div class="op-card__client">Eventmetrics</div>
+          <div class="op-card__status">Sprint 3 em revisão — aguardando feedback técnico do cliente <span class="op-card__since">— desde 12/05</span></div>
+          <div class="op-card__footer">
+            <div class="op-card__people">
+              <div class="op-card__avatar">D</div>
+            </div>
+            <button class="btn btn--ghost" style="padding:0.25rem 0.6rem; font-size:11px">Abrir →</button>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="op-card">
+          <div class="op-card__top">
+            <span class="pill pill--oak">
+              <span class="pill__dot"></span>
+              Spark Inbox
+            </span>
+            <span class="pill pill--warning">Setup em 5d</span>
+          </div>
+          <div class="op-card__client">Gois Fit</div>
+          <div class="op-card__status">Aguardando lista de FAQs do cliente para treinar agente <span class="op-card__since">— desde 08/05</span></div>
+          <div class="op-card__footer">
+            <div class="op-card__people">
+              <div class="op-card__avatar">M</div>
+            </div>
+            <button class="btn btn--ghost" style="padding:0.25rem 0.6rem; font-size:11px">Abrir →</button>
+          </div>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="op-card">
+          <div class="op-card__top">
+            <span class="pill pill--oak">
+              <span class="pill__dot"></span>
+              Studio Custom
+            </span>
+            <span class="pill">Kick-off em 7d</span>
+          </div>
+          <div class="op-card__client">DeMarchi Automotive</div>
+          <div class="op-card__status">Briefing técnico finalizado, aguardando assinatura do contrato <span class="op-card__since">— desde 14/05</span></div>
+          <div class="op-card__footer">
+            <div class="op-card__people">
+              <div class="op-card__avatar">R</div>
+            </div>
+            <button class="btn btn--ghost" style="padding:0.25rem 0.6rem; font-size:11px">Abrir →</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <h2 class="section-title">Em operação <span class="section-title__count">11 ativas</span></h2>
+        <button class="section-action">Ver todas <svg class="icon sm" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+      </div>
+
+      <div class="ops-grid reveal">
+        <div class="op-card">
+          <div class="op-card__top">
+            <span class="pill pill--oak"><span class="pill__dot"></span>Core</span>
+            <span class="pill pill--ok"><span class="pill__dot"></span>Saudável</span>
+          </div>
+          <div class="op-card__client">Cliente Cortex</div>
+          <div class="op-card__status">SLA do mês em dia. Aegis comercial com 87% de resolução autônoma. <span class="op-card__since">— ativo desde Jan/26</span></div>
+          <div class="op-card__footer">
+            <div class="op-card__people">
+              <div class="op-card__avatar">B</div>
+              <div class="op-card__avatar" style="background:var(--sage-deep)">D</div>
+              <div class="op-card__avatar" style="background:var(--oak-light)">C</div>
+            </div>
+            <span class="pill">Renova 47d</span>
+          </div>
+        </div>
+
+        <div class="op-card">
+          <div class="op-card__top">
+            <span class="pill pill--oak"><span class="pill__dot"></span>Spark Pulse + Cobra</span>
+            <span class="pill pill--ok"><span class="pill__dot"></span>Saudável</span>
+          </div>
+          <div class="op-card__client">Academia Tio Sam</div>
+          <div class="op-card__status">Relatório de Abril entregue. Cobra reduziu inadimplência em 18%. <span class="op-card__since">— ativo desde Out/25</span></div>
+          <div class="op-card__footer">
+            <div class="op-card__people">
+              <div class="op-card__avatar">M</div>
+              <div class="op-card__avatar" style="background:var(--oak-light)">C</div>
+            </div>
+            <span class="pill">Renova 92d</span>
+          </div>
+        </div>
+
+        <div class="op-card">
+          <div class="op-card__top">
+            <span class="pill pill--oak"><span class="pill__dot"></span>Spark Bridge</span>
+            <span class="pill pill--critical"><span class="pill__dot"></span>SLA em risco</span>
+          </div>
+          <div class="op-card__client">Gois Fit</div>
+          <div class="op-card__status">Atenção: 3 falhas em integração com Conta Azul nas últimas 72h <span class="op-card__since">— desde 13/05 06:00</span></div>
+          <div class="op-card__footer">
+            <div class="op-card__people">
+              <div class="op-card__avatar" style="background:var(--sage-deep)">D</div>
+            </div>
+            <button class="btn btn--ghost" style="padding:0.25rem 0.6rem; font-size:11px; color:var(--critical); border-color:var(--critical)">Investigar →</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <h2 class="section-title">Em janela crítica <span class="section-title__count">2 lançamentos</span></h2>
+      </div>
+
+      <div class="ops-grid reveal">
+        <div class="op-card" style="border-color:var(--critical); background:linear-gradient(135deg, var(--card) 0%, var(--critical-bg) 100%)">
+          <div class="op-card__top">
+            <span class="pill pill--oak"><span class="pill__dot"></span>Studio Launch · Edição #03</span>
+            <span class="pill pill--critical"><span class="pill__dot"></span>D-7</span>
+          </div>
+          <div class="op-card__client">Cliente Cortex</div>
+          <div class="op-card__status">Aquecimento ativo. Cockpit configurado. Plantão noturno definido. <span class="op-card__since">— D-day 22/05 às 20h</span></div>
+          <div class="op-card__footer">
+            <div class="op-card__people">
+              <div class="op-card__avatar">R</div>
+              <div class="op-card__avatar" style="background:var(--sage-deep)">D</div>
+            </div>
+            <button class="btn btn--ghost" style="padding:0.25rem 0.6rem; font-size:11px">War room →</button>
+          </div>
+        </div>
+
+        <div class="op-card">
+          <div class="op-card__top">
+            <span class="pill pill--oak"><span class="pill__dot"></span>Studio Launch · Edição #01</span>
+            <span class="pill pill--warning"><span class="pill__dot"></span>D-18</span>
+          </div>
+          <div class="op-card__client">Acorp Eventos</div>
+          <div class="op-card__status">Pré-lançamento iniciado. Pixels e webhooks validados. <span class="op-card__since">— D-day 02/06 às 19h</span></div>
+          <div class="op-card__footer">
+            <div class="op-card__people">
+              <div class="op-card__avatar">B</div>
+              <div class="op-card__avatar">M</div>
+            </div>
+            <button class="btn btn--ghost" style="padding:0.25rem 0.6rem; font-size:11px">Abrir →</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- TELA 2: OPERAÇÃO ABERTA                                      -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section class="screen" id="screen-operacao">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar__brand">
+        <div class="sidebar__logo">D</div>
+        <div class="sidebar__name">DRYOS</div>
+        <div class="sidebar__plan">Delivery</div>
+      </div>
+      <div class="sidebar__divider"></div>
+      <div class="sidebar__group">
+        <div class="sidebar__label">Espaço de trabalho</div>
+        <div class="sidebar__item">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M3 12l9-9 9 9M5 10v10h14V10"/></svg>
+          Home
+        </div>
+        <div class="sidebar__item">
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
+          Clientes
+        </div>
+        <div class="sidebar__item active">
+          <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          Operações
+          <span class="sidebar__count">17</span>
+        </div>
+      </div>
+      <div class="sidebar__footer">
+        <div class="sidebar__avatar">R</div>
+        <div>
+          <div class="sidebar__user-name">Rafael</div>
+          <div class="sidebar__user-role">Admin</div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="content">
+
+      <!-- HERO -->
+      <div class="op-hero reveal">
+        <div class="op-hero__top">
+          <div class="op-hero__breadcrumb">
+            <a>Operações</a> &nbsp;/&nbsp; <a>Cliente Cortex</a>
+          </div>
+          <div class="op-hero__actions">
+            <button class="op-hero__btn">
+              <svg class="icon sm" viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
+              Compartilhar
+            </button>
+            <button class="op-hero__btn">
+              <svg class="icon sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="op-hero__line">
+          <span class="pill__dot"></span>
+          DRYOS Core · Saudável
+        </div>
+        <h1 class="op-hero__title">Cliente Cortex</h1>
+
+        <div class="op-hero__meta">
+          <div>
+            <div class="op-hero__meta-label">Ativo desde</div>
+            <div class="op-hero__meta-value">Janeiro de 2026</div>
+          </div>
+          <div>
+            <div class="op-hero__meta-label">Recorrência</div>
+            <div class="op-hero__meta-value">R$ 24.500/mês</div>
+          </div>
+          <div>
+            <div class="op-hero__meta-label">Responsável</div>
+            <div class="op-hero__meta-value">Bárbara · Sucesso</div>
+          </div>
+          <div>
+            <div class="op-hero__meta-label">Renovação</div>
+            <div class="op-hero__meta-value">01/07/2026 · 47d</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VILÕES -->
+      <div class="op-section-card reveal">
+        <div class="section-header" style="margin:0 0 1rem">
+          <h2 class="section-title">Vilões em luta <span class="section-title__count">3 ativos</span></h2>
+          <button class="section-action">Ver diagnóstico <svg class="icon sm" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+        </div>
+
+        <div class="villains-grid">
+          <div class="villain-card">
+            <div class="villain-card__top">
+              <div class="villain-card__avatar">
+                <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M8 8 L24 24 M24 8 L8 24" stroke="#1F3A2A" stroke-width="1.5" fill="none"/>
+                  <circle cx="16" cy="16" r="8" stroke="#1F3A2A" stroke-width="1.5" fill="none"/>
+                </svg>
+              </div>
+              <div>
+                <div class="villain-card__name">Capitão Manualis</div>
+                <div class="villain-card__quote">"Sempre foi assim."</div>
+              </div>
+            </div>
+            <div class="villain-card__progress">
+              <div class="villain-card__pct">62%</div>
+              <div class="villain-card__delta">↗ +18% este mês</div>
+            </div>
+            <div class="villain-card__bar">
+              <div class="villain-card__bar-fill" style="width:62%"></div>
+            </div>
+            <div class="villain-card__severity">
+              <span class="pill">Severidade inicial: ALTA</span>
+            </div>
+          </div>
+
+          <div class="villain-card">
+            <div class="villain-card__top">
+              <div class="villain-card__avatar">
+                <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="5" y="11" width="6" height="16" stroke="#1F3A2A" stroke-width="1.5" fill="none"/>
+                  <rect x="13" y="7" width="6" height="20" stroke="#1F3A2A" stroke-width="1.5" fill="none"/>
+                  <rect x="21" y="11" width="6" height="16" stroke="#1F3A2A" stroke-width="1.5" fill="none"/>
+                </svg>
+              </div>
+              <div>
+                <div class="villain-card__name">Senhor dos Silos</div>
+                <div class="villain-card__quote">"Esse dado é do nosso setor."</div>
+              </div>
+            </div>
+            <div class="villain-card__progress">
+              <div class="villain-card__pct">48%</div>
+              <div class="villain-card__delta">↗ +12% este mês</div>
+            </div>
+            <div class="villain-card__bar">
+              <div class="villain-card__bar-fill" style="width:48%"></div>
+            </div>
+            <div class="villain-card__severity">
+              <span class="pill pill--critical">Severidade inicial: CRÍTICA</span>
+            </div>
+          </div>
+
+          <div class="villain-card">
+            <div class="villain-card__top">
+              <div class="villain-card__avatar">
+                <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="16" cy="16" r="10" stroke="#1F3A2A" stroke-width="1.5" fill="none"/>
+                  <path d="M16 6 Q22 16 16 26 Q10 16 16 6" stroke="#1F3A2A" stroke-width="1.5" fill="none"/>
+                </svg>
+              </div>
+              <div>
+                <div class="villain-card__name">Oráculo do Achismo</div>
+                <div class="villain-card__quote">"Eu acho que tá vendendo bem..."</div>
+              </div>
+            </div>
+            <div class="villain-card__progress">
+              <div class="villain-card__pct">35%</div>
+              <div class="villain-card__delta">↗ +8% este mês</div>
+            </div>
+            <div class="villain-card__bar">
+              <div class="villain-card__bar-fill" style="width:35%"></div>
+            </div>
+            <div class="villain-card__severity">
+              <span class="pill">Severidade inicial: ALTA</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FRENTES -->
+      <div class="op-section-card reveal">
+        <div class="section-header" style="margin:0 0 1rem">
+          <h2 class="section-title">Frentes <span class="section-title__count">3 ativas</span></h2>
+          <button class="btn btn--ghost" style="padding:0.4rem 0.75rem; font-size:12px">
+            <svg class="icon sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            Nova frente
+          </button>
+        </div>
+
+        <div class="frente-table">
+          <div class="frente-row">
+            <div class="frente-row__icon">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M12 2v6.5l3-3M12 2L9 5"/><rect x="2" y="9" width="20" height="12" rx="2"/><path d="M6 14h.01M10 14h.01M14 14h.01M18 14h.01"/></svg>
+            </div>
+            <div class="frente-row__main">
+              <div class="frente-row__title">Infra de operação contínua</div>
+              <div class="frente-row__status">SLA do mês cumprido. Aegis comercial estável com 87% de resolução autônoma.</div>
+            </div>
+            <div class="frente-row__pills">
+              <span class="pill pill--oak">Tipo C · Infra</span>
+              <span class="pill pill--ok"><span class="pill__dot"></span>Uptime 99.8%</span>
+            </div>
+            <div class="frente-row__people">
+              <div class="op-card__avatar">B</div>
+              <div class="op-card__avatar" style="background:var(--sage-deep)">D</div>
+            </div>
+          </div>
+
+          <div class="frente-row">
+            <div class="frente-row__icon">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M3 3v18h18M7 14l4-4 4 4 5-5"/></svg>
+            </div>
+            <div class="frente-row__main">
+              <div class="frente-row__title">Relatório mensal executivo</div>
+              <div class="frente-row__status">Relatório de Abril entregue dia 03/05. Próximo: 03/06.</div>
+            </div>
+            <div class="frente-row__pills">
+              <span class="pill pill--oak">Tipo C · Dados Analítica</span>
+              <span class="pill pill--ok">No prazo</span>
+            </div>
+            <div class="frente-row__people">
+              <div class="op-card__avatar" style="background:var(--oak-light)">C</div>
+            </div>
+          </div>
+
+          <div class="frente-row">
+            <div class="frente-row__icon">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/></svg>
+            </div>
+            <div class="frente-row__main">
+              <div class="frente-row__title">Migração de histórico do HubSpot</div>
+              <div class="frente-row__status">Mapeamento finalizado. Aguardando aprovação do mapeamento pelo cliente.</div>
+            </div>
+            <div class="frente-row__pills">
+              <span class="pill pill--oak">Tipo A · Dados Técnica</span>
+              <span class="pill pill--warning">Entrega 25/05</span>
+            </div>
+            <div class="frente-row__people">
+              <div class="op-card__avatar" style="background:var(--sage-deep)">D</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BRIEFING -->
+      <div class="op-section-card reveal">
+        <div class="section-header" style="margin:0 0 1rem">
+          <h2 class="section-title">Briefing vivo</h2>
+          <button class="section-action">Ver versões (12) <svg class="icon sm" viewBox="0 0 24 24"><path d="M3 12a9 9 0 109-9M3 4v8h8"/></svg></button>
+        </div>
+
+        <div class="briefing-card">
+          <p class="briefing-card__text">
+            Implementação do DRYOS Core no Cliente Cortex, segmento de educação. Escopo inclui os 8 módulos com foco principal no <em>agente comercial via WhatsApp</em> integrado ao CRM e ao Inbox. A operação atende 4 polos físicos, com previsão de chegar a 7 polos até o fim do ano. <em>Dados Analítica</em> entrou no escopo a partir do mês 3.
+          </p>
+          <div class="briefing-card__meta">
+            <span>Última alteração: 10/03 por Rafael</span>
+            <span>via Reunião de alinhamento trimestral</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- REUNIÕES -->
+      <div class="op-section-card reveal">
+        <div class="section-header" style="margin:0 0 1rem">
+          <h2 class="section-title">Reuniões e decisões <span class="section-title__count">3 recentes</span></h2>
+          <button class="btn btn--ghost" style="padding:0.4rem 0.75rem; font-size:12px">
+            <svg class="icon sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            Nova reunião
+          </button>
+        </div>
+
+        <div class="timeline-v2">
+          <div class="timeline-card">
+            <div class="timeline-card__top">
+              <div class="timeline-card__date">
+                <svg class="icon sm" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                14/05 · 16h
+              </div>
+              <span class="pill pill--sage">Com cliente</span>
+            </div>
+            <div class="timeline-card__title">Alinhamento mensal — Maio</div>
+            <ul class="timeline-card__decisions">
+              <li><svg class="icon sm" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg> Aprovado escopo de migração do HubSpot — entrega até 25/05</li>
+              <li><svg class="icon sm" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg> Renovação de contrato confirmada para 01/07 — sem alterações</li>
+            </ul>
+          </div>
+
+          <div class="timeline-card internal">
+            <div class="timeline-card__top">
+              <div class="timeline-card__date">
+                <svg class="icon sm" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                13/05 · 11h
+              </div>
+              <span class="pill">Interna</span>
+            </div>
+            <div class="timeline-card__title">Estratégia trimestral Cortex</div>
+            <ul class="timeline-card__decisions">
+              <li><svg class="icon sm" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg> Propor expansão pra Spark Cobra na próxima renovação</li>
+              <li><svg class="icon sm" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg> Diego dedicado 30% à frente de migração nas próximas 2 semanas</li>
+            </ul>
+          </div>
+
+          <div class="timeline-card">
+            <div class="timeline-card__top">
+              <div class="timeline-card__date">
+                <svg class="icon sm" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                03/05 · 14h
+              </div>
+              <span class="pill pill--sage">Com cliente</span>
+            </div>
+            <div class="timeline-card__title">Apresentação do relatório de Abril</div>
+            <ul class="timeline-card__decisions">
+              <li><svg class="icon sm" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg> Cliente aprovou novo dashboard de conversão por polo</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- FINANCEIRO -->
+      <div class="op-section-card reveal">
+        <div class="section-header" style="margin:0 0 1rem">
+          <h2 class="section-title">Financeiro</h2>
+          <button class="section-action">Histórico completo <svg class="icon sm" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+        </div>
+
+        <div class="financial-v2">
+          <div class="financial-v2__item">
+            <div class="financial-v2__icon">
+              <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+            </div>
+            <div class="financial-v2__label">Recorrência mensal</div>
+            <div class="financial-v2__value">R$ 24,5k</div>
+            <div class="financial-v2__sub">Próxima: 01/06</div>
+          </div>
+          <div class="financial-v2__item">
+            <div class="financial-v2__icon">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M20 7H4a2 2 0 00-2 2v8a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+            </div>
+            <div class="financial-v2__label">Faturado até hoje</div>
+            <div class="financial-v2__value">R$ 98k</div>
+            <div class="financial-v2__sub">4 meses · Jan a Abr</div>
+          </div>
+          <div class="financial-v2__item">
+            <div class="financial-v2__icon">
+              <svg class="icon" viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+            </div>
+            <div class="financial-v2__label">Projetado 12 meses</div>
+            <div class="financial-v2__value">R$ 294k</div>
+            <div class="financial-v2__sub">Com renovação Jul/26</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CREDENCIAIS -->
+      <div class="op-section-card reveal">
+        <div class="section-header" style="margin:0 0 1rem">
+          <h2 class="section-title">Credenciais <span class="section-title__count">3 referências</span></h2>
+          <button class="btn btn--ghost" style="padding:0.4rem 0.75rem; font-size:12px">
+            <svg class="icon sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            Nova referência
+          </button>
+        </div>
+
+        <div class="cred-list">
+          <div class="cred-card">
+            <div class="cred-card__icon">
+              <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            </div>
+            <div class="cred-card__main">
+              <div class="cred-card__name">ActiveCampaign — Conta principal</div>
+              <div class="cred-card__meta">Bitwarden · Vault Dryos/Cortex · Acesso: Bárbara, Diego</div>
+            </div>
+            <button class="btn btn--ghost" style="padding:0.4rem 0.7rem; font-size:11px">
+              Abrir
+              <svg class="icon sm" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
+            </button>
+          </div>
+
+          <div class="cred-card">
+            <div class="cred-card__icon">
+              <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            </div>
+            <div class="cred-card__main">
+              <div class="cred-card__name">Meta Business Manager</div>
+              <div class="cred-card__meta">Bitwarden · Vault Dryos/Cortex · Acesso: Diego</div>
+            </div>
+            <button class="btn btn--ghost" style="padding:0.4rem 0.7rem; font-size:11px">
+              Abrir
+              <svg class="icon sm" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
+            </button>
+          </div>
+
+          <div class="cred-card">
+            <div class="cred-card__icon">
+              <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            </div>
+            <div class="cred-card__main">
+              <div class="cred-card__name">Hotmart — API token</div>
+              <div class="cred-card__meta">Bitwarden · Vault Dryos/Cortex · Acesso: Diego, Rafael</div>
+            </div>
+            <button class="btn btn--ghost" style="padding:0.4rem 0.7rem; font-size:11px">
+              Abrir
+              <svg class="icon sm" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- TELA 3: PAINEL ADMIN                                         -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section class="screen" id="screen-admin">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar__brand">
+        <div class="sidebar__logo">D</div>
+        <div class="sidebar__name">DRYOS</div>
+        <div class="sidebar__plan">Admin</div>
+      </div>
+      <div class="sidebar__divider"></div>
+      <div class="sidebar__group">
+        <div class="sidebar__label">Visão</div>
+        <div class="sidebar__item active">
+          <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+          Painel
+        </div>
+        <div class="sidebar__item">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M3 12l9-9 9 9M5 10v10h14V10"/></svg>
+          Home operação
+        </div>
+        <div class="sidebar__item">
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
+          Clientes
+        </div>
+        <div class="sidebar__item">
+          <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          Operações
+        </div>
+      </div>
+      <div class="sidebar__footer">
+        <div class="sidebar__avatar">R</div>
+        <div>
+          <div class="sidebar__user-name">Rafael</div>
+          <div class="sidebar__user-role">Admin</div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="content">
+
+      <div class="dash-greeting reveal">
+        <h1 class="dash-greeting__title">Bom dia, <em>Rafael.</em></h1>
+        <p class="dash-greeting__sub">15 de Maio · A casa hoje em 30 segundos.</p>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-grid reveal">
+        <div class="kpi-card">
+          <div class="kpi-card__top">
+            <div class="kpi-card__icon sage">
+              <svg class="icon lg" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+            </div>
+            <span class="pill pill--ok">+8.2%</span>
+          </div>
+          <div class="kpi-card__label">MRR atual</div>
+          <div class="kpi-card__value"><sup>R$</sup>187k</div>
+          <svg class="kpi-card__chart" viewBox="0 0 200 50" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#93B596" stop-opacity="0.3"/>
+                <stop offset="100%" stop-color="#93B596" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <path d="M0,40 Q20,38 40,35 T80,28 T120,22 T160,15 T200,10 L200,50 L0,50 Z" fill="url(#g1)"/>
+            <polyline points="0,40 20,38 40,35 60,32 80,28 100,25 120,22 140,18 160,15 180,12 200,10" fill="none" stroke="#5C8866" stroke-width="2"/>
+            <circle cx="200" cy="10" r="3" fill="#5C8866"/>
+          </svg>
+          <div class="kpi-card__delta-text">vs Abril · trajetória 90d</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-card__top">
+            <div class="kpi-card__icon">
+              <svg class="icon lg" viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+            </div>
+            <span class="pill pill--ok">+25%</span>
+          </div>
+          <div class="kpi-card__label">MRR projetado · 90d</div>
+          <div class="kpi-card__value"><sup>R$</sup>234k</div>
+          <svg class="kpi-card__chart" viewBox="0 0 200 50" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="g2" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#1F3A2A" stop-opacity="0.25"/>
+                <stop offset="100%" stop-color="#1F3A2A" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <path d="M0,40 L40,35 L80,30 L120,22 L160,12 L200,4 L200,50 L0,50 Z" fill="url(#g2)"/>
+            <polyline points="0,40 40,35 80,30 120,22 160,12 200,4" fill="none" stroke="#1F3A2A" stroke-width="2"/>
+            <circle cx="200" cy="4" r="3" fill="#1F3A2A"/>
+          </svg>
+          <div class="kpi-card__delta-text">Considerando 3 fechamentos</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-card__top">
+            <div class="kpi-card__icon">
+              <svg class="icon lg" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            </div>
+            <span class="pill pill--ok">+2</span>
+          </div>
+          <div class="kpi-card__label">Operações ativas</div>
+          <div class="kpi-card__value">17</div>
+          <svg class="kpi-card__chart" viewBox="0 0 200 50" preserveAspectRatio="none">
+            <polyline points="0,40 30,38 60,38 90,32 120,28 150,25 180,22 200,20" fill="none" stroke="#1F3A2A" stroke-width="2"/>
+            <circle cx="200" cy="20" r="3" fill="#1F3A2A"/>
+          </svg>
+          <div class="kpi-card__delta-text">Últimos 30 dias</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-card__top">
+            <div class="kpi-card__icon">
+              <svg class="icon lg" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
+            </div>
+            <span class="pill pill--sage">Zero churn 6m</span>
+          </div>
+          <div class="kpi-card__label">Clientes ativos</div>
+          <div class="kpi-card__value">11</div>
+          <svg class="kpi-card__chart" viewBox="0 0 200 50" preserveAspectRatio="none">
+            <polyline points="0,38 40,36 80,33 120,30 160,28 200,25" fill="none" stroke="#5C8866" stroke-width="2"/>
+            <circle cx="200" cy="25" r="3" fill="#5C8866"/>
+          </svg>
+          <div class="kpi-card__delta-text">Crescimento orgânico</div>
+        </div>
+      </div>
+
+      <!-- AÇÃO -->
+      <div class="dash-blocks reveal">
+        <div class="dash-block">
+          <div class="dash-block__header">
+            <div class="dash-block__title">
+              <div class="dash-block__title-icon">
+                <svg class="icon sm" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              </div>
+              Atenção imediata
+            </div>
+            <div class="dash-block__count">5</div>
+          </div>
+
+          <div class="dash-item">
+            <div class="dash-item__main">
+              <div class="dash-item__title">Gois Fit · Spark Bridge</div>
+              <div class="dash-item__sub">3 falhas em 72h</div>
+            </div>
+            <span class="pill pill--critical">SLA em risco</span>
+          </div>
+
+          <div class="dash-item">
+            <div class="dash-item__main">
+              <div class="dash-item__title">Acorp · Aprovação de escopo</div>
+              <div class="dash-item__sub">Parado há 5 dias</div>
+            </div>
+            <span class="pill pill--warning">Bloqueado</span>
+          </div>
+
+          <div class="dash-item">
+            <div class="dash-item__main">
+              <div class="dash-item__title">Bárbara · Capacidade</div>
+              <div class="dash-item__sub">Alocada em 142%</div>
+            </div>
+            <span class="pill pill--critical">Sobrecarga</span>
+          </div>
+
+          <div class="dash-item">
+            <div class="dash-item__main">
+              <div class="dash-item__title">Cortex · Decisão pendente</div>
+              <div class="dash-item__sub">Migração HubSpot</div>
+            </div>
+            <span class="pill pill--warning">Decidir</span>
+          </div>
+
+          <div class="dash-item">
+            <div class="dash-item__main">
+              <div class="dash-item__title">Tio Sam · NPS abaixo</div>
+              <div class="dash-item__sub">Caiu de 9 pra 7</div>
+            </div>
+            <span class="pill">Observar</span>
+          </div>
+        </div>
+
+        <div class="dash-block">
+          <div class="dash-block__header">
+            <div class="dash-block__title">
+              <div class="dash-block__title-icon warning">
+                <svg class="icon sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              Janela crítica
+            </div>
+            <div class="dash-block__count">2</div>
+          </div>
+
+          <div class="dash-item">
+            <div class="dash-item__main">
+              <div class="dash-item__title">Cortex · Lançamento Pós-Grad</div>
+              <div class="dash-item__sub">Plantão definido</div>
+            </div>
+            <span class="pill pill--critical">D-7</span>
+          </div>
+
+          <div class="dash-item">
+            <div class="dash-item__main">
+              <div class="dash-item__title">Acorp · Encontro Nacional</div>
+              <div class="dash-item__sub">Pixels validados</div>
+            </div>
+            <span class="pill pill--warning">D-18</span>
+          </div>
+        </div>
+
+        <div class="dash-block">
+          <div class="dash-block__header">
+            <div class="dash-block__title">
+              <div class="dash-block__title-icon ok">
+                <svg class="icon sm" viewBox="0 0 24 24"><path d="M21 12a9 9 0 11-6.219-8.56"/><polyline points="21 4 12 13 9 10"/></svg>
+              </div>
+              Renovações · 60d
+            </div>
+            <div class="dash-block__count">3</div>
+          </div>
+
+          <div class="dash-item">
+            <div class="dash-item__main">
+              <div class="dash-item__title">Cortex · Core completo</div>
+              <div class="dash-item__sub">Renova 01/07</div>
+            </div>
+            <span class="pill pill--ok">Sólido</span>
+          </div>
+
+          <div class="dash-item">
+            <div class="dash-item__main">
+              <div class="dash-item__title">Tio Sam · Pulse + Cobra</div>
+              <div class="dash-item__sub">Renova 12/07</div>
+            </div>
+            <span class="pill pill--warning">Verificar</span>
+          </div>
+
+          <div class="dash-item">
+            <div class="dash-item__main">
+              <div class="dash-item__title">Gois Fit · Bridge</div>
+              <div class="dash-item__sub">Cross-sell Pulse</div>
+            </div>
+            <span class="pill pill--sage">Expansão</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- AGREGADO -->
+      <div class="aggr-grid reveal">
+        <div class="dash-block">
+          <div class="dash-block__header">
+            <div class="dash-block__title">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M12 20V10M18 20V4M6 20v-6"/></svg>
+              Capacidade por especialidade
+            </div>
+            <span class="pill">Esta semana</span>
+          </div>
+
+          <div class="cap-row">
+            <div class="cap-name"><span class="cap-name__dot" style="background:var(--critical)"></span>Infra</div>
+            <div class="cap-bar"><div class="cap-bar__fill over" style="width:100%"></div><span class="cap-bar__100"></span></div>
+            <div class="cap-pct over">128%</div>
+          </div>
+          <div class="cap-row">
+            <div class="cap-name"><span class="cap-name__dot"></span>Sucesso do Cliente</div>
+            <div class="cap-bar"><div class="cap-bar__fill" style="width:94%"></div><span class="cap-bar__100"></span></div>
+            <div class="cap-pct">94%</div>
+          </div>
+          <div class="cap-row">
+            <div class="cap-name"><span class="cap-name__dot" style="background:var(--sage)"></span>Dados Analítica</div>
+            <div class="cap-bar"><div class="cap-bar__fill" style="width:72%; background:var(--sage)"></div><span class="cap-bar__100"></span></div>
+            <div class="cap-pct">72%</div>
+          </div>
+          <div class="cap-row">
+            <div class="cap-name"><span class="cap-name__dot"></span>Dados Técnica</div>
+            <div class="cap-bar"><div class="cap-bar__fill" style="width:88%"></div><span class="cap-bar__100"></span></div>
+            <div class="cap-pct">88%</div>
+          </div>
+          <div class="cap-row">
+            <div class="cap-name"><span class="cap-name__dot" style="background:var(--sage)"></span>Comercial</div>
+            <div class="cap-bar"><div class="cap-bar__fill" style="width:45%; background:var(--sage)"></div><span class="cap-bar__100"></span></div>
+            <div class="cap-pct">45%</div>
+          </div>
+          <div class="cap-row">
+            <div class="cap-name"><span class="cap-name__dot" style="background:var(--critical)"></span>Gestão</div>
+            <div class="cap-bar"><div class="cap-bar__fill over" style="width:100%"></div><span class="cap-bar__100"></span></div>
+            <div class="cap-pct over">110%</div>
+          </div>
+        </div>
+
+        <div class="dash-block">
+          <div class="dash-block__header">
+            <div class="dash-block__title">
+              <svg class="icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              Vilões da carteira
+            </div>
+            <span class="pill">Maio</span>
+          </div>
+
+          <div class="carteira-grid">
+            <div class="carteira-list">
+              <div class="carteira-list__label">
+                <svg class="icon sm" viewBox="0 0 24 24" style="color:var(--sage-deep)"><polyline points="20 6 9 17 4 12"/></svg>
+                Mais derrotados
+              </div>
+              <div class="carteira-item">
+                <div class="carteira-item__avatar"></div>
+                <div class="carteira-item__name">Capitão Manualis</div>
+                <div class="carteira-item__pct">58%</div>
+              </div>
+              <div class="carteira-item">
+                <div class="carteira-item__avatar"></div>
+                <div class="carteira-item__name">Senhor dos Silos</div>
+                <div class="carteira-item__pct">47%</div>
+              </div>
+              <div class="carteira-item">
+                <div class="carteira-item__avatar"></div>
+                <div class="carteira-item__name">Dama do Retrabalho</div>
+                <div class="carteira-item__pct">41%</div>
+              </div>
+            </div>
+
+            <div class="carteira-list">
+              <div class="carteira-list__label">
+                <svg class="icon sm" viewBox="0 0 24 24" style="color:var(--mute)"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                Mais resistentes
+              </div>
+              <div class="carteira-item">
+                <div class="carteira-item__avatar"></div>
+                <div class="carteira-item__name">Enganador</div>
+                <div class="carteira-item__pct low">12%</div>
+              </div>
+              <div class="carteira-item">
+                <div class="carteira-item__avatar"></div>
+                <div class="carteira-item__name">Drenador</div>
+                <div class="carteira-item__pct low">18%</div>
+              </div>
+              <div class="carteira-item">
+                <div class="carteira-item__avatar"></div>
+                <div class="carteira-item__name">General Lento</div>
+                <div class="carteira-item__pct low">22%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PIPELINE -->
+      <div class="reveal">
+        <div class="section-header">
+          <h2 class="section-title">Operações em construção <span class="section-title__count">MRR comprometido: R$ 47k</span></h2>
+          <button class="section-action">Ver pipeline completo <svg class="icon sm" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+        </div>
+
+        <div class="pipeline-table">
+          <div class="pipeline-table__header">
+            <div>Cliente</div>
+            <div>Linha</div>
+            <div>Responsável</div>
+            <div>Prazo</div>
+          </div>
+          <div class="pipeline-table__row">
+            <div class="pipeline-table__client">Acorp Eventos</div>
+            <div><span class="pill pill--oak">Core</span></div>
+            <div>Bárbara</div>
+            <div class="pipeline-table__date">11d</div>
+          </div>
+          <div class="pipeline-table__row">
+            <div class="pipeline-table__client">Eventmetrics</div>
+            <div><span class="pill pill--oak">Studio Insight</span></div>
+            <div>Diego</div>
+            <div class="pipeline-table__date">19d</div>
+          </div>
+          <div class="pipeline-table__row">
+            <div class="pipeline-table__client">Gois Fit</div>
+            <div><span class="pill pill--oak">Spark Inbox</span></div>
+            <div>Marina</div>
+            <div class="pipeline-table__date">5d</div>
+          </div>
+          <div class="pipeline-table__row">
+            <div class="pipeline-table__client">DeMarchi Automotive</div>
+            <div><span class="pill pill--oak">Studio Custom</span></div>
+            <div>Rafael</div>
+            <div class="pipeline-table__date">7d</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- TELA 4: LINK PÚBLICO V2                                      -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section class="screen" id="screen-public">
+  <div class="public-v2">
+    <header class="public-v2__header">
+      <div class="public-v2__brand">
+        <div class="public-v2__logo">D</div>
+        <div class="public-v2__brand-name">DRYOS</div>
+      </div>
+      <div class="public-v2__title-bar">
+        Relatório de operação · <strong>Cliente Cortex</strong> · Maio 2026
+      </div>
+    </header>
+
+    <div class="public-v2__content">
+
+      <div class="public-v2__hero reveal">
+        <div class="public-v2__hero-content">
+          <div class="public-v2__hero-label">
+            <svg class="icon sm" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Mês 5 de operação
+          </div>
+          <h1 class="public-v2__hero-title">O Capitão Manualis perdeu <em>62%</em> de força na sua operação.</h1>
+          <p class="public-v2__hero-lede">
+            Em cinco meses, a DRYOS conduziu uma jornada de luta contra três dos sete vilões da ineficiência operacional. Este é o relatório de Maio.
+          </p>
+        </div>
+
+        <div class="public-v2__hero-stat">
+          <div class="public-v2__hero-stat-label">Quick wins · Maio</div>
+          <div class="public-v2__hero-stat-value">12</div>
+          <div class="public-v2__hero-stat-sub">+4 vs Abril</div>
+        </div>
+      </div>
+
+      <!-- VILÕES -->
+      <div class="public-v2__section reveal">
+        <div class="public-v2__section-header">
+          <h2 class="public-v2__section-title">Vilões em luta</h2>
+          <span class="public-v2__section-meta">3 / 7</span>
+        </div>
+
+        <div class="public-villains">
+          <div class="public-villain-card">
+            <div class="public-villain-card__avatar"></div>
+            <div>
+              <div class="public-villain-card__name-row">
+                <h3 class="public-villain-card__name">Capitão Manualis</h3>
+                <span class="pill pill--warning">Severidade inicial: ALTA</span>
+              </div>
+              <p class="public-villain-card__narrative">
+                No diagnóstico inicial, encontramos 23 processos rodando manualmente pelos polos — desde a captura de leads no WhatsApp até a conciliação de matrículas. Em cinco meses, automatizamos 14 deles via Flow e Aegis. O time hoje gasta 11 horas a menos por semana em tarefas repetitivas.
+              </p>
+              <div class="public-villain-card__bar">
+                <div class="public-villain-card__bar-fill" style="width:62%"></div>
+              </div>
+            </div>
+            <div class="public-villain-card__progress">
+              <div class="public-villain-card__pct">62%</div>
+              <div class="public-villain-card__pct-label">derrotado</div>
+            </div>
+          </div>
+
+          <div class="public-villain-card">
+            <div class="public-villain-card__avatar"></div>
+            <div>
+              <div class="public-villain-card__name-row">
+                <h3 class="public-villain-card__name">Senhor dos Silos</h3>
+                <span class="pill pill--critical">Severidade inicial: CRÍTICA</span>
+              </div>
+              <p class="public-villain-card__narrative">
+                Cada polo tinha sua planilha, seu CRM e seu jeito de medir conversão. Conectamos as quatro unidades em uma única base operacional integrada ao Inbox e ao Insights. Agora a gestão central vê tudo em tempo real, e o forecast trimestral é calculado com dados consistentes.
+              </p>
+              <div class="public-villain-card__bar">
+                <div class="public-villain-card__bar-fill" style="width:48%"></div>
+              </div>
+            </div>
+            <div class="public-villain-card__progress">
+              <div class="public-villain-card__pct">48%</div>
+              <div class="public-villain-card__pct-label">derrotado</div>
+            </div>
+          </div>
+
+          <div class="public-villain-card">
+            <div class="public-villain-card__avatar"></div>
+            <div>
+              <div class="public-villain-card__name-row">
+                <h3 class="public-villain-card__name">Oráculo do Achismo</h3>
+                <span class="pill pill--warning">Severidade inicial: ALTA</span>
+              </div>
+              <p class="public-villain-card__narrative">
+                O dashboard executivo de conversão por polo entrou no ar em Abril. Pela primeira vez, decisões sobre alocação de verba de mídia e contratação de atendentes têm número real por trás. Próximo passo: forecast Monte Carlo das matrículas do segundo semestre.
+              </p>
+              <div class="public-villain-card__bar">
+                <div class="public-villain-card__bar-fill" style="width:35%"></div>
+              </div>
+            </div>
+            <div class="public-villain-card__progress">
+              <div class="public-villain-card__pct">35%</div>
+              <div class="public-villain-card__pct-label">derrotado</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONQUISTAS -->
+      <div class="public-v2__section reveal">
+        <div class="public-v2__section-header">
+          <h2 class="public-v2__section-title">Conquistas do mês</h2>
+          <span class="public-v2__section-meta">Maio · 4 quick wins</span>
+        </div>
+
+        <div class="public-wins">
+          <div class="public-win-card">
+            <div class="public-win-card__top">
+              <div class="public-win-card__icon">
+                <svg class="icon lg" viewBox="0 0 24 24"><path d="M3 3v18h18M7 14l4-4 4 4 5-5"/></svg>
+              </div>
+              <div class="public-win-card__date">12/05</div>
+            </div>
+            <h3 class="public-win-card__title">Dashboard de conversão por polo</h3>
+            <p class="public-win-card__text">
+              Visualização agregada por unidade, atualizada em tempo real, adotada nas reuniões semanais de gestão.
+            </p>
+            <div class="public-win-card__impact">
+              <span class="pill pill--sage">Oráculo +12%</span>
+            </div>
+          </div>
+
+          <div class="public-win-card">
+            <div class="public-win-card__top">
+              <div class="public-win-card__icon">
+                <svg class="icon lg" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+              </div>
+              <div class="public-win-card__date">08/05</div>
+            </div>
+            <h3 class="public-win-card__title">Qualificação automática via Aegis</h3>
+            <p class="public-win-card__text">
+              Agente comercial qualifica leads na primeira mensagem do WhatsApp, identifica o polo e encaminha. 87% sem intervenção humana em 30 dias.
+            </p>
+            <div class="public-win-card__impact">
+              <span class="pill pill--sage">Manualis +18%</span>
+              <span class="pill pill--sage">Drenador +5%</span>
+            </div>
+          </div>
+
+          <div class="public-win-card">
+            <div class="public-win-card__top">
+              <div class="public-win-card__icon">
+                <svg class="icon lg" viewBox="0 0 24 24"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+              </div>
+              <div class="public-win-card__date">04/05</div>
+            </div>
+            <h3 class="public-win-card__title">Conciliação Inbox ↔ CRM</h3>
+            <p class="public-win-card__text">
+              Cada conversa do Inbox atualiza automaticamente o cadastro do lead no CRM. Histórico completo independente do polo de origem.
+            </p>
+            <div class="public-win-card__impact">
+              <span class="pill pill--sage">Silos +9%</span>
+            </div>
+          </div>
+
+          <div class="public-win-card">
+            <div class="public-win-card__top">
+              <div class="public-win-card__icon">
+                <svg class="icon lg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              </div>
+              <div class="public-win-card__date">02/05</div>
+            </div>
+            <h3 class="public-win-card__title">Relatório executivo · Abril</h3>
+            <p class="public-win-card__text">
+              Segunda edição com narrativa, três insights principais e três ações sugeridas. Diretoria adotou duas das recomendações.
+            </p>
+            <div class="public-win-card__impact">
+              <span class="pill pill--sage">Oráculo +8%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PRÓXIMOS MOVIMENTOS -->
+      <div class="public-v2__section reveal">
+        <div class="public-v2__section-header">
+          <h2 class="public-v2__section-title">Próximos movimentos</h2>
+          <span class="public-v2__section-meta">Junho</span>
+        </div>
+
+        <div class="public-next-list">
+          <div class="public-next-row">
+            <div class="public-next-row__num">1</div>
+            <div class="public-next-row__text">Migração completa do histórico de leads do HubSpot, com enriquecimento e deduplicação.</div>
+            <div class="public-next-row__eta">Até 25/05</div>
+          </div>
+          <div class="public-next-row">
+            <div class="public-next-row__num">2</div>
+            <div class="public-next-row__text">Cockpit do Lançamento da Pós-Graduação — go-live em 22/05.</div>
+            <div class="public-next-row__eta">D-7</div>
+          </div>
+          <div class="public-next-row">
+            <div class="public-next-row__num">3</div>
+            <div class="public-next-row__text">Implementação do forecast Monte Carlo para matrículas do segundo semestre.</div>
+            <div class="public-next-row__eta">Junho</div>
+          </div>
+          <div class="public-next-row">
+            <div class="public-next-row__num">4</div>
+            <div class="public-next-row__text">Início da segunda frente do Aegis — agente de retenção pós-matrícula.</div>
+            <div class="public-next-row__eta">Junho</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TIME -->
+      <div class="public-v2__section reveal">
+        <div class="public-v2__section-header">
+          <h2 class="public-v2__section-title">Quem cuida da sua operação</h2>
+          <span class="public-v2__section-meta">4 pessoas</span>
+        </div>
+
+        <div class="public-team-grid">
+          <div class="public-team-card">
+            <div class="public-team-card__avatar">B</div>
+            <div class="public-team-card__name">Bárbara</div>
+            <div class="public-team-card__role">Sucesso do cliente</div>
+          </div>
+          <div class="public-team-card">
+            <div class="public-team-card__avatar" style="background:var(--sage-deep)">D</div>
+            <div class="public-team-card__name">Diego</div>
+            <div class="public-team-card__role">Infra & Dados Técnica</div>
+          </div>
+          <div class="public-team-card">
+            <div class="public-team-card__avatar" style="background:var(--oak-light)">C</div>
+            <div class="public-team-card__name">Carolina</div>
+            <div class="public-team-card__role">Dados Analítica</div>
+          </div>
+          <div class="public-team-card">
+            <div class="public-team-card__avatar">R</div>
+            <div class="public-team-card__name">Rafael</div>
+            <div class="public-team-card__role">Estratégia DRYOS</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script>
+const tabs = document.querySelectorAll('.mockup-nav__tab');
+const screens = document.querySelectorAll('.screen');
+
+tabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    const target = tab.dataset.screen;
+    tabs.forEach(t => t.classList.remove('active'));
+    screens.forEach(s => s.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(`screen-${target}`).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    initReveal();
+  });
+});
+
+const themeToggle = document.getElementById('themeToggle');
+themeToggle.addEventListener('click', () => {
+  document.body.classList.toggle('dark');
+  const isDark = document.body.classList.contains('dark');
+  themeToggle.querySelector('span').textContent = isDark ? 'Modo claro' : 'Modo escuro';
+});
+
+function initReveal() {
+  const reveals = document.querySelectorAll('.screen.active .reveal');
+  reveals.forEach(el => el.classList.remove('in'));
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => entry.target.classList.add('in'), i * 60);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  reveals.forEach(el => observer.observe(el));
+}
+
+initReveal();
+</script>
+
+</body>
+</html>
