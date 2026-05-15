@@ -99,8 +99,8 @@ Detalhes completos em `docs/prd.md` seção 04.
 | Banco | Supabase Postgres (sem ORM, queries diretas + types gerados) |
 | Auth | Supabase Auth |
 | Storage | Supabase Storage |
-| Frontend | Next.js 15 App Router |
-| Estilo | Tailwind + shadcn/ui customizado |
+| Frontend | Next.js 16 App Router (React 19) |
+| Estilo | Tailwind 4 (CSS-first via `@theme`) + shadcn/ui customizado |
 | Ícones | Lucide React |
 | Gráficos | Recharts |
 | Tipografia | Funnel Display + Onest + JetBrains Mono (Google Fonts) |

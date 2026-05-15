@@ -1,0 +1,80 @@
+# State
+
+**Last Updated:** 2026-05-15
+**Current Work:** week-01-setup — Implement phase (Phase 1: T1-T3)
+
+---
+
+## Recent Decisions (Last 60 days)
+
+### AD-001: Skills movidas pra `.claude/skills/<name>/SKILL.md` (2026-05-15)
+
+**Decision:** `dryos-conventions-SKILL.md` e `dryos-design-system-SKILL.md` movidos da raiz pros caminhos canônicos do CLAUDE.md (`.claude/skills/dryos-conventions/SKILL.md`, `.claude/skills/dryos-design-system/SKILL.md`).
+**Reason:** Alinhar com referência do CLAUDE.md e permitir descoberta automática do agente.
+**Trade-off:** Histórico git tem rename, mas mantém continuidade via `git log --follow`.
+**Impact:** Skills passam a ser carregadas automaticamente quando o pattern bater.
+
+### AD-002: CLAUDE.md expandido com 8 blocos da Casa Financeira (2026-05-15)
+
+**Decision:** Trazidos pro DRYOS, com adaptação de razões/conteúdo: `tlc-spec-driven` obrigatório antes de code change; Invariantes de implementação (14 regras duras); Server Actions com `ActionResult<T>`; Migration conventions detalhadas; Antes de criar tabela (checklist 3 buscas); Issue antes de PR; Documentação como contrato; MCP tools listados.
+**Reason:** Mesmas dores do outro projeto (17+ entidades, regras sutis, RLS universal). Padrões maduros valem trazer com adaptação, não verbatim.
+**Trade-off:** CLAUDE.md cresceu de 186 → 404 linhas; ainda dentro de margem útil. Cerimônia maior por mudança de código (tlc-spec-driven obrigatório), aceito pelo usuário.
+**Impact:** Toda mudança de código agora abre com `Skill: tlc-spec-driven`. Schema obrigado a `COMMENT ON TABLE` + RLS + FK nomeada na mesma migration.
+
+### AD-006: Manter `AGENTS.md` gerado pelo create-next-app (2026-05-15)
+
+**Decision:** Manter o `AGENTS.md` gerado pelo bootstrap (1 bloco curto avisando "This is NOT the Next.js you know — read node_modules/next/dist/docs/"). Sobrescrever apenas o `CLAUDE.md` mínimo gerado pelo `@AGENTS.md`; o nosso (404 linhas) prevalece.
+**Reason:** Aviso do framework é válido — Next 16 tem breaking changes. Vou consultar `node_modules/next/dist/docs/` antes de escrever código Next sensível a versão (routing, fetching, caching).
+**Trade-off:** Mais 1 arquivo na raiz pra checar; trivial.
+**Impact:** Antes de tarefas com APIs Next sensíveis, ler `node_modules/next/dist/docs/`. CLAUDE.md custom mantido.
+
+### AD-005: Aceitar Next.js 16 + Tailwind 4 (em vez de 15 + 3) (2026-05-15)
+
+**Decision:** Bootstrap com versões current (Next 16.2.6, Tailwind 4) em vez de pinar 15 + 3. Skill `dryos-design-system` adaptada: tokens viram bloco `@theme inline { ... }` em `globals.css` em vez de `tailwind.config.ts`.
+**Reason:** create-next-app@latest entrega 16 + 4. Pinar versões antigas só pra casar com snippet desatualizado de skill é dívida invertida. Tailwind 4 CSS-first é mais limpo. Risco de breaking change em Next 16 é mitigado por consultar `node_modules/next/dist/docs/`.
+**Trade-off:** Skill `dryos-design-system` precisou ser revisada (seção "Tailwind config" → "@theme block"). Task T5 do week-01-setup foi merged com T4 (um arquivo: `globals.css` com vars + `@theme`).
+**Impact:** Sem `tailwind.config.ts` na raiz. Adicionar token novo = adicionar linha em `:root` + linha em `@theme inline`. Documentação atualizada no mesmo commit (regra "documentação como contrato").
+
+### AD-004: Supabase local via Docker pro desenvolvimento da semana 1 (2026-05-15)
+
+**Decision:** `supabase init && supabase start` no worktree. Migration aplicada localmente via `supabase db reset` ou `supabase migration up`. Types gerados via CLI local. Decisão de projeto remoto adiada.
+**Reason:** Autônomo, não bloqueia. Mais rápido pra iterar. Sem custo de criar projeto Supabase ainda na fase de bootstrap.
+**Trade-off:** Antes de fazer deploy, vai precisar de projeto remoto (criar via MCP ou usar existente).
+**Impact:** T9/T10 da week-01-setup rodam local; instalação do Supabase CLI vira pré-req (Bash detecta e instala se necessário). Adiciona Docker como dependência implícita do ambiente dev.
+
+### AD-003: Schema dedicado vs `public` no Supabase — usar `public` (2026-05-15)
+
+**Decision:** DRYOS usa `public`. Projeto Supabase é dedicado, não compartilhado com outros apps.
+**Reason:** Sem necessidade de isolamento de schema (não há outros apps no mesmo projeto). Casa Financeira usa `casa_financeira` porque divide projeto com Radar Altis — não é o caso aqui.
+**Trade-off:** Se um dia precisar dividir o projeto Supabase com outro app, teremos que migrar tudo pra um schema dedicado. Risco baixo.
+**Impact:** Migrations qualificam tabelas como `public.<nome>` (default). Sem helper `cf(supabase)`.
+
+---
+
+## Active Blockers
+
+_None._
+
+## Resolved Blockers
+
+### B-001: Supabase MCP — projeto-alvo não definido ✅ RESOLVED 2026-05-15
+
+**Discovered:** 2026-05-15
+**Resolution:** Optou-se por **Supabase local via Docker** (`supabase init && supabase start`). Decisão de projeto remoto (deploy) fica pra mais tarde. T9/T10 da week-01-setup usam o local stack.
+
+---
+
+## Lessons Learned
+
+### L-001: Worktree de Claude Code parte do commit inicial (2026-05-15)
+
+**Context:** Worktree foi criada antes do commit "Setup" entrar em main; arquivos canônicos (CLAUDE.md, SETUP.md, PRD, mockup) ficaram fora do estado inicial.
+**Problem:** Primeira investigação reportou repo vazio, gastando turn de descoberta.
+**Solution:** Olhar parent repo + `git log --all` revelou commits em main não trazidos pra branch da worktree. `git merge main --no-edit` resolve fast-forward.
+**Prevents:** Em próxima worktree, checar `git log --all --oneline` ANTES de assumir que o repo está vazio.
+
+---
+
+## Preferences
+
+**Model Guidance Shown:** never
