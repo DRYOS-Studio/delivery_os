@@ -1,0 +1,522 @@
+---
+name: dryos-design-system
+description: Design system v2 do DRYOS Delivery — tokens de cor, tipografia, componentes (Pill, Card, Avatar, Icon, KpiCard, OperationCard, VillainCard, Hero), padrões de layout e modo escuro. Carregar SEMPRE antes de criar componentes UI, telas novas, gráficos, ou qualquer coisa visual. Define o que é canônico e o que está proibido visualmente.
+---
+
+# DRYOS Design System v2
+
+Linguagem visual: **produto contemporâneo com personalidade DRYOS**. Mesma alma da marca (fontes editoriais, paleta oak/cream/sage), com vocabulário de produto SaaS de qualidade (Linear, Vercel, Stripe).
+
+**Referência canônica:** `docs/mockup-v2.html` — abrir e inspecionar quando em dúvida.
+
+---
+
+## Tokens
+
+### Cores (CSS vars)
+
+Definir em `src/styles/globals.css`:
+
+```css
+:root {
+  /* Backgrounds */
+  --bg: #FAFAF8;
+  --surface: #F2F2EE;
+  --card: #FFFFFF;
+
+  /* Inks */
+  --ink: #0A0A0A;
+  --ink-soft: #1A1A1A;
+  --mute: #6B6B68;
+  --mute-soft: #9A9A95;
+
+  /* Marca */
+  --oak: #1F3A2A;
+  --oak-light: #4A6A52;
+  --oak-50: #1F3A2A0F;     /* fundo pill oak */
+
+  /* Ação */
+  --sage: #93B596;
+  --sage-bg: #93B59624;
+  --sage-deep: #5C8866;     /* texto sage no light */
+
+  /* Linhas */
+  --line: rgba(26, 26, 26, 0.08);
+  --line-strong: rgba(26, 26, 26, 0.14);
+
+  /* Funcionais */
+  --critical: #B33A3A;
+  --critical-bg: #B33A3A1A;
+  --warning: #B5751F;
+  --warning-bg: #B5751F1A;
+  --ok: #2F6B3D;
+  --ok-bg: #2F6B3D1A;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.08);
+
+  /* Radii */
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 99px;
+}
+
+body.dark {
+  --bg: #0E0E0C;
+  --surface: #1A1A18;
+  --card: #1A1A18;
+  --ink: #FAFAF8;
+  --ink-soft: #E8E8E5;
+  --oak: #93B596;          /* oak vira sage no dark pra contraste */
+  --oak-light: #B5C9B6;
+  --oak-50: #93B5961F;
+  --mute: #9A9A95;
+  --mute-soft: #6B6B68;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+```
+
+### Tailwind config
+
+Em `tailwind.config.ts`, mapear os tokens:
+
+```typescript
+import type { Config } from 'tailwindcss';
+
+export default {
+  content: ['./src/**/*.{ts,tsx}'],
+  theme: {
+    extend: {
+      colors: {
+        bg: 'var(--bg)',
+        surface: 'var(--surface)',
+        card: 'var(--card)',
+        ink: {
+          DEFAULT: 'var(--ink)',
+          soft: 'var(--ink-soft)',
+        },
+        mute: {
+          DEFAULT: 'var(--mute)',
+          soft: 'var(--mute-soft)',
+        },
+        oak: {
+          DEFAULT: 'var(--oak)',
+          light: 'var(--oak-light)',
+          50: 'var(--oak-50)',
+        },
+        sage: {
+          DEFAULT: 'var(--sage)',
+          bg: 'var(--sage-bg)',
+          deep: 'var(--sage-deep)',
+        },
+        line: {
+          DEFAULT: 'var(--line)',
+          strong: 'var(--line-strong)',
+        },
+        critical: { DEFAULT: 'var(--critical)', bg: 'var(--critical-bg)' },
+        warning: { DEFAULT: 'var(--warning)', bg: 'var(--warning-bg)' },
+        ok: { DEFAULT: 'var(--ok)', bg: 'var(--ok-bg)' },
+      },
+      fontFamily: {
+        display: ['var(--font-display)'],
+        body: ['var(--font-body)'],
+        mono: ['var(--font-mono)'],
+      },
+      borderRadius: {
+        sm: 'var(--radius-sm)',
+        DEFAULT: 'var(--radius)',
+        lg: 'var(--radius-lg)',
+        pill: 'var(--radius-pill)',
+      },
+      boxShadow: {
+        sm: 'var(--shadow-sm)',
+        md: 'var(--shadow-md)',
+        lg: 'var(--shadow-lg)',
+      },
+    },
+  },
+} satisfies Config;
+```
+
+### Tipografia
+
+Carregar via `next/font` em `src/app/layout.tsx`:
+
+```typescript
+import { Funnel_Display, Onest, JetBrains_Mono } from 'next/font/google';
+
+const funnelDisplay = Funnel_Display({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-display',
+});
+
+const onest = Onest({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-body',
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  variable: '--font-mono',
+});
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="pt-BR" className={`${funnelDisplay.variable} ${onest.variable} ${jetbrainsMono.variable}`}>
+      <body className="font-body bg-bg text-ink-soft antialiased">
+        {children}
+      </body>
+    </html>
+  );
+}
+```
+
+### Hierarquia tipográfica (princípio 11)
+
+| Uso | Família | Peso | Tamanho |
+|---|---|---|---|
+| Hero da Operação (nome cliente) | Display | 600 | 2.5rem (40px) |
+| KPI principal (valor) | Display | 700 | 1.875rem (30px) |
+| Card de cliente | Display | 600 | 1.25rem (20px) |
+| Título de seção | Display | 600 | 1.125rem (18px) |
+| Título de card | Display | 600 | 14-16px |
+| Corpo | Body | 400 | 14px |
+| Corpo grande (lede pública) | Body | 400 | 16px |
+| Botão | Body | 500 | 13px |
+| Pill | Mono | 500 | 10-11px |
+| Label (mono) | Mono | 500 | 10-11px |
+| Sub mono (data, contagem) | Mono | 400 | 10-11px |
+
+**Display é reservado.** Não usar pra hierarquia secundária. Em listas, tabelas, formulários: Onest 500-600 em 13-14px.
+
+---
+
+## Componentes canônicos
+
+### Pill (status canônico)
+
+Pill é o sistema canônico de status. Cinco variantes. **Não criar nova variante sem aprovação.**
+
+```typescript
+// src/components/ui/Pill.tsx
+import { cn } from '@/lib/utils';
+
+type PillVariant = 'neutral' | 'oak' | 'sage' | 'ok' | 'warning' | 'critical';
+
+type PillProps = {
+  variant?: PillVariant;
+  showDot?: boolean;
+  children: React.ReactNode;
+  className?: string;
+};
+
+const variants: Record<PillVariant, string> = {
+  neutral: 'bg-surface text-mute',
+  oak: 'bg-oak-50 text-oak',
+  sage: 'bg-sage-bg text-sage-deep dark:text-sage',
+  ok: 'bg-ok-bg text-ok',
+  warning: 'bg-warning-bg text-warning',
+  critical: 'bg-critical-bg text-critical',
+};
+
+export function Pill({ variant = 'neutral', showDot, children, className }: PillProps) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 px-2 py-0.5',
+        'font-mono text-[10px] font-medium rounded-pill',
+        'whitespace-nowrap',
+        variants[variant],
+        className
+      )}
+    >
+      {showDot && <span className="w-1.5 h-1.5 rounded-full bg-current" />}
+      {children}
+    </span>
+  );
+}
+```
+
+Uso semântico:
+- `neutral` — info sem peso (contagem, prazo neutro)
+- `oak` — linha de produto, marca, ênfase
+- `sage` — saudável, expansão, positivo, conquista
+- `ok` — sucesso confirmado (uptime OK, no prazo)
+- `warning` — atenção, prazo apertado, decisão pendente
+- `critical` — SLA em risco, sobrecarga, problema
+
+### Card
+
+Card é o container canônico:
+
+```typescript
+// src/components/ui/Card.tsx
+type CardProps = {
+  children: React.ReactNode;
+  className?: string;
+  interactive?: boolean;
+};
+
+export function Card({ children, className, interactive }: CardProps) {
+  return (
+    <div
+      className={cn(
+        'bg-card border border-line rounded shadow-sm',
+        'p-5',
+        interactive && 'cursor-pointer transition-all hover:shadow-md hover:-translate-y-px hover:border-line-strong',
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+```
+
+### Avatar
+
+```typescript
+type AvatarProps = {
+  initials: string;
+  size?: 'sm' | 'md' | 'lg' | 'xl';
+  color?: 'oak' | 'sage-deep' | 'oak-light';
+};
+
+const sizes = {
+  sm: 'w-6 h-6 text-[10px]',
+  md: 'w-8 h-8 text-xs',
+  lg: 'w-12 h-12 text-base',
+  xl: 'w-16 h-16 text-xl',
+};
+
+export function Avatar({ initials, size = 'md', color = 'oak' }: AvatarProps) {
+  return (
+    <div
+      className={cn(
+        'rounded-full flex items-center justify-center text-bg font-display font-semibold',
+        sizes[size],
+        color === 'oak' && 'bg-oak',
+        color === 'sage-deep' && 'bg-sage-deep',
+        color === 'oak-light' && 'bg-oak-light',
+      )}
+    >
+      {initials}
+    </div>
+  );
+}
+```
+
+### Ícones
+
+**Sempre Lucide React.** Stroke 1.75, cor oak por padrão (ou herda do contexto).
+
+```typescript
+import { AlertTriangle, Clock, CheckCircle2 } from 'lucide-react';
+
+// Tamanhos canônicos
+<AlertTriangle className="w-3.5 h-3.5" />   // sm
+<AlertTriangle className="w-4 h-4" />        // md (padrão)
+<AlertTriangle className="w-5 h-5" />        // lg
+
+// Cor herda do contexto via text-* do Tailwind
+<div className="text-oak"><AlertTriangle className="w-4 h-4" /></div>
+```
+
+**Proibido:**
+- Ícones decorativos sem função semântica
+- Ícones diferentes pro mesmo conceito em telas diferentes
+- Ícones grandes (>20px) fora de hero/empty states
+
+### Botão
+
+Três variantes:
+
+```typescript
+type ButtonProps = {
+  variant?: 'primary' | 'ghost' | 'sage';
+  size?: 'sm' | 'md';
+  children: React.ReactNode;
+  // ...props padrão de button
+};
+
+const variants = {
+  primary: 'bg-ink text-bg hover:bg-oak',
+  ghost: 'bg-card text-ink-soft border border-line-strong hover:bg-surface hover:border-ink',
+  sage: 'bg-sage text-ink hover:bg-sage-deep hover:text-bg',
+};
+
+const sizes = {
+  sm: 'px-2.5 py-1 text-[11px]',
+  md: 'px-3.5 py-2 text-[13px]',
+};
+```
+
+### KpiCard
+
+```typescript
+type KpiCardProps = {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  prefix?: string;        // 'R$'
+  sparkline?: React.ReactNode;
+  delta?: { value: string; tone: 'ok' | 'warning' | 'critical' | 'sage' };
+  context?: string;
+};
+```
+
+Estrutura visual: ícone no canto + pill de delta no canto direito → label → valor display gigante → sparkline preenchido → texto de contexto.
+
+### OperationCard
+
+Card de Operação na Home. Estrutura fixa:
+
+1. Top: Pill da linha (oak) + Pill de status/countdown
+2. Nome do cliente (Funnel Display 600, 1.25rem)
+3. Status acionável + "desde Y" em mono pequeno
+4. Footer: avatares empilhados + ação rápida ou pill secundária
+
+### VillainCard
+
+Card de vilão. Estrutura:
+
+1. Top: avatar 48px (ilustração) + nome + citação em itálico
+2. Progress: % gigante em display + delta em mono sage
+3. Barra com gradiente `from-oak to-sage`
+4. Footer: pill de severidade inicial
+
+---
+
+## Padrões de layout
+
+### Página padrão
+
+```typescript
+<div className="flex min-h-screen bg-bg">
+  <Sidebar />
+  <main className="flex-1 max-w-[1280px] p-7">
+    <PageHeader title={...} subtitle={...} actions={...} />
+    <Tabs />
+    <Content />
+  </main>
+</div>
+```
+
+### Hero da Operação
+
+Fundo oak sólido com gradiente sage radial. Texto cream. Pill da linha em sage abaixo do breadcrumb. Nome do cliente em display 2.5rem. Meta horizontal (4-5 itens) na faixa inferior.
+
+```tsx
+<section className="bg-oak text-bg rounded-lg p-8 relative overflow-hidden">
+  <div className="absolute -top-1/2 right-[-10%] w-3/5 h-[200%]
+                  bg-[radial-gradient(circle,rgba(147,181,150,0.15),transparent_60%)]
+                  pointer-events-none" />
+  {/* conteúdo */}
+</section>
+```
+
+### Section card
+
+Seções dentro da Operação aberta usam Cards com padding p-6:
+
+```tsx
+<Card className="p-6 mb-4">
+  <SectionHeader title="Vilões em luta" count="3 ativos" action="Ver diagnóstico" />
+  <VillainsGrid villains={...} />
+</Card>
+```
+
+---
+
+## Modo escuro
+
+Toggle via `body.dark` ou via Next.js theme provider.
+
+**Regras:**
+- Oak vira sage pra contraste preservado
+- Hero da Operação perde o oak sólido; vira surface escuro com border
+- Pills mantêm as mesmas cores funcionais
+- Texto sage no light é `sage-deep`. No dark, vira `sage` puro.
+
+---
+
+## Proibido
+
+Tentações comuns que violam o DS:
+
+- ❌ Sombras grandes ou múltiplas camadas — só `shadow-sm`/`shadow-md`
+- ❌ Bordas arredondadas em valores fora dos tokens (8px, 12px, 16px) — usar `rounded-sm/rounded/rounded-lg/rounded-pill`
+- ❌ Cores fora da paleta — sempre via var ou Tailwind token
+- ❌ Texto em peso 800-900 — peso máximo é 700
+- ❌ Cores funcionais (critical/warning/ok) em superfícies grandes — só em pills e ícones pequenos
+- ❌ Gradientes coloridos chamativos — só oak→sage nas barras de progresso, oak→escuro no hero público
+- ❌ Animação de bounce, spin, pulse em UI (só em loaders) — só fade + translateY
+- ❌ Ícones em cores Pantone (azul, vermelho vivo) — sempre herda do contexto
+- ❌ Cores no fundo de pill diferentes dos `--*-bg` definidos
+- ❌ Tamanho de fonte fora da hierarquia da tabela
+- ❌ Display font em texto corrido longo
+- ❌ Botão com mais de 13px de texto (parece amador)
+- ❌ Inputs nativos sem estilo customizado
+- ❌ Tabelas com zebra striping (alternando cor de linha) — usar hover
+
+---
+
+## Reveal animation
+
+Único movimento padronizado. Aplicado em entrada de tela e troca de tela:
+
+```typescript
+// src/lib/hooks/useReveal.ts
+export function useReveal() {
+  useEffect(() => {
+    const reveals = document.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => entry.target.classList.add('in'), i * 60);
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1 });
+    reveals.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+}
+```
+
+CSS:
+```css
+.reveal {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.reveal.in { opacity: 1; transform: translateY(0); }
+```
+
+Usar `<div className="reveal">` em seções principais. Não exagerar — só primeira camada de conteúdo da tela.
+
+---
+
+## Validação antes de componente novo
+
+Antes de criar componente, responder:
+
+1. **Existe um componente canônico que serve?** Pill, Card, Avatar, Icon, Button, KpiCard são prontos. Não duplicar.
+2. **A cor escolhida está nos tokens?** Se não, use o token mais próximo. Não adicionar token novo sem aprovação.
+3. **O peso/tamanho da fonte está na hierarquia?** Se não, ajustar para o valor canônico.
+4. **O componente respeita o princípio 09 (pill canônico) e 10 (ícone funcional)?**
+5. **Tem versão dark coerente?**
+
+---
+
+`— Última revisão: maio 2026`
