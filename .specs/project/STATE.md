@@ -1,7 +1,7 @@
 # State
 
 **Last Updated:** 2026-05-15
-**Current Work:** week-01-setup — Implement phase (Phase 1: T1-T3)
+**Current Work:** week-01-setup — COMPLETE. Próximo: feature `auth` (Supabase Auth + middleware + páginas).
 
 ---
 
@@ -20,6 +20,13 @@
 **Reason:** Mesmas dores do outro projeto (17+ entidades, regras sutis, RLS universal). Padrões maduros valem trazer com adaptação, não verbatim.
 **Trade-off:** CLAUDE.md cresceu de 186 → 404 linhas; ainda dentro de margem útil. Cerimônia maior por mudança de código (tlc-spec-driven obrigatório), aceito pelo usuário.
 **Impact:** Toda mudança de código agora abre com `Skill: tlc-spec-driven`. Schema obrigado a `COMMENT ON TABLE` + RLS + FK nomeada na mesma migration.
+
+### AD-007: Pivot pra Supabase remoto (projeto `Delivery OS` `tmsaucxoeqpfluzwrwkc`) (2026-05-15)
+
+**Decision:** Usar projeto remoto `Delivery OS` (criado pelo usuário no dashboard, org Altis Lisboa, região `us-east-2`, Postgres 17.6.1.121) em vez de local Docker (B-002). Migration aplicada via MCP. Types regenerados via MCP. `gen:types` script atualizado pra `--project-id tmsaucxoeqpfluzwrwkc`.
+**Reason:** Docker Desktop quebrou (`unable to start`, I/O error ao baixar image). Pivot pro remoto desbloqueou imediatamente; e remoto vai precisar existir mesmo pra deploy futuro.
+**Trade-off:** Schema testes (T9b) rodam contra DB de produção (sem branch/clone). Pra dev mais agressivo (refactor de schema), considerar Supabase branches (`create_branch` MCP) na sem 2+. Região `us-east-2` (não `sa-east-1` como a `Radar Altis`) — latência levemente maior pro BR, aceito.
+**Impact:** `.env.local.example` aponta pro URL real (`tmsaucxoeqpfluzwrwkc.supabase.co`). Cliente Supabase (`src/lib/db/client.ts`) lê de env vars. Migration `20260515000001_initial_schema.sql` aplicada com `success: true`. Bateria de invariantes 5/5 OK_rejected. Types gerados em `src/lib/db/types.ts`.
 
 ### AD-006: Manter `AGENTS.md` gerado pelo create-next-app (2026-05-15)
 
@@ -53,14 +60,15 @@
 
 ## Active Blockers
 
-### B-002: Docker Desktop unable to start
-
-**Discovered:** 2026-05-15 durante T9 (apply local migration).
-**Impact:** `supabase start` falha — não consegue pull/extract image do Postgres. Bloqueia T9 (apply), T10 (gen types), T11 (lib/db/client.ts tipado).
-**Workaround:** `supabase init` rodou OK (gerou config.toml + supabase/.gitignore, comitados). Resto da week-01-setup foi entregue sem tocar DB.
-**Resolution:** Usuário precisa (a) reparar Docker Desktop (restart, reinstall, free disk — / em 76%), OU (b) pivotar pra Supabase remoto (criar projeto via MCP `create_project` ou usar `project_ref` existente; aplicar via `apply_migration`).
+_None._
 
 ## Resolved Blockers
+
+### B-002: Docker Desktop unable to start ✅ RESOLVED 2026-05-15
+
+**Discovered:** 2026-05-15 durante T9 (apply local migration).
+**Impact:** `supabase start` falhou ao baixar image do Postgres (I/O error + Docker Desktop unable to start). Bloqueou T9/T10/T11.
+**Resolution:** Pivot pra Supabase remoto (AD-007). Migration aplicada via MCP `apply_migration` no projeto `Delivery OS` (`tmsaucxoeqpfluzwrwkc`). Types gerados via MCP `generate_typescript_types`. Docker não é mais dependência do fluxo de dev/setup (pode virar relevante de novo em sem 2 se a gente quiser branch isolada local).
 
 ### B-001: Supabase MCP — projeto-alvo não definido ✅ RESOLVED 2026-05-15
 

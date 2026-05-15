@@ -1,7 +1,7 @@
 # Roadmap
 
 **Current Milestone:** Semana 01 — Setup + Schema + Auth
-**Status:** In Progress
+**Status:** In Progress (week-01-setup COMPLETE; auth + bitwarden-integration PLANNED)
 
 ---
 
@@ -12,15 +12,17 @@
 
 ### Features
 
-**week-01-setup** - IN PROGRESS
+**week-01-setup** - COMPLETE
 
-- Bootstrap Next.js 15 (App Router, TS estrito, Tailwind, src/)
-- DS v2: tokens em globals.css + tailwind.config.ts mapeando vars
-- Fontes via next/font (Funnel Display, Onest, JetBrains Mono)
+- Bootstrap Next.js 16 (App Router, TS estrito, Tailwind 4, src/) — AD-005
+- DS v2: tokens em `globals.css` + `@theme inline` (Tailwind 4 CSS-first)
+- Fontes via `next/font` (Funnel Display, Onest, JetBrains Mono)
 - Estrutura de pastas conforme `dryos-conventions` SKILL
-- Migration inicial: clients, operations, frentes, persons, allocations + RLS
-- Scripts npm: dev, build, typecheck, lint, gen:types
-- `.env.local.example` documentado
+- Migration inicial aplicada em projeto remoto `Delivery OS` (AD-007): 5 tabelas + 8 enums + CHECKs + RLS. Invariantes validados 5/5 OK_rejected via MCP `execute_sql`
+- Types gerados via MCP em `src/lib/db/types.ts`
+- Cliente Supabase tipado em `src/lib/db/client.ts` (createServer + createBrowser)
+- Scripts npm: dev, build, typecheck, gen:types
+- `.env.local.example` aponta pro projeto Delivery OS
 
 **auth** - PLANNED
 
