@@ -7,9 +7,11 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "gen:types": "supabase gen types typescript --local > src/lib/db/types.ts"
+    "gen:types": "supabase gen types typescript --project-id tmsaucxoeqpfluzwrwkc > src/lib/db/types.ts"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.10.3",
+    "@supabase/supabase-js": "^2.105.4",
     "next": "16.2.6",
     "react": "19.2.4",
     "react-dom": "19.2.4"
