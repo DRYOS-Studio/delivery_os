@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+:root {
+  /* Backgrounds */
+  --bg: #FAFAF8;
+  --surface: #F2F2EE;
+  --card: #FFFFFF;
+
+  /* Inks */
+  --ink: #0A0A0A;
+  --ink-soft: #1A1A1A;
+  --mute: #6B6B68;
+  --mute-soft: #9A9A95;
+
+  /* Marca */
+  --oak: #1F3A2A;
+  --oak-light: #4A6A52;
+  --oak-50: #1F3A2A0F;
+
+  /* Ação */
+  --sage: #93B596;
+  --sage-bg: #93B59624;
+  --sage-deep: #5C8866;
+
+  /* Linhas */
+  --line: rgba(26, 26, 26, 0.08);
+  --line-strong: rgba(26, 26, 26, 0.14);
+
+  /* Funcionais */
+  --critical: #B33A3A;
+  --critical-bg: #B33A3A1A;
+  --warning: #B5751F;
+  --warning-bg: #B5751F1A;
+  --ok: #2F6B3D;
+  --ok-bg: #2F6B3D1A;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+body.dark {
+  --bg: #0E0E0C;
+  --surface: #1A1A18;
+  --card: #1A1A18;
+  --ink: #FAFAF8;
+  --ink-soft: #E8E8E5;
+  --oak: #93B596;
+  --oak-light: #B5C9B6;
+  --oak-50: #93B5961F;
+  --mute: #9A9A95;
+  --mute-soft: #6B6B68;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+@theme inline {
+  /* Cores → classes bg-/text-/border-/ring- */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-mute: var(--mute);
+  --color-mute-soft: var(--mute-soft);
+  --color-oak: var(--oak);
+  --color-oak-light: var(--oak-light);
+  --color-oak-50: var(--oak-50);
+  --color-sage: var(--sage);
+  --color-sage-bg: var(--sage-bg);
+  --color-sage-deep: var(--sage-deep);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-critical: var(--critical);
+  --color-critical-bg: var(--critical-bg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-ok: var(--ok);
+  --color-ok-bg: var(--ok-bg);
+
+  /* Fontes → classes font-display/body/mono. Vars vêm do next/font no layout. */
+  --font-display: var(--font-funnel-display);
+  --font-body: var(--font-onest);
+  --font-mono: var(--font-jetbrains-mono);
+
+  /* Radii → classes rounded-sm/DEFAULT/lg/pill */
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 99px;
+
+  /* Shadows → classes shadow-sm/md/lg */
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink-soft);
+}
