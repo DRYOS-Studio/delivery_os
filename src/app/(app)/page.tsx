@@ -47,13 +47,15 @@ export default async function Page() {
 
   const name = nameFromEmail(user?.email);
   const hour = new Date().getHours();
-  const title = greeting(hour, name);
+  const greetingLine = greeting(hour, name);
   const counts = countByStatus(operations);
-  const subtitle =
-    `${counts.todas} ${counts.todas === 1 ? "Operação ativa" : "Operações ativas"}` +
-    (counts.janela_critica > 0
-      ? ` · ${counts.janela_critica} em janela crítica`
-      : "");
+  const activeWord = counts.todas === 1 ? "Operação ativa" : "Operações ativas";
+  const criticaSuffix =
+    counts.janela_critica > 0
+      ? ` e ${counts.janela_critica} em janela crítica`
+      : "";
+  const title = "Operações";
+  const subtitle = `${greetingLine} Você tem ${counts.todas} ${activeWord}${criticaSuffix} essa semana.`;
 
   const tabs: readonly Tab[] = [
     { key: "em_construcao", label: "Em construção", active: false },
