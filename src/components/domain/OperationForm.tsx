@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/Button";
 import {
@@ -48,8 +48,8 @@ function nameFromCombo(clientName: string, line: string): string {
 export function OperationForm(props: Props): React.JSX.Element {
   const router = useRouter();
   const isEdit = props.mode === "edit";
-  const [isPending, startTransition] = useTransition();
   const [generalError, setGeneralError] = useState<string | null>(null);
+  const [isArchiving, setIsArchiving] = useState(false);
   const [mrrInput, setMrrInput] = useState(
     isEdit
       ? formatMrrInput(props.initialData.monthlyRecurringRevenue)
@@ -89,11 +89,13 @@ export function OperationForm(props: Props): React.JSX.Element {
     setValue,
     watch,
     setError,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<OperationInput, undefined, OperationOutput>({
     resolver: zodResolver(operationSchema),
     defaultValues,
   });
+
+  const busy = isSubmitting || isArchiving;
 
   const watchedClientId = watch("client_id");
   const watchedLine = watch("product_line");
@@ -109,52 +111,50 @@ export function OperationForm(props: Props): React.JSX.Element {
     });
   }, [watchedClientId, watchedLine, nameTouched, setValue, props.clientsForSelect]);
 
-  function onSubmit(data: OperationOutput) {
-    startTransition(async () => {
-      setGeneralError(null);
-      const fd = new FormData();
-      fd.set("client_id", data.client_id);
-      fd.set("product_line", data.product_line);
-      fd.set("name", data.name);
-      fd.set("status", data.status);
-      fd.set("recurrence", data.recurrence ?? "");
-      fd.set(
-        "monthly_recurring_revenue",
-        data.monthly_recurring_revenue !== null &&
-          data.monthly_recurring_revenue !== undefined
-          ? String(data.monthly_recurring_revenue)
-          : "",
-      );
-      fd.set("start_date", data.start_date ?? "");
-      fd.set("end_date", data.end_date ?? "");
+  async function onSubmit(data: OperationOutput) {
+    setGeneralError(null);
+    const fd = new FormData();
+    fd.set("client_id", data.client_id);
+    fd.set("product_line", data.product_line);
+    fd.set("name", data.name);
+    fd.set("status", data.status);
+    fd.set("recurrence", data.recurrence ?? "");
+    fd.set(
+      "monthly_recurring_revenue",
+      data.monthly_recurring_revenue !== null &&
+        data.monthly_recurring_revenue !== undefined
+        ? String(data.monthly_recurring_revenue)
+        : "",
+    );
+    fd.set("start_date", data.start_date ?? "");
+    fd.set("end_date", data.end_date ?? "");
 
-      const result = isEdit
-        ? await updateOperationAction(props.initialData.id, fd)
-        : await createOperationAction(fd);
+    const result = isEdit
+      ? await updateOperationAction(props.initialData.id, fd)
+      : await createOperationAction(fd);
 
-      if (result.ok) {
-        const id = isEdit ? props.initialData.id : result.data.id;
-        router.push(`/operations/${id}`);
-        router.refresh();
-        return;
-      }
-      mapErrorToFields(result.code, result.error, setError, setGeneralError);
-    });
+    if (result.ok) {
+      const id = isEdit ? props.initialData.id : result.data.id;
+      router.push(`/operations/${id}`);
+      router.refresh();
+      return;
+    }
+    mapErrorToFields(result.code, result.error, setError, setGeneralError);
   }
 
-  function handleArchive() {
+  async function handleArchive() {
     if (!isEdit || !props.canArchive) return;
     if (!window.confirm("Arquivar esta Operação?")) return;
-    startTransition(async () => {
-      setGeneralError(null);
-      const result = await archiveOperationAction(props.initialData.id);
-      if (result.ok) {
-        router.push("/operations");
-        router.refresh();
-      } else {
-        setGeneralError(result.error);
-      }
-    });
+    setIsArchiving(true);
+    setGeneralError(null);
+    const result = await archiveOperationAction(props.initialData.id);
+    if (result.ok) {
+      router.push("/operations");
+      router.refresh();
+    } else {
+      setGeneralError(result.error);
+      setIsArchiving(false);
+    }
   }
 
   const allowedStatus: { value: OperationInput["status"]; label: string }[] = [
@@ -185,7 +185,7 @@ export function OperationForm(props: Props): React.JSX.Element {
         <select
           id="client_id"
           {...register("client_id")}
-          disabled={isPending || isEdit}
+          disabled={busy || isEdit}
           className={selectCn}
         >
           <option value="">Selecione…</option>
@@ -212,7 +212,7 @@ export function OperationForm(props: Props): React.JSX.Element {
           <select
             id="product_line"
             {...register("product_line")}
-            disabled={isPending}
+            disabled={busy}
             className={selectCn}
           >
             <option value="core">Core</option>
@@ -230,7 +230,7 @@ export function OperationForm(props: Props): React.JSX.Element {
           <select
             id="status"
             {...register("status")}
-            disabled={isPending}
+            disabled={busy}
             className={selectCn}
           >
             {allowedStatus.map((s) => (
@@ -255,7 +255,7 @@ export function OperationForm(props: Props): React.JSX.Element {
           {...register("name", {
             onChange: () => setNameTouched(true),
           })}
-          disabled={isPending}
+          disabled={busy}
           className={inputCn}
         />
       </Field>
@@ -269,7 +269,7 @@ export function OperationForm(props: Props): React.JSX.Element {
           <select
             id="recurrence"
             {...register("recurrence")}
-            disabled={isPending}
+            disabled={busy}
             className={selectCn}
           >
             <option value="">—</option>
@@ -300,7 +300,7 @@ export function OperationForm(props: Props): React.JSX.Element {
               });
             }}
             placeholder="R$ 0,00"
-            disabled={isPending}
+            disabled={busy}
             className={inputCn}
           />
         </Field>
@@ -316,7 +316,7 @@ export function OperationForm(props: Props): React.JSX.Element {
             id="start_date"
             type="date"
             {...register("start_date")}
-            disabled={isPending}
+            disabled={busy}
             className={inputCn}
           />
         </Field>
@@ -331,7 +331,7 @@ export function OperationForm(props: Props): React.JSX.Element {
             id="end_date"
             type="date"
             {...register("end_date")}
-            disabled={isPending}
+            disabled={busy}
             className={inputCn}
           />
         </Field>
@@ -339,8 +339,8 @@ export function OperationForm(props: Props): React.JSX.Element {
 
       <div className="flex items-center justify-between pt-2">
         <div className="flex items-center gap-2">
-          <Button type="submit" variant="primary" disabled={isPending}>
-            {isPending ? "Salvando..." : isEdit ? "Salvar" : "Criar operação"}
+          <Button type="submit" variant="primary" disabled={busy}>
+            {isSubmitting ? "Salvando..." : isEdit ? "Salvar" : "Criar operação"}
           </Button>
           <Link href={isEdit ? `/operations/${props.initialData.id}` : "/operations"}>
             <Button variant="ghost" type="button">
@@ -353,7 +353,7 @@ export function OperationForm(props: Props): React.JSX.Element {
             type="button"
             variant="ghost"
             onClick={handleArchive}
-            disabled={isPending}
+            disabled={busy}
             className="text-critical hover:text-critical hover:bg-critical-bg"
           >
             Arquivar

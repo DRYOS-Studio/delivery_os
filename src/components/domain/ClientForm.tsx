@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/Button";
 import {
@@ -31,8 +31,8 @@ type Props =
 export function ClientForm(props: Props): React.JSX.Element {
   const router = useRouter();
   const isEdit = props.mode === "edit";
-  const [isPending, startTransition] = useTransition();
   const [generalError, setGeneralError] = useState<string | null>(null);
+  const [isArchiving, setIsArchiving] = useState(false);
   const [slugTouched, setSlugTouched] = useState(isEdit);
 
   const defaultValues: ClientInput = isEdit
@@ -49,11 +49,13 @@ export function ClientForm(props: Props): React.JSX.Element {
     setValue,
     watch,
     setError,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<ClientInput, undefined, ClientOutput>({
     resolver: zodResolver(clientSchema),
     defaultValues,
   });
+
+  const busy = isSubmitting || isArchiving;
 
   const slugDisabled = isEdit && !props.canChangeSlug;
   const watchedName = watch("name");
@@ -63,50 +65,48 @@ export function ClientForm(props: Props): React.JSX.Element {
     setValue("slug", slugify(watchedName ?? ""), { shouldDirty: true });
   }, [watchedName, slugTouched, slugDisabled, setValue]);
 
-  function onSubmit(data: ClientOutput) {
-    startTransition(async () => {
-      setGeneralError(null);
-      const fd = new FormData();
-      fd.set("name", data.name);
-      fd.set("slug", data.slug);
-      fd.set("notes", data.notes ?? "");
+  async function onSubmit(data: ClientOutput) {
+    setGeneralError(null);
+    const fd = new FormData();
+    fd.set("name", data.name);
+    fd.set("slug", data.slug);
+    fd.set("notes", data.notes ?? "");
 
-      const result = isEdit
-        ? await updateClientAction(props.initialData.id, fd)
-        : await createClientAction(fd);
+    const result = isEdit
+      ? await updateClientAction(props.initialData.id, fd)
+      : await createClientAction(fd);
 
-      if (result.ok) {
-        const id = isEdit ? props.initialData.id : result.data.id;
-        router.push(`/clients/${id}`);
-        router.refresh();
-        return;
-      }
-      const code = result.code;
-      if (code === "slug_taken" || code === "slug_locked" || code === "validation_slug") {
-        setError("slug", { message: result.error });
-      } else if (code === "validation_name") {
-        setError("name", { message: result.error });
-      } else if (code === "validation_notes") {
-        setError("notes", { message: result.error });
-      } else {
-        setGeneralError(result.error);
-      }
-    });
+    if (result.ok) {
+      const id = isEdit ? props.initialData.id : result.data.id;
+      router.push(`/clients/${id}`);
+      router.refresh();
+      return;
+    }
+    const code = result.code;
+    if (code === "slug_taken" || code === "slug_locked" || code === "validation_slug") {
+      setError("slug", { message: result.error });
+    } else if (code === "validation_name") {
+      setError("name", { message: result.error });
+    } else if (code === "validation_notes") {
+      setError("notes", { message: result.error });
+    } else {
+      setGeneralError(result.error);
+    }
   }
 
-  function handleArchive() {
+  async function handleArchive() {
     if (!isEdit || !props.canArchive) return;
     if (!window.confirm("Arquivar este Cliente?")) return;
-    startTransition(async () => {
-      setGeneralError(null);
-      const result = await archiveClientAction(props.initialData.id);
-      if (result.ok) {
-        router.push("/clients");
-        router.refresh();
-      } else {
-        setGeneralError(result.error);
-      }
-    });
+    setIsArchiving(true);
+    setGeneralError(null);
+    const result = await archiveClientAction(props.initialData.id);
+    if (result.ok) {
+      router.push("/clients");
+      router.refresh();
+    } else {
+      setGeneralError(result.error);
+      setIsArchiving(false);
+    }
   }
 
   return (
@@ -128,7 +128,7 @@ export function ClientForm(props: Props): React.JSX.Element {
           type="text"
           {...register("name")}
           maxLength={120}
-          disabled={isPending}
+          disabled={busy}
           autoFocus={!isEdit}
           className={inputCn}
         />
@@ -152,7 +152,7 @@ export function ClientForm(props: Props): React.JSX.Element {
             onChange: () => setSlugTouched(true),
           })}
           maxLength={60}
-          disabled={isPending || slugDisabled}
+          disabled={busy || slugDisabled}
           className={inputCn}
         />
       </Field>
@@ -163,15 +163,15 @@ export function ClientForm(props: Props): React.JSX.Element {
           {...register("notes")}
           maxLength={1000}
           rows={4}
-          disabled={isPending}
+          disabled={busy}
           className={`${inputCn} resize-y`}
         />
       </Field>
 
       <div className="flex items-center justify-between pt-2">
         <div className="flex items-center gap-2">
-          <Button type="submit" variant="primary" disabled={isPending}>
-            {isPending ? "Salvando..." : isEdit ? "Salvar" : "Criar cliente"}
+          <Button type="submit" variant="primary" disabled={busy}>
+            {isSubmitting ? "Salvando..." : isEdit ? "Salvar" : "Criar cliente"}
           </Button>
           <Link href={isEdit ? `/clients/${props.initialData.id}` : "/clients"}>
             <Button variant="ghost" type="button">
@@ -184,7 +184,7 @@ export function ClientForm(props: Props): React.JSX.Element {
             type="button"
             variant="ghost"
             onClick={handleArchive}
-            disabled={isPending}
+            disabled={busy}
             className="text-critical hover:text-critical hover:bg-critical-bg"
           >
             Arquivar
