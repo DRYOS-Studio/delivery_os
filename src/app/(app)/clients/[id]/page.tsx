@@ -9,15 +9,9 @@ import { Pill } from "@/components/ui/Pill";
 import { getClient } from "@/lib/db/queries/clients";
 import { getActiveOperations } from "@/lib/db/queries/operations";
 import { getExternalPersonsByClient } from "@/lib/db/queries/persons";
+import { formatDateBR } from "@/lib/utils/date";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-function formatDateBR(iso: string): string {
-  const d = new Date(iso);
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  return `${dd}/${mm}/${d.getFullYear()}`;
-}
 
 export default async function Page({
   params,

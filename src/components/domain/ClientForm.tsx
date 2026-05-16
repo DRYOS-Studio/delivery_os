@@ -1,8 +1,10 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/Button";
 import {
   archiveClientAction,
@@ -11,8 +13,13 @@ import {
 } from "@/lib/actions/clients";
 import type { ClientDetail } from "@/lib/db/queries/clients";
 import { slugify } from "@/lib/utils/slug";
+import {
+  clientSchema,
+  type ClientInput,
+  type ClientOutput,
+} from "@/lib/validators/client";
 
-type ClientFormProps =
+type Props =
   | { mode: "create" }
   | {
       mode: "edit";
@@ -21,62 +28,68 @@ type ClientFormProps =
       canArchive: boolean;
     };
 
-type FieldErrors = {
-  name?: string;
-  slug?: string;
-  notes?: string;
-  general?: string;
-};
-
-function mapErrorCode(code: string | undefined, message: string): FieldErrors {
-  if (!code) return { general: message };
-  if (code === "validation_name") return { name: message };
-  if (code === "validation_slug" || code === "slug_taken" || code === "slug_locked")
-    return { slug: message };
-  if (code === "validation_notes") return { notes: message };
-  return { general: message };
-}
-
-export function ClientForm(props: ClientFormProps): React.JSX.Element {
+export function ClientForm(props: Props): React.JSX.Element {
   const router = useRouter();
   const isEdit = props.mode === "edit";
-
-  const [name, setName] = useState(isEdit ? props.initialData.name : "");
-  const [slug, setSlug] = useState(isEdit ? props.initialData.slug : "");
-  const [notes, setNotes] = useState(
-    isEdit ? (props.initialData.notes ?? "") : "",
-  );
-  const [slugTouched, setSlugTouched] = useState(isEdit);
-  const [errors, setErrors] = useState<FieldErrors>({});
   const [isPending, startTransition] = useTransition();
-  const [isArchiving, setIsArchiving] = useState(false);
+  const [generalError, setGeneralError] = useState<string | null>(null);
+  const [slugTouched, setSlugTouched] = useState(isEdit);
+
+  const defaultValues: ClientInput = isEdit
+    ? {
+        name: props.initialData.name,
+        slug: props.initialData.slug,
+        notes: props.initialData.notes ?? undefined,
+      }
+    : { name: "", slug: "", notes: undefined };
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    setError,
+    formState: { errors },
+  } = useForm<ClientInput, undefined, ClientOutput>({
+    resolver: zodResolver(clientSchema),
+    defaultValues,
+  });
 
   const slugDisabled = isEdit && !props.canChangeSlug;
+  const watchedName = watch("name");
 
-  function handleNameChange(value: string) {
-    setName(value);
-    if (!slugTouched && !slugDisabled) {
-      setSlug(slugify(value));
-    }
-  }
+  useEffect(() => {
+    if (slugTouched || slugDisabled) return;
+    setValue("slug", slugify(watchedName ?? ""), { shouldDirty: true });
+  }, [watchedName, slugTouched, slugDisabled, setValue]);
 
-  function handleSlugChange(value: string) {
-    setSlug(value);
-    setSlugTouched(true);
-  }
-
-  function handleSubmit(formData: FormData): void {
-    setErrors({});
+  function onSubmit(data: ClientOutput) {
     startTransition(async () => {
+      setGeneralError(null);
+      const fd = new FormData();
+      fd.set("name", data.name);
+      fd.set("slug", data.slug);
+      fd.set("notes", data.notes ?? "");
+
       const result = isEdit
-        ? await updateClientAction(props.initialData.id, formData)
-        : await createClientAction(formData);
+        ? await updateClientAction(props.initialData.id, fd)
+        : await createClientAction(fd);
+
       if (result.ok) {
         const id = isEdit ? props.initialData.id : result.data.id;
         router.push(`/clients/${id}`);
         router.refresh();
+        return;
+      }
+      const code = result.code;
+      if (code === "slug_taken" || code === "slug_locked" || code === "validation_slug") {
+        setError("slug", { message: result.error });
+      } else if (code === "validation_name") {
+        setError("name", { message: result.error });
+      } else if (code === "validation_notes") {
+        setError("notes", { message: result.error });
       } else {
-        setErrors(mapErrorCode(result.code, result.error));
+        setGeneralError(result.error);
       }
     });
   }
@@ -84,45 +97,38 @@ export function ClientForm(props: ClientFormProps): React.JSX.Element {
   function handleArchive() {
     if (!isEdit || !props.canArchive) return;
     if (!window.confirm("Arquivar este Cliente?")) return;
-    setIsArchiving(true);
-    setErrors({});
     startTransition(async () => {
+      setGeneralError(null);
       const result = await archiveClientAction(props.initialData.id);
       if (result.ok) {
         router.push("/clients");
         router.refresh();
       } else {
-        setErrors({ general: result.error });
-        setIsArchiving(false);
+        setGeneralError(result.error);
       }
     });
   }
 
-  const submitting = isPending && !isArchiving;
-
   return (
-    <form action={handleSubmit} className="space-y-4 max-w-xl">
-      {errors.general && (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-w-xl">
+      {generalError && (
         <div className="bg-critical-bg border border-critical text-critical text-sm rounded px-3 py-2">
-          {errors.general}
+          {generalError}
         </div>
       )}
 
       <Field
         label="Nome"
         htmlFor="name"
-        error={errors.name}
         required
+        error={errors.name?.message}
       >
         <input
           id="name"
           type="text"
-          name="name"
-          value={name}
-          onChange={(e) => handleNameChange(e.target.value)}
-          required
+          {...register("name")}
           maxLength={120}
-          disabled={submitting}
+          disabled={isPending}
           autoFocus={!isEdit}
           className={inputCn}
         />
@@ -131,8 +137,8 @@ export function ClientForm(props: ClientFormProps): React.JSX.Element {
       <Field
         label="Slug"
         htmlFor="slug"
-        error={errors.slug}
         required
+        error={errors.slug?.message}
         hint={
           slugDisabled
             ? "Slug não pode mudar enquanto houver Operações ativas."
@@ -142,34 +148,30 @@ export function ClientForm(props: ClientFormProps): React.JSX.Element {
         <input
           id="slug"
           type="text"
-          name="slug"
-          value={slug}
-          onChange={(e) => handleSlugChange(e.target.value)}
-          required
+          {...register("slug", {
+            onChange: () => setSlugTouched(true),
+          })}
           maxLength={60}
-          pattern="^[a-z0-9-]+$"
-          disabled={submitting || slugDisabled}
+          disabled={isPending || slugDisabled}
           className={inputCn}
         />
       </Field>
 
-      <Field label="Notas" htmlFor="notes" error={errors.notes}>
+      <Field label="Notas" htmlFor="notes" error={errors.notes?.message}>
         <textarea
           id="notes"
-          name="notes"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
+          {...register("notes")}
           maxLength={1000}
           rows={4}
-          disabled={submitting}
+          disabled={isPending}
           className={`${inputCn} resize-y`}
         />
       </Field>
 
       <div className="flex items-center justify-between pt-2">
         <div className="flex items-center gap-2">
-          <Button type="submit" variant="primary" disabled={submitting}>
-            {submitting ? "Salvando..." : isEdit ? "Salvar" : "Criar cliente"}
+          <Button type="submit" variant="primary" disabled={isPending}>
+            {isPending ? "Salvando..." : isEdit ? "Salvar" : "Criar cliente"}
           </Button>
           <Link href={isEdit ? `/clients/${props.initialData.id}` : "/clients"}>
             <Button variant="ghost" type="button">
@@ -182,10 +184,10 @@ export function ClientForm(props: ClientFormProps): React.JSX.Element {
             type="button"
             variant="ghost"
             onClick={handleArchive}
-            disabled={submitting || isArchiving}
+            disabled={isPending}
             className="text-critical hover:text-critical hover:bg-critical-bg"
           >
-            {isArchiving ? "Arquivando..." : "Arquivar"}
+            Arquivar
           </Button>
         )}
       </div>

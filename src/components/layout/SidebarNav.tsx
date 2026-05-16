@@ -2,6 +2,7 @@
 
 import {
   BookOpen,
+  Briefcase,
   Home,
   LayoutDashboard,
   Users,
@@ -26,8 +27,10 @@ type NavGroup = {
 
 export function SidebarNav({
   clientsCount,
+  operationsCount,
 }: {
   clientsCount?: number;
+  operationsCount?: number;
 }) {
   const pathname = usePathname();
 
@@ -41,6 +44,12 @@ export function SidebarNav({
           label: "Clientes",
           icon: Users,
           count: clientsCount,
+        },
+        {
+          href: "/operations",
+          label: "Operações",
+          icon: Briefcase,
+          count: operationsCount,
         },
       ],
     },

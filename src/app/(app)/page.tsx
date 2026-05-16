@@ -1,5 +1,8 @@
+import { Plus } from "lucide-react";
+import Link from "next/link";
 import { OperationCard } from "@/components/domain/OperationCard";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import { getUser } from "@/lib/auth/server";
 import {
@@ -66,7 +69,18 @@ export default async function Page() {
 
   return (
     <>
-      <PageHeader title={title} subtitle={subtitle} />
+      <PageHeader
+        title={title}
+        subtitle={subtitle}
+        actions={
+          <Link href="/operations/new">
+            <Button variant="sage">
+              <Plus className="w-4 h-4" strokeWidth={1.75} />
+              Nova operação
+            </Button>
+          </Link>
+        }
+      />
 
       <div className="flex gap-2 mb-7">
         {tabs.map((tab) => (
