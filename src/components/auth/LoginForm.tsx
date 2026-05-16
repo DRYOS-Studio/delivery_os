@@ -1,33 +1,35 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { signInWithMagicLinkAction } from "@/lib/actions/auth";
+import { signInWithPasswordAction } from "@/lib/actions/auth";
 
 type Props = {
   redirectTo: string;
   initialError?: string | undefined;
 };
 
-type Status = "idle" | "sending" | "sent" | "error";
+type Status = "idle" | "submitting" | "error";
 
 function mapInitialError(code: string | undefined): string | null {
   switch (code) {
     case "callback_failed":
       return "Falha ao autenticar. Tente novamente.";
-    case "link_expired":
-      return "Link expirado. Solicite novo.";
     case "missing_code":
-      return "Link inválido. Solicite novo.";
+      return "Link inválido.";
     default:
       return null;
   }
 }
 
-export function LoginForm({ redirectTo, initialError }: Props): React.JSX.Element {
+export function LoginForm({
+  redirectTo,
+  initialError,
+}: Props): React.JSX.Element {
+  const router = useRouter();
   const [status, setStatus] = useState<Status>(
     initialError ? "error" : "idle",
   );
-  const [email, setEmail] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(
     mapInitialError(initialError),
   );
@@ -35,12 +37,11 @@ export function LoginForm({ redirectTo, initialError }: Props): React.JSX.Elemen
 
   function handleSubmit(formData: FormData): void {
     startTransition(async () => {
-      setStatus("sending");
+      setStatus("submitting");
       setErrorMessage(null);
-      const result = await signInWithMagicLinkAction(formData);
+      const result = await signInWithPasswordAction(formData);
       if (result.ok) {
-        setEmail(result.data.email);
-        setStatus("sent");
+        router.push(result.data.redirectTo);
       } else {
         setErrorMessage(result.error);
         setStatus("error");
@@ -48,52 +49,53 @@ export function LoginForm({ redirectTo, initialError }: Props): React.JSX.Elemen
     });
   }
 
-  if (status === "sent") {
-    return (
-      <div className="space-y-3">
-        <p className="text-sm text-ink-soft">
-          Verifique seu e-mail em{" "}
-          <strong className="text-ink">{email}</strong>.
-        </p>
-        <p className="font-mono text-xs text-mute">
-          Pode levar até 1 minuto.
-        </p>
-        <button
-          type="button"
-          onClick={() => {
-            setStatus("idle");
-            setEmail("");
-            setErrorMessage(null);
-          }}
-          className="text-xs font-mono text-mute hover:text-ink underline"
-        >
-          trocar de e-mail
-        </button>
-      </div>
-    );
-  }
-
-  const sending = isPending || status === "sending";
+  const submitting = isPending || status === "submitting";
 
   return (
     <form action={handleSubmit} className="space-y-3">
       <input type="hidden" name="redirectTo" value={redirectTo} />
-      <input
-        type="email"
-        name="email"
-        required
-        autoComplete="email"
-        autoFocus
-        placeholder="voce@empresa.com"
-        disabled={sending}
-        className="w-full bg-card border border-line rounded px-3 py-2 text-sm text-ink-soft placeholder:text-mute-soft focus:outline-none focus:border-line-strong disabled:opacity-50"
-      />
+      <div className="space-y-1">
+        <label
+          htmlFor="email"
+          className="block font-mono text-[10px] text-mute uppercase tracking-wide"
+        >
+          E-mail
+        </label>
+        <input
+          id="email"
+          type="email"
+          name="email"
+          required
+          autoComplete="email"
+          autoFocus
+          placeholder="voce@empresa.com"
+          disabled={submitting}
+          className="w-full bg-card border border-line rounded px-3 py-2 text-sm text-ink-soft placeholder:text-mute-soft focus:outline-none focus:border-line-strong disabled:opacity-50"
+        />
+      </div>
+      <div className="space-y-1">
+        <label
+          htmlFor="password"
+          className="block font-mono text-[10px] text-mute uppercase tracking-wide"
+        >
+          Senha
+        </label>
+        <input
+          id="password"
+          type="password"
+          name="password"
+          required
+          autoComplete="current-password"
+          disabled={submitting}
+          className="w-full bg-card border border-line rounded px-3 py-2 text-sm text-ink-soft placeholder:text-mute-soft focus:outline-none focus:border-line-strong disabled:opacity-50"
+        />
+      </div>
       <button
         type="submit"
-        disabled={sending}
+        disabled={submitting}
         className="w-full bg-ink text-bg hover:bg-oak rounded px-3.5 py-2 text-[13px] font-medium disabled:opacity-50 transition-colors"
       >
-        {sending ? "Enviando..." : "Enviar link"}
+        {submitting ? "Entrando..." : "Entrar"}
       </button>
       {errorMessage && (
         <p className="text-critical text-xs mt-2" role="alert">

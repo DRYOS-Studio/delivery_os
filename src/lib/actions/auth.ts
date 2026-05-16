@@ -6,47 +6,52 @@ import { createServer } from "@/lib/db/client";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function appUrl(): string {
-  const value = process.env["NEXT_PUBLIC_APP_URL"];
-  if (!value) throw new Error("Missing required env var: NEXT_PUBLIC_APP_URL");
-  return value.replace(/\/$/, "");
-}
-
-export async function signInWithMagicLinkAction(
+export async function signInWithPasswordAction(
   formData: FormData,
-): Promise<ActionResult<{ email: string }>> {
+): Promise<ActionResult<{ email: string; redirectTo: string }>> {
   const rawEmail = formData.get("email");
+  const rawPassword = formData.get("password");
   const rawRedirectTo = formData.get("redirectTo");
 
   if (typeof rawEmail !== "string" || !EMAIL_RE.test(rawEmail.trim())) {
     return err("Informe um e-mail válido.", "invalid_email");
   }
+  if (typeof rawPassword !== "string" || rawPassword.length === 0) {
+    return err("Informe a senha.", "missing_password");
+  }
+
   const email = rawEmail.trim().toLowerCase();
+  const password = rawPassword;
   const redirectTo =
     typeof rawRedirectTo === "string" && rawRedirectTo.startsWith("/")
       ? rawRedirectTo
       : "/";
 
   const supabase = await createServer();
-  const emailRedirectTo = `${appUrl()}/auth/callback?next=${encodeURIComponent(redirectTo)}`;
-
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo, shouldCreateUser: false },
-  });
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
     const message = error.message.toLowerCase();
-    if (message.includes("signups not allowed") || message.includes("not allowed")) {
-      return err("Acesso não autorizado. Contate o admin.", "not_invited");
+    if (
+      message.includes("invalid login credentials") ||
+      message.includes("invalid_credentials") ||
+      error.status === 400
+    ) {
+      return err("E-mail ou senha incorretos.", "invalid_credentials");
+    }
+    if (message.includes("email not confirmed")) {
+      return err(
+        "E-mail ainda não confirmado. Verifique sua caixa de entrada.",
+        "email_not_confirmed",
+      );
     }
     if (message.includes("rate") || error.status === 429) {
       return err("Muitas tentativas. Aguarde 1 minuto.", "rate_limited");
     }
-    return err("Falha ao enviar link. Tente novamente.", "sign_in_failed");
+    return err("Falha ao entrar. Tente novamente.", "sign_in_failed");
   }
 
-  return ok({ email });
+  return ok({ email, redirectTo });
 }
 
 export async function signOutAction(): Promise<void> {
