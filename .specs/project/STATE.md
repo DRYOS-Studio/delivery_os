@@ -1,7 +1,7 @@
 # State
 
 **Last Updated:** 2026-05-15
-**Current Work:** week-01-setup — COMPLETE. Próximo: feature `auth` (Supabase Auth + middleware + páginas).
+**Current Work:** week-01-setup — COMPLETE + DEPLOYED em https://delivery-os-phi.vercel.app/. Próximo: feature `auth` (Supabase Auth + middleware + páginas).
 
 ---
 
@@ -20,6 +20,20 @@
 **Reason:** Mesmas dores do outro projeto (17+ entidades, regras sutis, RLS universal). Padrões maduros valem trazer com adaptação, não verbatim.
 **Trade-off:** CLAUDE.md cresceu de 186 → 404 linhas; ainda dentro de margem útil. Cerimônia maior por mudança de código (tlc-spec-driven obrigatório), aceito pelo usuário.
 **Impact:** Toda mudança de código agora abre com `Skill: tlc-spec-driven`. Schema obrigado a `COMMENT ON TABLE` + RLS + FK nomeada na mesma migration.
+
+### AD-009: Adiar `bitwarden-integration` pra v2 (2026-05-15)
+
+**Decision:** Tirar a feature `bitwarden-integration` do escopo da semana 1. Tabela `credentials` (que apontaria pro Bitwarden) também sai do MVP — entra junto quando o cofre real for definido.
+**Reason:** Bitwarden Teams (US$ 4/usuário/mês) é custo evitável no estágio atual. Decisão 03 do PRD já antecipou: "Vaultwarden self-host fica como alternativa pra v2 se mensalidade incomodar." Princípio 01 ("sistema é mapa, não cofre") permanece intacto — apenas pula a integração inicial.
+**Trade-off:** Operação aberta vai ter aba/seção "Credenciais" vazia ou hidden até v2. Quando voltar: avaliar Bitwarden Free pessoal (só solo), Vaultwarden self-host (precisa VPS), ou Bitwarden Teams (pagar).
+**Impact:** Cronograma sem 1 reduzido a `week-01-setup` ✅ + `auth`. ROADMAP atualizado movendo `bitwarden-integration` pra Future Considerations. CLAUDE.md mantém o princípio mas linha "Cofre senhas | Bitwarden Teams" do stack table fica como aspiração não-imediata.
+
+### AD-008: Vercel deploy live em delivery-os-phi.vercel.app (2026-05-15)
+
+**Decision:** Deploy de produção via integração GitHub→Vercel; trigger automático em push pra `main`. Projeto Vercel `delivery-os` em `rafaelemeths-projects` (team Pro), Node 24.x. Alias produção: `delivery-os-phi.vercel.app`.
+**Reason:** Cumpre item de validação do PR #2 (run em URL pública); habilita demo + smoke test E2E daqui em diante.
+**Trade-off:** **Gotcha encontrada e corrigida**: quando o projeto foi importado no dashboard, `main` ainda só tinha docs (sem `package.json`). Vercel salvou `framework: null` no projeto. Mesmo após o merge do PR #2 com o app Next.js completo, o framework continuou `null` → todos os paths retornavam 404 (até `/favicon.ico`), mesmo com build verde. Fix: dashboard → Project Settings → Framework Preset → **Next.js** → Save → Redeploy. **Lição**: importar projeto Vercel ANTES do `main` ter código quebra detecção.
+**Impact:** Build atual 6s (Turbopack), TTFB 65ms (CDN edge gru1), HTML 8077b. Pending: `NEXT_PUBLIC_APP_URL` nas envs da Vercel ainda em branco — preencher com `https://delivery-os-phi.vercel.app` na próxima sessão antes de habilitar link público.
 
 ### AD-007: Pivot pra Supabase remoto (projeto `Delivery OS` `tmsaucxoeqpfluzwrwkc`) (2026-05-15)
 
@@ -78,6 +92,13 @@ _None._
 ---
 
 ## Lessons Learned
+
+### L-002: Importar projeto Vercel antes do `main` ter código quebra detecção de framework (2026-05-15)
+
+**Context:** Setup do Vercel feito pelo dashboard ANTES do PR #2 ser merged. Naquele momento `main` só tinha docs (CLAUDE.md, PRD, mockup, README), sem `package.json`.
+**Problem:** Vercel detectou framework como `null` e salvou no projeto. Mesmo após o merge incluir `package.json` + `src/app/`, framework continuou null → 404 em todos os paths, mesmo com build verde.
+**Solution:** Dashboard → Project Settings → Framework Preset → **Next.js** → Save → Redeploy. Aí TTFB caiu pra 65ms e `/` virou 200.
+**Prevents:** Em deploys futuros: garantir que `main` já tem o framework no momento do import OU, no dashboard, escolher manualmente o Framework Preset durante o import (não confiar 100% em autodetect).
 
 ### L-001: Worktree de Claude Code parte do commit inicial (2026-05-15)
 
