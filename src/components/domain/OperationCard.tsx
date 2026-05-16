@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Pill, type PillVariant } from "@/components/ui/Pill";
 import type { OperationCardData } from "@/lib/db/queries/operations";
+import { formatDateShortBR } from "@/lib/utils/date";
 
 const PRODUCT_LINE_LABEL: Record<OperationCardData["productLine"], string> = {
   core: "Core",
@@ -22,13 +23,6 @@ const STATUS_VARIANT: Record<OperationCardData["status"], PillVariant> = {
   janela_critica: "warning",
   arquivada: "neutral",
 };
-
-function formatDateBR(iso: string): string {
-  const d = new Date(iso);
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  return `${dd}/${mm}`;
-}
 
 export function OperationCard({ data }: { data: OperationCardData }) {
   const { firstFrente, teamSize } = data;
@@ -55,7 +49,7 @@ export function OperationCard({ data }: { data: OperationCardData }) {
         {firstFrente ? (
           <p className="font-body text-sm text-ink-soft mt-4 leading-relaxed">
             {firstFrente.actionable_status}
-            <span className="font-mono text-xs text-mute"> — desde {formatDateBR(firstFrente.actionable_status_since)}</span>
+            <span className="font-mono text-xs text-mute"> — desde {formatDateShortBR(firstFrente.actionable_status_since)}</span>
           </p>
         ) : (
           <p className="font-mono text-xs text-mute-soft mt-4">

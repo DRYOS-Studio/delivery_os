@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+const emptyToUndefined = (v: unknown) => (v === "" ? undefined : v);
+
 export const clientSchema = z.object({
   name: z
     .string()
@@ -12,11 +14,14 @@ export const clientSchema = z.object({
     .min(1, "Slug obrigatório.")
     .max(60, "Slug muito longo (máx 60 caracteres).")
     .regex(/^[a-z0-9-]+$/, "Slug só pode ter minúsculas, números e hífens."),
-  notes: z
-    .string()
-    .max(1000, "Notas muito longas (máx 1000 caracteres).")
-    .optional()
-    .or(z.literal("").transform(() => undefined)),
+  notes: z.preprocess(
+    emptyToUndefined,
+    z
+      .string()
+      .max(1000, "Notas muito longas (máx 1000 caracteres).")
+      .optional(),
+  ),
 });
 
-export type ClientInput = z.infer<typeof clientSchema>;
+export type ClientInput = z.input<typeof clientSchema>;
+export type ClientOutput = z.output<typeof clientSchema>;

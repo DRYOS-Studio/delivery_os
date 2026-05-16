@@ -3,11 +3,13 @@ import { signOutAction } from "@/lib/actions/auth";
 import { getUser } from "@/lib/auth/server";
 import { SidebarNav } from "@/components/layout/SidebarNav";
 import { countActiveClients } from "@/lib/db/queries/clients";
+import { countActiveOperations } from "@/lib/db/queries/operations";
 
 export async function Sidebar() {
-  const [user, clientsCount] = await Promise.all([
+  const [user, clientsCount, operationsCount] = await Promise.all([
     getUser(),
     countActiveClients(),
+    countActiveOperations(),
   ]);
   const email = user?.email ?? "anon";
 
@@ -27,7 +29,10 @@ export async function Sidebar() {
         </div>
       </div>
 
-      <SidebarNav clientsCount={clientsCount} />
+      <SidebarNav
+        clientsCount={clientsCount}
+        operationsCount={operationsCount}
+      />
 
       <div className="flex-1" />
 
