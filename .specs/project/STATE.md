@@ -93,6 +93,13 @@ _None._
 
 ## Lessons Learned
 
+### L-003: `useTransition` deixa `isPending` preso após `router.push` em forms (2026-05-16)
+
+**Context:** OperationForm e ClientForm usavam `useTransition` pra rastrear estado de submit. Padrão era: `startTransition(async () => { const result = await action(...); if (result.ok) router.push(...) })`.
+**Problem:** Quando o action retornava OK e a gente chamava `router.push + router.refresh`, `isPending` permanecia `true` indefinidamente — botão ficava "Salvando..." mesmo depois do save ter funcionado e os dados terem sido persistidos. Comportamento inconsistente do `useTransition` no Next 16 + App Router quando o callback da transição dispara navegação.
+**Solution:** Trocar `useTransition` pelo `formState.isSubmitting` do react-hook-form. Esse flag é `true` durante o handler async e volta a `false` quando o handler retorna — independente do que o router faça depois. Pro botão Arquivar (não-RHF), state local `isArchiving`. Variável `busy = isSubmitting || isArchiving` cobre os disabled dos inputs. Bug fix em PR #16.
+**Prevents:** Forms novos devem seguir o pattern em `.claude/skills/dryos-conventions/SKILL.md` seção "Forms". Não usar `useTransition` pra wrapping de submit que vai navegar depois.
+
 ### L-002: Importar projeto Vercel antes do `main` ter código quebra detecção de framework (2026-05-15)
 
 **Context:** Setup do Vercel feito pelo dashboard ANTES do PR #2 ser merged. Naquele momento `main` só tinha docs (CLAUDE.md, PRD, mockup, README), sem `package.json`.
