@@ -238,6 +238,7 @@ export type FrenteListItem = {
   actionableStatus: string;
   actionableStatusSince: string;
   responsiblePersonId: string | null;
+  responsibleName: string | null;
 };
 
 export type OperationDetail = {
@@ -266,7 +267,8 @@ export async function getOperation(id: string): Promise<OperationDetail | null> 
       frentes(
         id, name, cycle_type, domain, phase,
         actionable_status, actionable_status_since,
-        responsible_person_id, archived_at, created_at
+        responsible_person_id, archived_at, created_at,
+        responsible:persons!fk_frentes_responsible_person_id(name)
       )
       `,
     )
@@ -288,6 +290,7 @@ export async function getOperation(id: string): Promise<OperationDetail | null> 
       actionableStatus: f.actionable_status,
       actionableStatusSince: f.actionable_status_since,
       responsiblePersonId: f.responsible_person_id,
+      responsibleName: f.responsible?.name ?? null,
     }));
 
   return {

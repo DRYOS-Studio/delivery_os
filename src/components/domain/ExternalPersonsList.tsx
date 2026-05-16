@@ -1,4 +1,7 @@
+import Link from "next/link";
+import { Avatar } from "@/components/ui/Avatar";
 import type { ExternalPersonItem } from "@/lib/db/queries/persons";
+import { getInitials } from "@/lib/utils/initials";
 
 export function ExternalPersonsList({
   persons,
@@ -18,10 +21,16 @@ export function ExternalPersonsList({
       {persons.map((p) => (
         <li
           key={p.id}
-          className="flex items-center justify-between bg-card border border-line rounded px-4 py-3"
+          className="flex items-center gap-3 bg-card border border-line rounded px-4 py-3"
         >
-          <div className="flex flex-col">
-            <span className="font-body text-sm text-ink">{p.name}</span>
+          <Avatar size="sm" initials={getInitials(p.name)} color="sage-deep" />
+          <div className="flex flex-col flex-1 min-w-0">
+            <Link
+              href={`/persons/${p.id}`}
+              className="font-body text-sm text-ink hover:underline truncate"
+            >
+              {p.name}
+            </Link>
             <span className="font-mono text-xs text-mute">
               {p.externalRole}
             </span>
