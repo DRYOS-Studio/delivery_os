@@ -1,7 +1,7 @@
 # Roadmap
 
 **Current Milestone:** Semana 01 — Setup + Schema + Auth
-**Status:** In Progress (week-01-setup COMPLETE; auth + bitwarden-integration PLANNED)
+**Status:** In Progress (week-01-setup COMPLETE + DEPLOYED; auth PLANNED; bitwarden-integration DEFERRED to v2 — AD-009)
 
 ---
 
@@ -31,11 +31,9 @@
 - Páginas de login/logout
 - Hook `useUser` + helper server-side
 
-**bitwarden-integration** - PLANNED
+~~**bitwarden-integration**~~ — **DEFERRED to v2** (AD-009)
 
-- Cliente Bitwarden API (`src/lib/integrations/bitwarden.ts`)
-- Tabela `credentials` referenciando `bitwarden_item_id` + `bitwarden_vault_id`
-- Sanity check: listar vaults / items via API
+Removida do MVP: custo de Bitwarden Teams (US$ 4/usuário/mês) evitável agora. Volta na v2 com opções de cofre (Bitwarden Teams pago, Bitwarden Free pessoal, ou Vaultwarden self-host).
 
 ---
 
@@ -104,6 +102,7 @@
 
 ## Future Considerations (v2+)
 
+- **Credenciais (`bitwarden-integration`)** — AD-009. Avaliar Bitwarden Teams (US$ 4/usr/mês), Bitwarden Free (solo only), ou Vaultwarden self-host. Tabela `credentials` entra junto.
 - Heatmap visual de capacidade (dado já existe)
 - IA gerando resumo automático de status (Claude API)
 - Integração Toggl (horas por Frente)
