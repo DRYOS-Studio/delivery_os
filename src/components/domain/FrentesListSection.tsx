@@ -1,8 +1,10 @@
 import { Plus } from "lucide-react";
 import Link from "next/link";
+import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Pill, type PillVariant } from "@/components/ui/Pill";
 import type { FrenteListItem } from "@/lib/db/queries/operations";
+import { getInitials } from "@/lib/utils/initials";
 
 const DOMAIN_LABEL: Record<FrenteListItem["domain"], string> = {
   infra: "Infra",
@@ -68,7 +70,7 @@ export function FrentesListSection({
             {frentes.map((f, idx) => (
               <li
                 key={f.id}
-                className={`grid grid-cols-12 gap-4 items-center px-4 py-3 ${idx !== frentes.length - 1 ? "border-b border-line" : ""}`}
+                className={`grid grid-cols-12 gap-3 items-center px-4 py-3 ${idx !== frentes.length - 1 ? "border-b border-line" : ""}`}
               >
                 <div className="col-span-3 font-medium text-ink">{f.name}</div>
                 <div className="col-span-1">
@@ -82,7 +84,19 @@ export function FrentesListSection({
                     {PHASE_LABEL[f.phase]}
                   </Pill>
                 </div>
-                <div className="col-span-4 font-body text-sm text-ink-soft truncate">
+                <div className="col-span-1 flex justify-center">
+                  {f.responsibleName ? (
+                    <Avatar
+                      size="sm"
+                      initials={getInitials(f.responsibleName)}
+                      color="oak"
+                      className="cursor-default"
+                    />
+                  ) : (
+                    <span className="font-mono text-[10px] text-mute-soft">—</span>
+                  )}
+                </div>
+                <div className="col-span-3 font-body text-sm text-ink-soft truncate">
                   {truncate(f.actionableStatus, 70)}
                 </div>
                 <div className="col-span-1 text-right">

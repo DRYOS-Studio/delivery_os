@@ -2,15 +2,20 @@ import { LogOut } from "lucide-react";
 import { signOutAction } from "@/lib/actions/auth";
 import { getUser } from "@/lib/auth/server";
 import { SidebarNav } from "@/components/layout/SidebarNav";
+import { Avatar } from "@/components/ui/Avatar";
 import { countActiveClients } from "@/lib/db/queries/clients";
 import { countActiveOperations } from "@/lib/db/queries/operations";
+import { countActivePersons } from "@/lib/db/queries/persons";
+import { initialsFromEmail } from "@/lib/utils/initials";
 
 export async function Sidebar() {
-  const [user, clientsCount, operationsCount] = await Promise.all([
-    getUser(),
-    countActiveClients(),
-    countActiveOperations(),
-  ]);
+  const [user, clientsCount, operationsCount, personsCounts] =
+    await Promise.all([
+      getUser(),
+      countActiveClients(),
+      countActiveOperations(),
+      countActivePersons(),
+    ]);
   const email = user?.email ?? "anon";
 
   return (
@@ -32,11 +37,13 @@ export async function Sidebar() {
       <SidebarNav
         clientsCount={clientsCount}
         operationsCount={operationsCount}
+        personsCount={personsCounts.total}
       />
 
       <div className="flex-1" />
 
       <div className="border-t border-line pt-3 mt-3 flex items-center gap-2">
+        <Avatar size="sm" initials={initialsFromEmail(email)} color="oak" />
         <span
           className="font-mono text-xs text-mute truncate flex-1"
           title={email}
