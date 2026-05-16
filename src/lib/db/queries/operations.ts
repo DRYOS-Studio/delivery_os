@@ -24,10 +24,12 @@ export type OperationCardData = {
   teamSize: number;
 };
 
-export async function getActiveOperations(): Promise<OperationCardData[]> {
+export async function getActiveOperations(
+  options: { clientId?: string } = {},
+): Promise<OperationCardData[]> {
   const supabase = await createServer();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("operations")
     .select(
       `
@@ -50,6 +52,12 @@ export async function getActiveOperations(): Promise<OperationCardData[]> {
     .is("archived_at", null)
     .neq("status", "arquivada")
     .order("created_at", { ascending: false });
+
+  if (options.clientId) {
+    query = query.eq("client_id", options.clientId);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(`getActiveOperations: ${error.message}`);

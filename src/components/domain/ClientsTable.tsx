@@ -1,0 +1,115 @@
+import Link from "next/link";
+import { Button } from "@/components/ui/Button";
+import { Pill } from "@/components/ui/Pill";
+import type { ClientListItem } from "@/lib/db/queries/clients";
+
+function formatDateBR(iso: string): string {
+  const d = new Date(iso);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${dd}/${mm}/${d.getFullYear()}`;
+}
+
+type Props = { clients: ClientListItem[]; hasSearch: boolean };
+
+export function ClientsTable({ clients, hasSearch }: Props) {
+  if (clients.length === 0) {
+    return (
+      <div className="text-center py-14 border border-line rounded bg-card">
+        {hasSearch ? (
+          <>
+            <p className="font-display text-lg text-mute">
+              Nenhum Cliente para essa busca.
+            </p>
+            <Link
+              href="/clients"
+              className="inline-block mt-3 font-mono text-xs text-oak hover:underline"
+            >
+              limpar busca
+            </Link>
+          </>
+        ) : (
+          <>
+            <p className="font-display text-lg text-mute">
+              Nenhum Cliente cadastrado.
+            </p>
+            <Link href="/clients/new" className="inline-block mt-4">
+              <Button variant="sage">Novo cliente</Button>
+            </Link>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-card border border-line rounded shadow-sm overflow-hidden">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-line">
+            <Th>Nome</Th>
+            <Th>Slug</Th>
+            <Th>Operações ativas</Th>
+            <Th>Pessoas externas</Th>
+            <Th>Criado em</Th>
+            <Th className="text-right">Ações</Th>
+          </tr>
+        </thead>
+        <tbody>
+          {clients.map((c) => (
+            <tr
+              key={c.id}
+              className="border-b border-line last:border-b-0 hover:bg-surface transition-colors"
+            >
+              <Td className="font-medium text-ink">{c.name}</Td>
+              <Td className="font-mono text-xs text-mute">{c.slug}</Td>
+              <Td>
+                <Pill variant="neutral">{c.operationsActive}</Pill>
+              </Td>
+              <Td>
+                <Pill variant="neutral">{c.externalPersons}</Pill>
+              </Td>
+              <Td className="font-mono text-xs text-mute">
+                {formatDateBR(c.createdAt)}
+              </Td>
+              <Td className="text-right">
+                <Link
+                  href={`/clients/${c.id}`}
+                  className="text-oak hover:underline text-sm font-medium"
+                >
+                  Abrir →
+                </Link>
+              </Td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function Th({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <th
+      className={`font-mono text-[10px] uppercase tracking-wide text-mute font-medium px-4 py-3 text-left ${className ?? ""}`}
+    >
+      {children}
+    </th>
+  );
+}
+
+function Td({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return <td className={`px-4 py-3 ${className ?? ""}`}>{children}</td>;
+}
