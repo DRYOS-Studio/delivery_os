@@ -2,9 +2,13 @@ import { LogOut } from "lucide-react";
 import { signOutAction } from "@/lib/actions/auth";
 import { getUser } from "@/lib/auth/server";
 import { SidebarNav } from "@/components/layout/SidebarNav";
+import { countActiveClients } from "@/lib/db/queries/clients";
 
 export async function Sidebar() {
-  const user = await getUser();
+  const [user, clientsCount] = await Promise.all([
+    getUser(),
+    countActiveClients(),
+  ]);
   const email = user?.email ?? "anon";
 
   return (
@@ -23,7 +27,7 @@ export async function Sidebar() {
         </div>
       </div>
 
-      <SidebarNav />
+      <SidebarNav clientsCount={clientsCount} />
 
       <div className="flex-1" />
 

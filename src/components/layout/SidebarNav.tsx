@@ -1,15 +1,22 @@
 "use client";
 
-import { BookOpen, Home, LayoutDashboard } from "lucide-react";
+import {
+  BookOpen,
+  Home,
+  LayoutDashboard,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentType, SVGProps } from "react";
+import { Pill } from "@/components/ui/Pill";
 import { cn } from "@/lib/utils/cn";
 
 type NavItem = {
   href: string;
   label: string;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
+  count?: number | undefined;
 };
 
 type NavGroup = {
@@ -17,26 +24,38 @@ type NavGroup = {
   items: readonly NavItem[];
 };
 
-const GROUPS: readonly NavGroup[] = [
-  {
-    label: "Espaço de trabalho",
-    items: [{ href: "/", label: "Home", icon: Home }],
-  },
-  {
-    label: "Admin",
-    items: [
-      { href: "/catalog", label: "Catálogo", icon: BookOpen },
-      { href: "/admin", label: "Painel", icon: LayoutDashboard },
-    ],
-  },
-];
-
-export function SidebarNav() {
+export function SidebarNav({
+  clientsCount,
+}: {
+  clientsCount?: number;
+}) {
   const pathname = usePathname();
+
+  const groups: readonly NavGroup[] = [
+    {
+      label: "Espaço de trabalho",
+      items: [
+        { href: "/", label: "Home", icon: Home },
+        {
+          href: "/clients",
+          label: "Clientes",
+          icon: Users,
+          count: clientsCount,
+        },
+      ],
+    },
+    {
+      label: "Admin",
+      items: [
+        { href: "/catalog", label: "Catálogo", icon: BookOpen },
+        { href: "/admin", label: "Painel", icon: LayoutDashboard },
+      ],
+    },
+  ];
 
   return (
     <nav className="flex flex-col gap-5">
-      {GROUPS.map((group) => (
+      {groups.map((group) => (
         <div key={group.label} className="flex flex-col gap-1">
           <p className="font-mono text-[10px] uppercase tracking-wide text-mute-soft px-3">
             {group.label}
@@ -45,7 +64,7 @@ export function SidebarNav() {
             const isActive =
               item.href === "/"
                 ? pathname === "/"
-                : pathname.startsWith(item.href);
+                : pathname === item.href || pathname.startsWith(`${item.href}/`);
             const Icon = item.icon;
             return (
               <Link
@@ -60,6 +79,11 @@ export function SidebarNav() {
               >
                 <Icon className="w-4 h-4" strokeWidth={1.75} />
                 <span>{item.label}</span>
+                {item.count != null && (
+                  <Pill variant="neutral" className="ml-auto">
+                    {item.count}
+                  </Pill>
+                )}
               </Link>
             );
           })}
