@@ -262,6 +262,88 @@ export async function getOperationsByStatus(
 
 ---
 
+## Forms
+
+Padrão canônico desde a feature `operations-crud`: **react-hook-form + zodResolver**. Schema único em `src/lib/validators/<entity>.ts` reaproveitado server-side pelo Server Action.
+
+### Pattern
+
+```typescript
+'use client';
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+
+export function MyForm(props: Props) {
+  const router = useRouter();
+  const [generalError, setGeneralError] = useState<string | null>(null);
+  const [isArchiving, setIsArchiving] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<Input, undefined, Output>({
+    resolver: zodResolver(mySchema),
+    defaultValues,
+  });
+
+  const busy = isSubmitting || isArchiving;
+
+  async function onSubmit(data: Output) {
+    setGeneralError(null);
+    const fd = new FormData();
+    // ... populate fd from data
+    const result = await myAction(fd);
+    if (result.ok) {
+      router.push(`/path/${result.data.id}`);
+      router.refresh();
+      return;
+    }
+    // map result.code → setError(field) or setGeneralError
+  }
+
+  return <form onSubmit={handleSubmit(onSubmit)}>...</form>;
+}
+```
+
+### Regras
+
+- **NÃO usar `useTransition`** pra wrapping de submit que vai navegar (L-003 em STATE.md: `isPending` fica preso após `router.push`)
+- Loading state = `formState.isSubmitting` do RHF. Ações secundárias (Arquivar) usam `useState` local.
+- Combina os dois em `busy = isSubmitting || isArchiving` pros `disabled` dos inputs.
+- **Schema com `z.preprocess`** pra converter `""` em `undefined` (Zod `.transform()` quebra typing com RHF + `exactOptionalPropertyTypes`):
+  ```typescript
+  const emptyToUndefined = (v: unknown) => (v === "" ? undefined : v);
+  const optionalEnum = z.preprocess(emptyToUndefined, z.enum([...]).optional());
+  ```
+- **`useForm<Input, Context, Output>`** com generics explícitos quando o schema tem transformations (input ≠ output). `Input = z.input<typeof schema>`, `Output = z.output<typeof schema>`.
+- Server Actions retornam `ActionResult<T>` com `code` tipado; client mapeia `code` → `setError('field', { message })` ou `setGeneralError`.
+- Erros do banco (`23505 unique_violation`, `23503 fk_violation`) ficam no Server Action; client recebe `err(message, code)` já tratado.
+- Em sucesso: `router.push` + `router.refresh()`. O componente desmonta antes de re-renderizar; não precisa resetar state.
+- **Sem `react-hook-form/Controller`** por enquanto — inputs nativos via `register()` funcionam pra todos os campos atuais. Promover se precisar integrar com componente complexo (combobox, date picker).
+
+### Auto-suggest entre campos
+
+`useEffect` lendo `watch(field)`. Track `touched` em `useState` pra parar de sobrescrever quando user editou manualmente:
+
+```typescript
+const watchedName = watch("name");
+useEffect(() => {
+  if (slugTouched) return;
+  setValue("slug", slugify(watchedName ?? ""), { shouldDirty: true });
+}, [watchedName, slugTouched, setValue]);
+```
+
+### Confirmação destrutiva
+
+`window.confirm("...")` direto. Modal custom fica pra v2 quando houver mais ações destrutivas.
+
+---
+
 ## Status acionável (validação)
 
 O princípio 04 exige formato específico. Implementação obrigatória:
