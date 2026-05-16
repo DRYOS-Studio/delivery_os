@@ -36,8 +36,10 @@ export function OperationCard({ data }: { data: OperationCardData }) {
   return (
     <Link href={`/operations/${data.id}`} className="block">
       <Card interactive>
-        <div className="flex items-center gap-2 mb-4">
-          <Pill variant="oak">{PRODUCT_LINE_LABEL[data.productLine]}</Pill>
+        <div className="flex items-center justify-between mb-4">
+          <Pill variant="oak" showDot>
+            {PRODUCT_LINE_LABEL[data.productLine]}
+          </Pill>
           <Pill variant={STATUS_VARIANT[data.status]}>
             {STATUS_LABEL[data.status]}
           </Pill>
@@ -51,11 +53,9 @@ export function OperationCard({ data }: { data: OperationCardData }) {
         </p>
 
         {firstFrente ? (
-          <p className="font-mono text-xs text-mute mt-4 leading-relaxed">
+          <p className="font-body text-sm text-ink-soft mt-4 leading-relaxed">
             {firstFrente.actionable_status}
-            <span className="block text-mute-soft">
-              desde {formatDateBR(firstFrente.actionable_status_since)}
-            </span>
+            <span className="font-mono text-xs text-mute"> — desde {formatDateBR(firstFrente.actionable_status_since)}</span>
           </p>
         ) : (
           <p className="font-mono text-xs text-mute-soft mt-4">
@@ -65,7 +65,7 @@ export function OperationCard({ data }: { data: OperationCardData }) {
 
         <div className="flex items-center justify-between mt-5 pt-4 border-t border-line">
           <span className="font-mono text-xs text-mute">
-            {teamSize} {teamSize === 1 ? "pessoa" : "pessoas"} alocadas
+            {teamSize} {teamSize === 1 ? "pessoa alocada" : "pessoas alocadas"}
           </span>
           {firstFrente && (
             <Pill variant="neutral">
