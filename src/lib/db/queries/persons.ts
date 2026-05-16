@@ -7,6 +7,23 @@ export type ExternalPersonItem = {
   externalRole: string;
 };
 
+export type InternalPersonItem = {
+  id: string;
+  name: string;
+};
+
+export async function listInternalPersons(): Promise<InternalPersonItem[]> {
+  const supabase = await createServer();
+  const { data, error } = await supabase
+    .from("persons")
+    .select("id, name")
+    .eq("kind", "internal")
+    .is("archived_at", null)
+    .order("name", { ascending: true });
+  if (error) throw new Error(`listInternalPersons: ${error.message}`);
+  return data ?? [];
+}
+
 export async function getExternalPersonsByClient(
   clientId: string,
 ): Promise<ExternalPersonItem[]> {

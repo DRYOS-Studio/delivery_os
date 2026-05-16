@@ -1,3 +1,6 @@
+import { Plus } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/Button";
 import { Pill, type PillVariant } from "@/components/ui/Pill";
 import type { FrenteListItem } from "@/lib/db/queries/operations";
 
@@ -27,18 +30,38 @@ function truncate(s: string, max: number): string {
 
 export function FrentesListSection({
   frentes,
+  operationId,
 }: {
   frentes: FrenteListItem[];
+  operationId: string;
 }) {
   return (
     <section className="mb-9">
       <div className="flex items-center gap-2 mb-4">
         <h2 className="font-display text-lg text-ink font-semibold">Frentes</h2>
         <Pill variant="neutral">{frentes.length}</Pill>
+        <div className="ml-auto">
+          <Link href={`/operations/${operationId}/frentes/new`}>
+            <Button variant="sage" size="sm">
+              <Plus className="w-3.5 h-3.5" strokeWidth={1.75} />
+              Nova Frente
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {frentes.length === 0 ? (
-        <p className="text-sm text-mute">Nenhuma Frente nesta Operação.</p>
+        <div className="bg-card border border-line rounded p-7 text-center">
+          <p className="font-body text-sm text-mute mb-4">
+            Nenhuma Frente nesta Operação.
+          </p>
+          <Link href={`/operations/${operationId}/frentes/new`}>
+            <Button variant="sage" size="sm">
+              <Plus className="w-3.5 h-3.5" strokeWidth={1.75} />
+              Criar primeira Frente
+            </Button>
+          </Link>
+        </div>
       ) : (
         <div className="bg-card border border-line rounded shadow-sm overflow-hidden">
           <ul>
@@ -59,8 +82,16 @@ export function FrentesListSection({
                     {PHASE_LABEL[f.phase]}
                   </Pill>
                 </div>
-                <div className="col-span-5 font-body text-sm text-ink-soft truncate">
-                  {truncate(f.actionableStatus, 80)}
+                <div className="col-span-4 font-body text-sm text-ink-soft truncate">
+                  {truncate(f.actionableStatus, 70)}
+                </div>
+                <div className="col-span-1 text-right">
+                  <Link
+                    href={`/operations/${operationId}/frentes/${f.id}/edit`}
+                    className="text-oak hover:underline text-sm font-medium"
+                  >
+                    Editar →
+                  </Link>
                 </div>
               </li>
             ))}
