@@ -28,7 +28,7 @@ export default async function Page({
         comingIn="sem 04"
       />
 
-      <FrentesListSection frentes={op.frentes} />
+      <FrentesListSection frentes={op.frentes} operationId={op.id} />
 
       <PlaceholderSection
         title="Briefing vivo"
