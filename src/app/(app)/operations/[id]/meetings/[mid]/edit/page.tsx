@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
+import { AttachmentsSection } from "@/components/domain/AttachmentsSection";
 import { MeetingForm } from "@/components/domain/MeetingForm";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { listAttachmentsByMeeting } from "@/lib/db/queries/attachments";
 import {
   getMeeting,
   listAttendeeCandidates,
@@ -25,7 +27,10 @@ export default async function Page({
   if (!meeting) redirect(`/operations/${id}`);
   if (meeting.operation_id !== id) redirect(`/operations/${id}`);
 
-  const attendeeCandidates = await listAttendeeCandidates(op.client.id);
+  const [attendeeCandidates, attachments] = await Promise.all([
+    listAttendeeCandidates(op.client.id),
+    listAttachmentsByMeeting(mid),
+  ]);
 
   return (
     <>
@@ -40,6 +45,13 @@ export default async function Page({
         initialData={meeting}
         attendeeCandidates={attendeeCandidates}
       />
+      <div className="mt-9">
+        <AttachmentsSection
+          attachments={attachments}
+          operationId={op.id}
+          meetingId={mid}
+        />
+      </div>
     </>
   );
 }

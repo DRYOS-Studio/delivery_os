@@ -18,7 +18,8 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 | **Pessoas** | `persons` | 1 |
 | **Briefing** | `briefings`, `briefing_versions` | 2 |
 | **Reuniões / Decisões** | `meetings`, `meeting_attendees`, `decisions` | 3 |
-| **Total atual** | | **10** |
+| **Anexos** | `attachments` | 1 |
+| **Total atual** | | **11** |
 
 ---
 
@@ -195,6 +196,31 @@ Trigger `set_decisions_updated_at` + index `idx_decisions_operation_decided` (op
 
 ---
 
+### `attachments` — ref pro Supabase Storage
+
+Bucket `attachments` privado. Path no formato `<operation_id>/<uuid>-<filename_sanitizado>` (Inv. 11).
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `operation_id` | uuid NOT NULL → operations (CASCADE) | |
+| `meeting_id` | uuid → meetings (SET NULL) | opcional; ata/slides linkados |
+| `storage_path` | text NOT NULL | CHECK começa com `<operation_id>/` |
+| `filename` | text NOT NULL | display name original |
+| `mime_type` | text NOT NULL | |
+| `size_bytes` | bigint NOT NULL | CHECK > 0 AND ≤ 10485760 (10MB) |
+| `description` | text | opcional, max 500 chars (Zod) |
+| `uploaded_by` | uuid → auth.users (SET NULL) | |
+| `created_at`, `updated_at` | timestamptz | |
+
+Triggers `set_attachments_updated_at`. Indexes: `idx_attachments_operation_created` (operation_id, created_at DESC); `idx_attachments_meeting_created` parcial (WHERE meeting_id IS NOT NULL).
+
+**Storage bucket** `attachments` (privado): policies authenticated SELECT/INSERT/DELETE. Sem UPDATE — substituir = delete + upload.
+
+Download via `/api/attachments/[id]/download` Route Handler → signed URL TTL 5min.
+
+---
+
 ## Enums
 
 | Enum | Valores |
@@ -215,7 +241,6 @@ Trigger `set_decisions_updated_at` + index `idx_decisions_operation_decided` (op
 ## Próximas tabelas planejadas (roadmap)
 
 - `profiles` — perfis dos usuários (papel Admin/Membro/Visualizador); sem 02
-- `attachments` — Storage refs; sem 03
 - `sla` — campos estruturados; sem 03 (pode ser inlined em operations dependendo do modelo)
 - `villains` — catálogo de marca (seed 7 records); sem 04
 - `operation_villains` — M:N com severidade inicial + progresso; sem 04
@@ -234,6 +259,7 @@ Trigger `set_decisions_updated_at` + index `idx_decisions_operation_decided` (op
 | 20260515000001 | initial_schema | 2026-05-15 (via MCP, AD-007) |
 | 20260517125711 | briefing_vivo | 2026-05-17 (via MCP) |
 | 20260517163210 | meetings_decisions | 2026-05-17 (via MCP) |
+| 20260517174018 | attachments | 2026-05-17 (via MCP) |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações
