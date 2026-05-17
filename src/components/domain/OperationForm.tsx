@@ -28,6 +28,7 @@ type Props =
       mode: "create";
       clientsForSelect: ClientForSelect[];
       diagnosticsByClient: DiagnosticOption[];
+      isAdmin?: boolean;
     }
   | {
       mode: "edit";
@@ -35,6 +36,7 @@ type Props =
       clientsForSelect: ClientForSelect[];
       canArchive: boolean;
       diagnosticsByClient: DiagnosticOption[];
+      isAdmin?: boolean;
     };
 
 const PRODUCT_LINE_LABEL: Record<"core" | "spark" | "studio", string> = {
@@ -52,6 +54,7 @@ function nameFromCombo(clientName: string, line: string): string {
 export function OperationForm(props: Props): React.JSX.Element {
   const router = useRouter();
   const isEdit = props.mode === "edit";
+  const isAdmin = props.isAdmin ?? false;
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [isArchiving, setIsArchiving] = useState(false);
   const [mrrInput, setMrrInput] = useState(
@@ -283,51 +286,64 @@ export function OperationForm(props: Props): React.JSX.Element {
         />
       </Field>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Field
-          label="Recorrência"
-          htmlFor="recurrence"
-          error={errors.recurrence?.message}
-        >
-          <select
-            id="recurrence"
-            {...register("recurrence")}
-            disabled={busy}
-            className={selectCn}
+      {isAdmin ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Field
+            label="Recorrência"
+            htmlFor="recurrence"
+            error={errors.recurrence?.message}
           >
-            <option value="">—</option>
-            <option value="mensal">Mensal</option>
-            <option value="trimestral">Trimestral</option>
-            <option value="anual">Anual</option>
-            <option value="unica">Única</option>
-          </select>
-        </Field>
+            <select
+              id="recurrence"
+              {...register("recurrence")}
+              disabled={busy}
+              className={selectCn}
+            >
+              <option value="">—</option>
+              <option value="mensal">Mensal</option>
+              <option value="trimestral">Trimestral</option>
+              <option value="anual">Anual</option>
+              <option value="unica">Única</option>
+            </select>
+          </Field>
 
-        <Field
-          label="MRR (Receita recorrente mensal)"
-          htmlFor="mrr"
-          error={errors.monthly_recurring_revenue?.message}
-          hint='Aceita "R$ 8.500,00", "8500" etc.'
-        >
+          <Field
+            label="MRR (Receita recorrente mensal)"
+            htmlFor="mrr"
+            error={errors.monthly_recurring_revenue?.message}
+            hint='Aceita "R$ 8.500,00", "8500" etc.'
+          >
+            <input
+              id="mrr"
+              type="text"
+              inputMode="decimal"
+              value={mrrInput}
+              onChange={(e) => {
+                const raw = e.target.value;
+                setMrrInput(raw);
+                const parsed = parseMoneyBR(raw);
+                setValue("monthly_recurring_revenue", parsed, {
+                  shouldValidate: true,
+                });
+              }}
+              placeholder="R$ 0,00"
+              disabled={busy}
+              className={inputCn}
+            />
+          </Field>
+        </div>
+      ) : (
+        <>
           <input
-            id="mrr"
-            type="text"
-            inputMode="decimal"
-            value={mrrInput}
-            onChange={(e) => {
-              const raw = e.target.value;
-              setMrrInput(raw);
-              const parsed = parseMoneyBR(raw);
-              setValue("monthly_recurring_revenue", parsed, {
-                shouldValidate: true,
-              });
-            }}
-            placeholder="R$ 0,00"
-            disabled={busy}
-            className={inputCn}
+            type="hidden"
+            {...register("recurrence")}
           />
-        </Field>
-      </div>
+          <input
+            type="hidden"
+            {...register("monthly_recurring_revenue")}
+          />
+        </>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Field

@@ -31,11 +31,13 @@ export function SidebarNav({
   operationsCount,
   personsCount,
   hotCriticalCount,
+  isAdmin = false,
 }: {
   clientsCount?: number;
   operationsCount?: number;
   personsCount?: number;
   hotCriticalCount?: number;
+  isAdmin?: boolean;
 }) {
   const pathname = usePathname();
   const hotCritDisplay =
@@ -45,39 +47,42 @@ export function SidebarNav({
         : String(hotCriticalCount)
       : null;
 
-  const groups: readonly NavGroup[] = [
-    {
-      label: "Espaço de trabalho",
-      items: [
-        { href: "/", label: "Home", icon: Home },
-        {
-          href: "/clients",
-          label: "Clientes",
-          icon: Users,
-          count: clientsCount,
-        },
-        {
-          href: "/operations",
-          label: "Operações",
-          icon: Briefcase,
-          count: operationsCount,
-        },
-        {
-          href: "/persons",
-          label: "Pessoas",
-          icon: Contact,
-          count: personsCount,
-        },
-      ],
-    },
-    {
-      label: "Admin",
-      items: [
-        { href: "/catalog", label: "Catálogo", icon: BookOpen },
-        { href: "/admin", label: "Painel", icon: LayoutDashboard },
-      ],
-    },
-  ];
+  const workspaceGroup: NavGroup = {
+    label: "Espaço de trabalho",
+    items: [
+      { href: "/", label: "Home", icon: Home },
+      {
+        href: "/clients",
+        label: "Clientes",
+        icon: Users,
+        count: clientsCount,
+      },
+      {
+        href: "/operations",
+        label: "Operações",
+        icon: Briefcase,
+        count: operationsCount,
+      },
+      {
+        href: "/persons",
+        label: "Pessoas",
+        icon: Contact,
+        count: personsCount,
+      },
+    ],
+  };
+
+  const adminGroup: NavGroup = {
+    label: "Admin",
+    items: [
+      { href: "/catalog", label: "Catálogo", icon: BookOpen },
+      { href: "/admin", label: "Painel", icon: LayoutDashboard },
+    ],
+  };
+
+  const groups: readonly NavGroup[] = isAdmin
+    ? [workspaceGroup, adminGroup]
+    : [workspaceGroup];
 
   return (
     <nav className="flex flex-col gap-5">

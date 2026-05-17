@@ -20,6 +20,7 @@ type Props = {
   meetingId?: string | undefined;
   // override do título; default "Anexos" pra Op, "Anexos da reunião" se meetingId
   title?: string;
+  isAdmin?: boolean;
 };
 
 export function AttachmentsSection({
@@ -27,6 +28,7 @@ export function AttachmentsSection({
   operationId,
   meetingId,
   title,
+  isAdmin = false,
 }: Props): React.JSX.Element {
   const headingText =
     title ?? (meetingId ? "Anexos da reunião" : "Anexos");
@@ -55,7 +57,7 @@ export function AttachmentsSection({
         ) : (
           <ul className="space-y-2">
             {attachments.map((a) => (
-              <AttachmentRow key={a.id} attachment={a} />
+              <AttachmentRow key={a.id} attachment={a} isAdmin={isAdmin} />
             ))}
           </ul>
         )}
@@ -66,8 +68,10 @@ export function AttachmentsSection({
 
 function AttachmentRow({
   attachment,
+  isAdmin = false,
 }: {
   attachment: AttachmentListItem;
+  isAdmin?: boolean;
 }) {
   const cat = mimeCategory(attachment.mimeType);
   const Icon = ICON_MAP[cat.icon];
@@ -97,10 +101,12 @@ function AttachmentRow({
           {attachment.uploaderEmail && <> · {attachment.uploaderEmail}</>}
         </p>
       </div>
-      <DeleteAttachmentButton
-        attachmentId={attachment.id}
-        filename={attachment.filename}
-      />
+      {isAdmin && (
+        <DeleteAttachmentButton
+          attachmentId={attachment.id}
+          filename={attachment.filename}
+        />
+      )}
     </li>
   );
 }

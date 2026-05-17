@@ -23,7 +23,7 @@ import {
   type MeetingOutput,
 } from "@/lib/validators/meeting";
 
-type Props =
+type Props = (
   | {
       mode: "create";
       operationId: string;
@@ -36,7 +36,8 @@ type Props =
       clientName: string;
       initialData: MeetingWithAttendees;
       attendeeCandidates: AttendeeRef[];
-    };
+    }
+) & { isAdmin?: boolean };
 
 function mapErrorToFields(
   code: string | undefined,
@@ -60,6 +61,7 @@ function defaultScheduledAt(): string {
 export function MeetingForm(props: Props): React.JSX.Element {
   const router = useRouter();
   const isEdit = props.mode === "edit";
+  const isAdmin = props.isAdmin ?? false;
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -231,7 +233,7 @@ export function MeetingForm(props: Props): React.JSX.Element {
             </Button>
           </Link>
         </div>
-        {isEdit && (
+        {isEdit && isAdmin && (
           <Button
             type="button"
             variant="ghost"

@@ -10,10 +10,12 @@ export function PublicLinksSection({
   links,
   operationId,
   baseUrl,
+  isAdmin = false,
 }: {
   links: PublicLinkListItem[];
   operationId: string;
   baseUrl: string;
+  isAdmin?: boolean;
 }): React.JSX.Element {
   const activeCount = links.filter((l) => l.revokedAt === null).length;
   return (
@@ -44,6 +46,7 @@ export function PublicLinksSection({
                 key={l.id}
                 link={l}
                 url={`${baseUrl}/public/${l.token}`}
+                isAdmin={isAdmin}
               />
             ))}
           </ul>
@@ -56,9 +59,11 @@ export function PublicLinksSection({
 function PublicLinkRow({
   link,
   url,
+  isAdmin = false,
 }: {
   link: PublicLinkListItem;
   url: string;
+  isAdmin?: boolean;
 }) {
   const isRevoked = link.revokedAt !== null;
   return (
@@ -85,7 +90,7 @@ function PublicLinkRow({
         </div>
         <div className="flex items-center gap-1">
           {!isRevoked && <CopyButton text={url} label="Copiar URL" />}
-          {!isRevoked && (
+          {!isRevoked && isAdmin && (
             <RevokePublicLinkButton linkId={link.id} label={link.label} />
           )}
         </div>

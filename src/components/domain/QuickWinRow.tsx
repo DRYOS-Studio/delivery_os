@@ -17,11 +17,13 @@ export function QuickWinRow({
   operationId,
   operationVillains,
   operationFrentes,
+  isAdmin = false,
 }: {
   qw: QuickWinListItem;
   operationId: string;
   operationVillains: OperationVillainListItem[];
   operationFrentes: Array<{ id: string; name: string }>;
+  isAdmin?: boolean;
 }): React.JSX.Element {
   const [editing, setEditing] = useState(false);
 
@@ -53,7 +55,9 @@ export function QuickWinRow({
                   <Pencil className="w-3 h-3" strokeWidth={1.75} />
                   {editing ? "Fechar" : "Editar"}
                 </button>
-                <RemoveQuickWinButton qwId={qw.id} title={qw.title} />
+                {isAdmin && (
+                  <RemoveQuickWinButton qwId={qw.id} title={qw.title} />
+                )}
               </div>
             </div>
 

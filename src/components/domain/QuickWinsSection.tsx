@@ -15,6 +15,7 @@ type Props = {
   operationId: string;
   operationVillains: OperationVillainListItem[];
   operationFrentes: Array<{ id: string; name: string }>;
+  isAdmin?: boolean;
 };
 
 export function QuickWinsSection({
@@ -22,6 +23,7 @@ export function QuickWinsSection({
   operationId,
   operationVillains,
   operationFrentes,
+  isAdmin = false,
 }: Props): React.JSX.Element {
   const [creating, setCreating] = useState(false);
 
@@ -76,6 +78,7 @@ export function QuickWinsSection({
               operationId={operationId}
               operationVillains={operationVillains}
               operationFrentes={operationFrentes}
+              isAdmin={isAdmin}
             />
           ))}
         </ul>

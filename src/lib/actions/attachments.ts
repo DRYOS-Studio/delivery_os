@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { type ActionResult, dbErr, err, ok } from "@/lib/actions/_types";
-import { requireUserAction } from "@/lib/auth/server";
+import { requireAdminAction, requireUserAction } from "@/lib/auth/server";
 import { createServer } from "@/lib/db/client";
 import { getAttachment } from "@/lib/db/queries/attachments";
 import { getMeeting } from "@/lib/db/queries/meetings";
@@ -118,6 +118,9 @@ export async function deleteAttachmentAction(
 ): Promise<ActionResult<{ operationId: string; meetingId: string | null }>> {
   const userResult = await requireUserAction();
   if (!userResult.ok) return userResult;
+
+  const adminGuard = await requireAdminAction();
+  if (!adminGuard.ok) return adminGuard;
 
   const current = await getAttachment(attachmentId);
   if (!current) return err("Anexo não encontrado.", "not_found");

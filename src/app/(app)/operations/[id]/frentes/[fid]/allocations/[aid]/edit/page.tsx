@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { AllocationForm } from "@/components/domain/AllocationForm";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { getProfile } from "@/lib/auth/server";
 import { getAllocation } from "@/lib/db/queries/allocations";
 import { getFrente } from "@/lib/db/queries/frentes";
 import { getOperation } from "@/lib/db/queries/operations";
@@ -31,6 +32,9 @@ export default async function Page({
   if (allocation.frente_id !== fid)
     redirect(`/operations/${id}/frentes/${fid}/edit`);
 
+  const profile = await getProfile();
+  const isAdmin = profile?.role === "admin";
+
   return (
     <>
       <PageHeader
@@ -43,6 +47,7 @@ export default async function Page({
         operationId={id}
         frenteId={fid}
         internalPersons={persons}
+        isAdmin={isAdmin}
       />
     </>
   );

@@ -19,18 +19,20 @@ import {
   type ClientOutput,
 } from "@/lib/validators/client";
 
-type Props =
+type Props = (
   | { mode: "create" }
   | {
       mode: "edit";
       initialData: ClientDetail;
       canChangeSlug: boolean;
       canArchive: boolean;
-    };
+    }
+) & { isAdmin?: boolean };
 
 export function ClientForm(props: Props): React.JSX.Element {
   const router = useRouter();
   const isEdit = props.mode === "edit";
+  const isAdmin = props.isAdmin ?? false;
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [isArchiving, setIsArchiving] = useState(false);
   const [slugTouched, setSlugTouched] = useState(isEdit);
@@ -179,7 +181,7 @@ export function ClientForm(props: Props): React.JSX.Element {
             </Button>
           </Link>
         </div>
-        {isEdit && props.canArchive && (
+        {isEdit && props.canArchive && isAdmin && (
           <Button
             type="button"
             variant="ghost"

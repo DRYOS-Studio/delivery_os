@@ -22,9 +22,10 @@ import {
   type IncidentOutput,
 } from "@/lib/validators/incident";
 
-type Props =
+type Props = (
   | { mode: "create"; operationId: string }
-  | { mode: "edit"; operationId: string; initialData: IncidentRow };
+  | { mode: "edit"; operationId: string; initialData: IncidentRow }
+) & { isAdmin?: boolean };
 
 const SEVERITY_OPTIONS = [
   { value: "low", label: "Baixa" },
@@ -61,6 +62,7 @@ function defaultOpenedAt(): string {
 export function IncidentForm(props: Props): React.JSX.Element {
   const router = useRouter();
   const isEdit = props.mode === "edit";
+  const isAdmin = props.isAdmin ?? false;
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -286,7 +288,7 @@ export function IncidentForm(props: Props): React.JSX.Element {
             </Button>
           </Link>
         </div>
-        {isEdit && (
+        {isEdit && isAdmin && (
           <Button
             type="button"
             variant="ghost"

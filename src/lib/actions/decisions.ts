@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { type ActionResult, dbErr, err, ok } from "@/lib/actions/_types";
-import { requireUserAction } from "@/lib/auth/server";
+import { requireAdminAction, requireUserAction } from "@/lib/auth/server";
 import { createServer } from "@/lib/db/client";
 import { getDecision } from "@/lib/db/queries/decisions";
 import { getMeeting } from "@/lib/db/queries/meetings";
@@ -126,6 +126,9 @@ export async function deleteDecisionAction(
 ): Promise<ActionResult<{ operationId: string }>> {
   const userResult = await requireUserAction();
   if (!userResult.ok) return userResult;
+
+  const adminGuard = await requireAdminAction();
+  if (!adminGuard.ok) return adminGuard;
 
   const current = await getDecision(decisionId);
   if (!current) return err("Decisão não encontrada.", "not_found");

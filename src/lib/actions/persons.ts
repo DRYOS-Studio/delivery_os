@@ -1,7 +1,7 @@
 "use server";
 
 import { type ActionResult, dbErr, err, ok } from "@/lib/actions/_types";
-import { requireUserAction } from "@/lib/auth/server";
+import { requireAdminAction, requireUserAction } from "@/lib/auth/server";
 import { createServer } from "@/lib/db/client";
 import type { Database } from "@/lib/db/types";
 import {
@@ -143,6 +143,9 @@ export async function archivePersonAction(
 ): Promise<ActionResult<undefined>> {
   const userResult = await requireUserAction();
   if (!userResult.ok) return userResult;
+
+  const adminGuard = await requireAdminAction();
+  if (!adminGuard.ok) return adminGuard;
 
   const current = await getPerson(id);
   if (!current) return err("Pessoa não encontrada.", "not_found");

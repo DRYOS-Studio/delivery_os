@@ -11,10 +11,12 @@ export function OperationVillainsSection({
   items,
   availableVillains,
   operationId,
+  isAdmin = false,
 }: {
   items: OperationVillainListItem[];
   availableVillains: AvailableVillain[];
   operationId: string;
+  isAdmin?: boolean;
 }): React.JSX.Element {
   return (
     <section className="mb-9">
@@ -41,7 +43,7 @@ export function OperationVillainsSection({
       ) : (
         <ul className="space-y-3">
           {items.map((item) => (
-            <OperationVillainRow key={item.id} item={item} />
+            <OperationVillainRow key={item.id} item={item} isAdmin={isAdmin} />
           ))}
         </ul>
       )}

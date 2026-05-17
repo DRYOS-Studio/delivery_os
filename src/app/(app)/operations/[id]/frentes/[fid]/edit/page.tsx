@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { AllocationsSection } from "@/components/domain/AllocationsSection";
 import { FrenteForm } from "@/components/domain/FrenteForm";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { getProfile } from "@/lib/auth/server";
 import { listAllocationsByFrente } from "@/lib/db/queries/allocations";
 import {
   frenteHasActiveAllocations,
@@ -31,6 +32,9 @@ export default async function Page({
   if (!frente) redirect(`/operations/${id}`);
   if (frente.operation_id !== id) redirect(`/operations/${id}`);
 
+  const profile = await getProfile();
+  const isAdmin = profile?.role === "admin";
+
   return (
     <>
       <PageHeader
@@ -43,6 +47,7 @@ export default async function Page({
         operationId={id}
         internalPersons={persons}
         canArchive={!hasAllocs}
+        isAdmin={isAdmin}
       />
       <AllocationsSection
         allocations={allocations}

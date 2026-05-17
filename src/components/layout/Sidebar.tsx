@@ -1,8 +1,9 @@
 import { LogOut } from "lucide-react";
 import { signOutAction } from "@/lib/actions/auth";
-import { getUser } from "@/lib/auth/server";
+import { getProfile } from "@/lib/auth/server";
 import { SidebarNav } from "@/components/layout/SidebarNav";
 import { Avatar } from "@/components/ui/Avatar";
+import { Pill } from "@/components/ui/Pill";
 import { countActiveClients } from "@/lib/db/queries/clients";
 import { countHotCriticalFrentes } from "@/lib/db/queries/frentes";
 import { countActiveOperations } from "@/lib/db/queries/operations";
@@ -11,19 +12,20 @@ import { initialsFromEmail } from "@/lib/utils/initials";
 
 export async function Sidebar() {
   const [
-    user,
+    profile,
     clientsCount,
     operationsCount,
     personsCounts,
     hotCriticalCount,
   ] = await Promise.all([
-    getUser(),
+    getProfile(),
     countActiveClients(),
     countActiveOperations(),
     countActivePersons(),
     countHotCriticalFrentes(),
   ]);
-  const email = user?.email ?? "anon";
+  const email = profile?.user.email ?? "anon";
+  const isAdmin = profile?.role === "admin";
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-[220px] bg-surface border-r border-line p-5 flex flex-col">
@@ -46,27 +48,35 @@ export async function Sidebar() {
         operationsCount={operationsCount}
         personsCount={personsCounts.total}
         hotCriticalCount={hotCriticalCount}
+        isAdmin={isAdmin}
       />
 
       <div className="flex-1" />
 
-      <div className="border-t border-line pt-3 mt-3 flex items-center gap-2">
-        <Avatar size="sm" initials={initialsFromEmail(email)} color="oak" />
-        <span
-          className="font-mono text-xs text-mute truncate flex-1"
-          title={email}
-        >
-          {email}
-        </span>
-        <form action={signOutAction}>
-          <button
-            type="submit"
-            className="text-mute hover:text-ink transition-colors"
-            aria-label="Sair"
+      <div className="border-t border-line pt-3 mt-3 space-y-2">
+        <div className="flex items-center gap-2">
+          <Avatar size="sm" initials={initialsFromEmail(email)} color="oak" />
+          <span
+            className="font-mono text-xs text-mute truncate flex-1"
+            title={email}
           >
-            <LogOut className="w-4 h-4" strokeWidth={1.75} />
-          </button>
-        </form>
+            {email}
+          </span>
+          <form action={signOutAction}>
+            <button
+              type="submit"
+              className="text-mute hover:text-ink transition-colors"
+              aria-label="Sair"
+            >
+              <LogOut className="w-4 h-4" strokeWidth={1.75} />
+            </button>
+          </form>
+        </div>
+        {profile && (
+          <Pill variant={isAdmin ? "sage" : "neutral"}>
+            {isAdmin ? "Admin" : "Member"}
+          </Pill>
+        )}
       </div>
     </aside>
   );

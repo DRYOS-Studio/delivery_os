@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { OperationForm } from "@/components/domain/OperationForm";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { getProfile } from "@/lib/auth/server";
 import { listClients } from "@/lib/db/queries/clients";
 import { listDiagnosticsForSelect } from "@/lib/db/queries/diagnostics";
 import {
@@ -26,6 +27,9 @@ export default async function Page({
   ]);
   if (!op) redirect("/operations");
 
+  const profile = await getProfile();
+  const isAdmin = profile?.role === "admin";
+
   const clientsForSelect = clients.map((c) => ({ id: c.id, name: c.name }));
 
   return (
@@ -37,6 +41,7 @@ export default async function Page({
         clientsForSelect={clientsForSelect}
         canArchive={!hasFrentes}
         diagnosticsByClient={diagnosticsByClient}
+        isAdmin={isAdmin}
       />
     </>
   );

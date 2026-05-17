@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { type ActionResult, dbErr, err, ok } from "@/lib/actions/_types";
-import { requireUserAction } from "@/lib/auth/server";
+import { requireAdminAction, requireUserAction } from "@/lib/auth/server";
 import { createServer } from "@/lib/db/client";
 import {
   villainSchema,
@@ -57,6 +57,9 @@ export async function updateVillainAction(
   const userResult = await requireUserAction();
   if (!userResult.ok) return userResult;
 
+  const adminGuard = await requireAdminAction();
+  if (!adminGuard.ok) return adminGuard;
+
   const v = validate(formData);
   if (!v.ok) return v;
   const data: VillainOutput = v.data;
@@ -90,6 +93,9 @@ export async function archiveVillainAction(
   const userResult = await requireUserAction();
   if (!userResult.ok) return userResult;
 
+  const adminGuard = await requireAdminAction();
+  if (!adminGuard.ok) return adminGuard;
+
   const supabase = await createServer();
   const { error } = await supabase
     .from("villains")
@@ -106,6 +112,9 @@ export async function restoreVillainAction(
 ): Promise<ActionResult<{ id: string }>> {
   const userResult = await requireUserAction();
   if (!userResult.ok) return userResult;
+
+  const adminGuard = await requireAdminAction();
+  if (!adminGuard.ok) return adminGuard;
 
   const supabase = await createServer();
   const { error } = await supabase

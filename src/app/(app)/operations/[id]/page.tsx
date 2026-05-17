@@ -10,6 +10,7 @@ import { PlaceholderSection } from "@/components/domain/PlaceholderSection";
 import { PublicLinksSection } from "@/components/domain/PublicLinksSection";
 import { QuickWinsSection } from "@/components/domain/QuickWinsSection";
 import { SLASection } from "@/components/domain/SLASection";
+import { getProfile } from "@/lib/auth/server";
 import {
   countAttachmentsByMeeting,
   listAttachmentsByOperation,
@@ -40,6 +41,9 @@ export default async function Page({
 }) {
   const { id } = await params;
   if (!UUID_RE.test(id)) notFound();
+
+  const profile = await getProfile();
+  const isAdmin = profile?.role === "admin";
 
   const [
     op,
@@ -74,12 +78,13 @@ export default async function Page({
 
   return (
     <>
-      <OperationHero op={op} briefingFreshness={briefingFreshness} />
+      <OperationHero op={op} briefingFreshness={briefingFreshness} isAdmin={isAdmin} />
 
       <OperationVillainsSection
         items={operationVillains}
         availableVillains={availableVillains}
         operationId={op.id}
+        isAdmin={isAdmin}
       />
 
       <QuickWinsSection
@@ -87,6 +92,7 @@ export default async function Page({
         operationId={op.id}
         operationVillains={operationVillains}
         operationFrentes={op.frentes.map((f) => ({ id: f.id, name: f.name }))}
+        isAdmin={isAdmin}
       />
 
       <FrentesListSection frentes={op.frentes} operationId={op.id} />
@@ -117,7 +123,7 @@ export default async function Page({
         meetingAttachmentCounts={meetingAttachmentCounts}
       />
 
-      <AttachmentsSection attachments={attachments} operationId={op.id} />
+      <AttachmentsSection attachments={attachments} operationId={op.id} isAdmin={isAdmin} />
 
       <SLASection
         incidents={incidents}
@@ -133,9 +139,10 @@ export default async function Page({
         links={publicLinks}
         operationId={op.id}
         baseUrl={baseUrl}
+        isAdmin={isAdmin}
       />
 
-      <FinanceCards op={op} />
+      <FinanceCards op={op} isAdmin={isAdmin} />
 
       <PlaceholderSection
         title="Credenciais"

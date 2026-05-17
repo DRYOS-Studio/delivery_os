@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { PersonForm } from "@/components/domain/PersonForm";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { getProfile } from "@/lib/auth/server";
 import { listClients } from "@/lib/db/queries/clients";
 import {
   getPerson,
@@ -28,6 +29,9 @@ export default async function Page({
   // Internas: bloqueia archive se há allocations. Externas: nunca bloqueado (FK SET NULL em frentes).
   const canArchive = person.kind === "external" ? true : !hasAllocs;
 
+  const profile = await getProfile();
+  const isAdmin = profile?.role === "admin";
+
   return (
     <>
       <PageHeader title={`Editar — ${person.name}`} />
@@ -36,6 +40,7 @@ export default async function Page({
         initialData={person}
         clientsForSelect={clientsForSelect}
         canArchive={canArchive}
+        isAdmin={isAdmin}
       />
     </>
   );

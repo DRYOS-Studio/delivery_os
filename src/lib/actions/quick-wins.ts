@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { type ActionResult, dbErr, err, ok } from "@/lib/actions/_types";
-import { requireUserAction } from "@/lib/auth/server";
+import { requireAdminAction, requireUserAction } from "@/lib/auth/server";
 import { createServer } from "@/lib/db/client";
 import { getQuickWin } from "@/lib/db/queries/quick-wins";
 import {
@@ -168,6 +168,9 @@ export async function deleteQuickWinAction(
 ): Promise<ActionResult<{ operationId: string }>> {
   const userResult = await requireUserAction();
   if (!userResult.ok) return userResult;
+
+  const adminGuard = await requireAdminAction();
+  if (!adminGuard.ok) return adminGuard;
 
   const current = await getQuickWin(qwId);
   if (!current) return err("Quick Win não encontrado.", "not_found");
