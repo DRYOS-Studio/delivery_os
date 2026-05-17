@@ -298,6 +298,50 @@ export type Database = {
           },
         ]
       }
+      diagnostics: {
+        Row: {
+          client_id: string
+          conducted_at: string | null
+          created_at: string
+          id: string
+          notes: string
+          recommended_product:
+            | Database["public"]["Enums"]["product_recommendation"]
+            | null
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          conducted_at?: string | null
+          created_at?: string
+          id?: string
+          notes: string
+          recommended_product?:
+            | Database["public"]["Enums"]["product_recommendation"]
+            | null
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          conducted_at?: string | null
+          created_at?: string
+          id?: string
+          notes?: string
+          recommended_product?:
+            | Database["public"]["Enums"]["product_recommendation"]
+            | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_diagnostics_client_id"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       frentes: {
         Row: {
           actionable_status: string
@@ -491,6 +535,7 @@ export type Database = {
           archived_at: string | null
           client_id: string
           created_at: string
+          diagnostic_id: string | null
           end_date: string | null
           id: string
           monthly_recurring_revenue: number | null
@@ -507,6 +552,7 @@ export type Database = {
           archived_at?: string | null
           client_id: string
           created_at?: string
+          diagnostic_id?: string | null
           end_date?: string | null
           id?: string
           monthly_recurring_revenue?: number | null
@@ -523,6 +569,7 @@ export type Database = {
           archived_at?: string | null
           client_id?: string
           created_at?: string
+          diagnostic_id?: string | null
           end_date?: string | null
           id?: string
           monthly_recurring_revenue?: number | null
@@ -541,6 +588,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_operations_diagnostic_id"
+            columns: ["diagnostic_id"]
+            isOneToOne: false
+            referencedRelation: "diagnostics"
             referencedColumns: ["id"]
           },
         ]
@@ -629,6 +683,96 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "fk_public_links_operation_id"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "operations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quick_win_impacts: {
+        Row: {
+          created_at: string
+          id: string
+          impact_pct: number
+          operation_villain_id: string
+          quick_win_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          impact_pct: number
+          operation_villain_id: string
+          quick_win_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          impact_pct?: number
+          operation_villain_id?: string
+          quick_win_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_quick_win_impacts_operation_villain_id"
+            columns: ["operation_villain_id"]
+            isOneToOne: false
+            referencedRelation: "operation_villains"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_quick_win_impacts_quick_win_id"
+            columns: ["quick_win_id"]
+            isOneToOne: false
+            referencedRelation: "quick_wins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quick_wins: {
+        Row: {
+          created_at: string
+          description: string | null
+          executor_id: string | null
+          frente_id: string | null
+          happened_at: string
+          id: string
+          operation_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          executor_id?: string | null
+          frente_id?: string | null
+          happened_at?: string
+          id?: string
+          operation_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          executor_id?: string | null
+          frente_id?: string | null
+          happened_at?: string
+          id?: string
+          operation_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_quick_wins_frente_id"
+            columns: ["frente_id"]
+            isOneToOne: false
+            referencedRelation: "frentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_quick_wins_operation_id"
             columns: ["operation_id"]
             isOneToOne: false
             referencedRelation: "operations"
@@ -752,6 +896,7 @@ export type Database = {
         | "arquivada"
       person_kind: "internal" | "external"
       product_line: "core" | "spark" | "studio"
+      product_recommendation: "core" | "spark" | "studio"
       recurrence: "mensal" | "trimestral" | "anual" | "unica"
       severity_level: "low" | "medium" | "high" | "critical"
       sla_incident_status: "open" | "responded" | "resolved" | "cancelled"
@@ -897,6 +1042,7 @@ export const Constants = {
       ],
       person_kind: ["internal", "external"],
       product_line: ["core", "spark", "studio"],
+      product_recommendation: ["core", "spark", "studio"],
       recurrence: ["mensal", "trimestral", "anual", "unica"],
       severity_level: ["low", "medium", "high", "critical"],
       sla_incident_status: ["open", "responded", "resolved", "cancelled"],

@@ -250,6 +250,7 @@ export type OperationDetail = {
   monthlyRecurringRevenue: number | null;
   responseHours: number | null;
   resolutionHours: number | null;
+  diagnosticId: string | null;
   startDate: string | null;
   endDate: string | null;
   createdAt: string;
@@ -265,7 +266,7 @@ export async function getOperation(id: string): Promise<OperationDetail | null> 
       `
       id, name, product_line, status, recurrence,
       monthly_recurring_revenue, response_hours, resolution_hours,
-      start_date, end_date, created_at,
+      diagnostic_id, start_date, end_date, created_at,
       client:clients(id, name, slug),
       frentes(
         id, name, cycle_type, domain, phase,
@@ -305,6 +306,7 @@ export async function getOperation(id: string): Promise<OperationDetail | null> 
     monthlyRecurringRevenue: data.monthly_recurring_revenue,
     responseHours: data.response_hours,
     resolutionHours: data.resolution_hours,
+    diagnosticId: data.diagnostic_id,
     startDate: data.start_date,
     endDate: data.end_date,
     createdAt: data.created_at,

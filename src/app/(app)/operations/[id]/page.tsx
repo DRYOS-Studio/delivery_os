@@ -8,6 +8,7 @@ import { OperationHero } from "@/components/domain/OperationHero";
 import { OperationVillainsSection } from "@/components/domain/OperationVillainsSection";
 import { PlaceholderSection } from "@/components/domain/PlaceholderSection";
 import { PublicLinksSection } from "@/components/domain/PublicLinksSection";
+import { QuickWinsSection } from "@/components/domain/QuickWinsSection";
 import { SLASection } from "@/components/domain/SLASection";
 import {
   countAttachmentsByMeeting,
@@ -26,6 +27,7 @@ import {
 } from "@/lib/db/queries/operation-villains";
 import { getOperation } from "@/lib/db/queries/operations";
 import { listPublicLinksByOperation } from "@/lib/db/queries/publicLinks";
+import { listQuickWinsByOperation } from "@/lib/db/queries/quick-wins";
 import { relativeFromNow } from "@/lib/utils/date";
 import { getBaseUrl } from "@/lib/utils/url";
 
@@ -52,6 +54,7 @@ export default async function Page({
     openIncidentsCount,
     operationVillains,
     availableVillains,
+    quickWins,
   ] = await Promise.all([
     getOperation(id),
     getBriefingFreshness(id),
@@ -65,6 +68,7 @@ export default async function Page({
     countOpenIncidents(id),
     listVillainsByOperation(id),
     listAvailableVillains(id),
+    listQuickWinsByOperation(id),
   ]);
   if (!op) notFound();
 
@@ -76,6 +80,13 @@ export default async function Page({
         items={operationVillains}
         availableVillains={availableVillains}
         operationId={op.id}
+      />
+
+      <QuickWinsSection
+        quickWins={quickWins}
+        operationId={op.id}
+        operationVillains={operationVillains}
+        operationFrentes={op.frentes.map((f) => ({ id: f.id, name: f.name }))}
       />
 
       <FrentesListSection frentes={op.frentes} operationId={op.id} />

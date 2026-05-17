@@ -30,8 +30,9 @@ export const assignVillainSchema = z.object({
   evidence: optionalEvidence,
 });
 
+// progress_pct é derivado dos Quick Wins (trigger sync_operation_villain_progress).
+// Edit manual permite apenas evidence.
 export const editOperationVillainSchema = z.object({
-  progress_pct: progressInput,
   evidence: optionalEvidence,
 });
 

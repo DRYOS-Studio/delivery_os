@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { PublicAchievementsList } from "@/components/domain/PublicAchievementsList";
 import { PublicAttachmentsList } from "@/components/domain/PublicAttachmentsList";
 import { PublicFrentesList } from "@/components/domain/PublicFrentesList";
 import { PublicHero } from "@/components/domain/PublicHero";
@@ -7,6 +8,7 @@ import { PublicTimeline } from "@/components/domain/PublicTimeline";
 import { PublicVillainsList } from "@/components/domain/PublicVillainsList";
 import { listPublicIncidents } from "@/lib/db/queries/incidents";
 import { listPublicVillains } from "@/lib/db/queries/operation-villains";
+import { listPublicQuickWins } from "@/lib/db/queries/quick-wins";
 import {
   getOperationPublicView,
   listPublicAttachments,
@@ -36,7 +38,7 @@ export default async function Page({
   // Fire-and-forget; sem await crítico
   await touchPublicLinkAccess(link.id);
 
-  const [op, meetings, decisions, attachments, incidents, villains] =
+  const [op, meetings, decisions, attachments, incidents, villains, quickWins] =
     await Promise.all([
       getOperationPublicView(link.operationId),
       listPublicMeetings(link.operationId),
@@ -44,6 +46,7 @@ export default async function Page({
       listPublicAttachments(link.operationId),
       listPublicIncidents(link.operationId),
       listPublicVillains(link.operationId),
+      listPublicQuickWins(link.operationId),
     ]);
   if (!op) notFound();
 
@@ -51,6 +54,7 @@ export default async function Page({
     <>
       <PublicHero op={op} />
       <PublicVillainsList items={villains} />
+      <PublicAchievementsList items={quickWins} />
       <PublicFrentesList frentes={op.frentes} />
       <PublicTimeline meetings={meetings} decisions={decisions} />
       <PublicAttachmentsList attachments={attachments} token={token} />

@@ -3,9 +3,13 @@ import { OperationForm } from "@/components/domain/OperationForm";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { listClients } from "@/lib/db/queries/clients";
+import { listDiagnosticsForSelect } from "@/lib/db/queries/diagnostics";
 
 export default async function Page() {
-  const clients = await listClients();
+  const [clients, diagnosticsByClient] = await Promise.all([
+    listClients(),
+    listDiagnosticsForSelect(),
+  ]);
   const clientsForSelect = clients.map((c) => ({ id: c.id, name: c.name }));
 
   if (clientsForSelect.length === 0) {
@@ -34,7 +38,11 @@ export default async function Page() {
         title="Nova operação"
         subtitle="Vincule uma Operação a um Cliente existente."
       />
-      <OperationForm mode="create" clientsForSelect={clientsForSelect} />
+      <OperationForm
+        mode="create"
+        clientsForSelect={clientsForSelect}
+        diagnosticsByClient={diagnosticsByClient}
+      />
     </>
   );
 }

@@ -21,16 +21,20 @@ import {
 
 type ClientForSelect = { id: string; name: string };
 
+type DiagnosticOption = { id: string; clientId: string; label: string };
+
 type Props =
   | {
       mode: "create";
       clientsForSelect: ClientForSelect[];
+      diagnosticsByClient: DiagnosticOption[];
     }
   | {
       mode: "edit";
       initialData: OperationDetail;
       clientsForSelect: ClientForSelect[];
       canArchive: boolean;
+      diagnosticsByClient: DiagnosticOption[];
     };
 
 const PRODUCT_LINE_LABEL: Record<"core" | "spark" | "studio", string> = {
@@ -71,6 +75,7 @@ export function OperationForm(props: Props): React.JSX.Element {
           props.initialData.monthlyRecurringRevenue ?? null,
         response_hours: props.initialData.responseHours ?? undefined,
         resolution_hours: props.initialData.resolutionHours ?? undefined,
+        diagnostic_id: props.initialData.diagnosticId ?? undefined,
         start_date: props.initialData.startDate ?? undefined,
         end_date: props.initialData.endDate ?? undefined,
       }
@@ -83,6 +88,7 @@ export function OperationForm(props: Props): React.JSX.Element {
         monthly_recurring_revenue: null,
         response_hours: undefined,
         resolution_hours: undefined,
+        diagnostic_id: undefined,
         start_date: undefined,
         end_date: undefined,
       };
@@ -142,6 +148,7 @@ export function OperationForm(props: Props): React.JSX.Element {
         ? String(data.resolution_hours)
         : "",
     );
+    fd.set("diagnostic_id", data.diagnostic_id ?? "");
     fd.set("start_date", data.start_date ?? "");
     fd.set("end_date", data.end_date ?? "");
 
@@ -361,6 +368,37 @@ export function OperationForm(props: Props): React.JSX.Element {
           />
         </Field>
       </div>
+
+      <Field
+        label="Diagnóstico de origem"
+        htmlFor="diagnostic_id"
+        error={errors.diagnostic_id?.message}
+        hint={
+          watchedClientId
+            ? props.diagnosticsByClient.some(
+                (d) => d.clientId === watchedClientId,
+              )
+              ? "Linkar esta Operação ao diagnóstico do cliente."
+              : "Cliente sem diagnóstico registrado."
+            : "Selecione um cliente primeiro."
+        }
+      >
+        <select
+          id="diagnostic_id"
+          {...register("diagnostic_id")}
+          disabled={busy}
+          className={selectCn}
+        >
+          <option value="">— Sem diagnóstico vinculado —</option>
+          {props.diagnosticsByClient
+            .filter((d) => d.clientId === watchedClientId)
+            .map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.label}
+              </option>
+            ))}
+        </select>
+      </Field>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Field

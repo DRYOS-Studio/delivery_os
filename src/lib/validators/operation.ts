@@ -63,6 +63,10 @@ export const operationSchema = z
     end_date: dateString,
     response_hours: optionalIntHours,
     resolution_hours: optionalIntHours,
+    diagnostic_id: z.preprocess(
+      emptyToUndefined,
+      z.string().uuid().optional(),
+    ),
   })
   .refine(
     (data) =>
