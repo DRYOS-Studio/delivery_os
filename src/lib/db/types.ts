@@ -187,6 +187,60 @@ export type Database = {
         }
         Relationships: []
       }
+      decisions: {
+        Row: {
+          context: string | null
+          created_at: string
+          decided_at: string
+          decision: string
+          id: string
+          meeting_id: string | null
+          operation_id: string
+          title: string
+          updated_at: string
+          visibility: Database["public"]["Enums"]["decision_visibility"]
+        }
+        Insert: {
+          context?: string | null
+          created_at?: string
+          decided_at?: string
+          decision: string
+          id?: string
+          meeting_id?: string | null
+          operation_id: string
+          title: string
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["decision_visibility"]
+        }
+        Update: {
+          context?: string | null
+          created_at?: string
+          decided_at?: string
+          decision?: string
+          id?: string
+          meeting_id?: string | null
+          operation_id?: string
+          title?: string
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["decision_visibility"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_decisions_meeting_id"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_decisions_operation_id"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "operations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       frentes: {
         Row: {
           actionable_status: string
@@ -249,6 +303,80 @@ export type Database = {
             columns: ["responsible_person_id"]
             isOneToOne: false
             referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_attendees: {
+        Row: {
+          created_at: string
+          meeting_id: string
+          person_id: string
+        }
+        Insert: {
+          created_at?: string
+          meeting_id: string
+          person_id: string
+        }
+        Update: {
+          created_at?: string
+          meeting_id?: string
+          person_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_meeting_attendees_meeting_id"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_meeting_attendees_person_id"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meetings: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          operation_id: string
+          scheduled_at: string
+          title: string
+          updated_at: string
+          visibility: Database["public"]["Enums"]["meeting_visibility"]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          operation_id: string
+          scheduled_at?: string
+          title: string
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["meeting_visibility"]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          operation_id?: string
+          scheduled_at?: string
+          title?: string
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["meeting_visibility"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_meetings_operation_id"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "operations"
             referencedColumns: ["id"]
           },
         ]
@@ -362,9 +490,11 @@ export type Database = {
     }
     Enums: {
       allocation_role: "responsavel" | "executor" | "aprovador" | "plantao"
+      decision_visibility: "interno" | "cliente"
       frente_cycle_type: "a" | "b" | "c" | "d" | "e"
       frente_domain: "infra" | "dados_analiticos" | "dados_tecnicos"
       frente_phase: "descoberta" | "execucao" | "entrega" | "encerrada"
+      meeting_visibility: "interno" | "cliente"
       operation_status:
         | "em_construcao"
         | "em_operacao"
@@ -501,9 +631,11 @@ export const Constants = {
   public: {
     Enums: {
       allocation_role: ["responsavel", "executor", "aprovador", "plantao"],
+      decision_visibility: ["interno", "cliente"],
       frente_cycle_type: ["a", "b", "c", "d", "e"],
       frente_domain: ["infra", "dados_analiticos", "dados_tecnicos"],
       frente_phase: ["descoberta", "execucao", "entrega", "encerrada"],
+      meeting_visibility: ["interno", "cliente"],
       operation_status: [
         "em_construcao",
         "em_operacao",
