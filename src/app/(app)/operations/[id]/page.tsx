@@ -1,9 +1,12 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FinanceCards } from "@/components/domain/FinanceCards";
 import { FrentesListSection } from "@/components/domain/FrentesListSection";
 import { OperationHero } from "@/components/domain/OperationHero";
 import { PlaceholderSection } from "@/components/domain/PlaceholderSection";
+import { getBriefingFreshness } from "@/lib/db/queries/briefings";
 import { getOperation } from "@/lib/db/queries/operations";
+import { relativeFromNow } from "@/lib/utils/date";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -15,12 +18,15 @@ export default async function Page({
   const { id } = await params;
   if (!UUID_RE.test(id)) notFound();
 
-  const op = await getOperation(id);
+  const [op, briefingFreshness] = await Promise.all([
+    getOperation(id),
+    getBriefingFreshness(id),
+  ]);
   if (!op) notFound();
 
   return (
     <>
-      <OperationHero op={op} />
+      <OperationHero op={op} briefingFreshness={briefingFreshness} />
 
       <PlaceholderSection
         title="Vilões em luta"
@@ -30,11 +36,24 @@ export default async function Page({
 
       <FrentesListSection frentes={op.frentes} operationId={op.id} />
 
-      <PlaceholderSection
-        title="Briefing vivo"
-        subtitle="O briefing estruturado da Operação, com histórico de alterações."
-        comingIn="sem 03"
-      />
+      <section className="mb-9">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-display text-lg text-ink font-semibold">
+            Briefing vivo
+          </h2>
+          <Link
+            href={`/operations/${op.id}/briefing`}
+            className="font-mono text-xs text-oak hover:underline"
+          >
+            {briefingFreshness.hasBriefing ? "Abrir briefing →" : "Criar briefing →"}
+          </Link>
+        </div>
+        <p className="text-sm text-mute">
+          {briefingFreshness.hasBriefing
+            ? `Última atualização ${relativeFromNow(briefingFreshness.updatedAt)}.`
+            : "Esta Operação ainda não tem briefing."}
+        </p>
+      </section>
 
       <PlaceholderSection
         title="Reuniões e decisões"

@@ -1,6 +1,6 @@
 # Database Schema
 
-**Última análise**: 2026-05-16
+**Última análise**: 2026-05-17
 **Projeto Supabase**: `Delivery OS` (`tmsaucxoeqpfluzwrwkc`)
 **Schema**: `public`
 
@@ -16,7 +16,8 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 | **Operação** | `operations` | 1 |
 | **Entrega** | `frentes`, `allocations` | 2 |
 | **Pessoas** | `persons` | 1 |
-| **Total atual** | | **5** |
+| **Briefing** | `briefings`, `briefing_versions` | 2 |
+| **Total atual** | | **7** |
 
 ---
 
@@ -110,6 +111,39 @@ CHECKs `chk_frentes_actionable_status_min_length` + `chk_frentes_actionable_stat
 
 ---
 
+### `briefings` — briefing vivo 1:1 com Operation
+
+Documento estruturado com versionamento append-only. Conteúdo vive em `briefing_versions`.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `operation_id` | uuid NOT NULL UNIQUE → operations (CASCADE) | 1 briefing por Operation |
+| `current_version_id` | uuid → briefing_versions (SET NULL) | denormalização da versão mais recente |
+| `created_at`, `updated_at` | timestamptz | |
+
+Trigger `set_briefings_updated_at` reusa função `set_updated_at`.
+
+---
+
+### `briefing_versions` — snapshot append-only de briefings
+
+Cada save da action cria linha completa. RLS bloqueia UPDATE/DELETE (ausência de policy = bloqueado).
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `briefing_id` | uuid NOT NULL → briefings (CASCADE) | |
+| `contexto`, `objetivos`, `escopo_incluido`, `escopo_excluido`, `premissas`, `riscos`, `stakeholders`, `observacoes` | text | 8 seções estruturadas; Zod app limita 5000 chars/campo |
+| `author_id` | uuid → auth.users (SET NULL) | preserva versão se user removido |
+| `created_at` | timestamptz | |
+
+Index `idx_briefing_versions_briefing_created` em (briefing_id, created_at DESC).
+
+RLS: SELECT + INSERT pra `authenticated`. Sem policy UPDATE/DELETE = bloqueado.
+
+---
+
 ## Enums
 
 | Enum | Valores |
@@ -128,7 +162,6 @@ CHECKs `chk_frentes_actionable_status_min_length` + `chk_frentes_actionable_stat
 ## Próximas tabelas planejadas (roadmap)
 
 - `profiles` — perfis dos usuários (papel Admin/Membro/Visualizador); sem 02
-- `briefings` + `briefing_versions` — briefing vivo com histórico; sem 03
 - `meetings` + `decisions` — reuniões e decisões com `visibility`; sem 03
 - `attachments` — Storage refs; sem 03
 - `sla` — campos estruturados; sem 03 (pode ser inlined em operations dependendo do modelo)
@@ -147,6 +180,7 @@ CHECKs `chk_frentes_actionable_status_min_length` + `chk_frentes_actionable_stat
 | Timestamp | Nome | Aplicada em |
 |---|---|---|
 | 20260515000001 | initial_schema | 2026-05-15 (via MCP, AD-007) |
+| 20260517125711 | briefing_vivo | 2026-05-17 (via MCP) |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações
