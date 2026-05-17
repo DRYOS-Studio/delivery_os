@@ -14,14 +14,12 @@ import {
 
 type Props = {
   itemId: string;
-  initialProgressPct: number;
   initialEvidence: string | null;
   onClose: () => void;
 };
 
 export function EditOperationVillainForm({
   itemId,
-  initialProgressPct,
   initialEvidence,
   onClose,
 }: Props): React.JSX.Element {
@@ -40,7 +38,6 @@ export function EditOperationVillainForm({
   >({
     resolver: zodResolver(editOperationVillainSchema),
     defaultValues: {
-      progress_pct: initialProgressPct,
       evidence: initialEvidence ?? "",
     },
   });
@@ -48,7 +45,6 @@ export function EditOperationVillainForm({
   async function onSubmit(data: EditOperationVillainOutput) {
     setGeneralError(null);
     const fd = new FormData();
-    fd.set("progress_pct", String(data.progress_pct));
     fd.set("evidence", data.evidence ?? "");
     const result = await updateOperationVillainAction(itemId, fd);
     if (result.ok) {
@@ -56,9 +52,7 @@ export function EditOperationVillainForm({
       onClose();
       return;
     }
-    if (result.code === "validation_progress_pct") {
-      setError("progress_pct", { message: result.error });
-    } else if (result.code === "validation_evidence") {
+    if (result.code === "validation_evidence") {
       setError("evidence", { message: result.error });
     } else {
       setGeneralError(result.error);
@@ -77,30 +71,9 @@ export function EditOperationVillainForm({
       )}
 
       <p className="font-mono text-[10px] text-mute italic">
-        Severidade inicial é write-once (Inv. 07) e não pode ser alterada.
+        Severidade inicial é write-once (Inv. 07). Progresso é derivado dos Quick
+        Wins desta Operação (Inv. 08).
       </p>
-
-      <div className="space-y-1">
-        <label
-          htmlFor={`progress-${itemId}`}
-          className="block font-mono text-[10px] text-mute uppercase tracking-wide"
-        >
-          Progresso (%)
-        </label>
-        <input
-          id={`progress-${itemId}`}
-          type="number"
-          min={0}
-          max={100}
-          step={1}
-          {...register("progress_pct")}
-          disabled={isSubmitting}
-          className={inputCn}
-        />
-        {errors.progress_pct?.message && (
-          <p className="text-critical text-xs">{errors.progress_pct.message}</p>
-        )}
-      </div>
 
       <div className="space-y-1">
         <label

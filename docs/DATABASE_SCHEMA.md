@@ -23,7 +23,9 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 | **SLA** | `sla_incidents` | 1 |
 | **Vilões (catálogo)** | `villains` | 1 |
 | **Operação × Vilão** | `operation_villains` | 1 |
-| **Total atual** | | **15** |
+| **Diagnóstico** | `diagnostics` | 1 |
+| **Quick Wins** | `quick_wins`, `quick_win_impacts` | 2 |
+| **Total atual** | | **18** |
 
 ---
 
@@ -323,6 +325,64 @@ Trigger `lock_operation_villain_initial_severity` BEFORE UPDATE rejeita mudança
 
 Index `idx_operation_villains_operation_created` (operation_id, created_at DESC).
 
+`progress_pct` é **derivado** a partir de `quick_win_impacts` (trigger `sync_operation_villain_progress`); edit manual removido na UI.
+
+---
+
+### `diagnostics` — diagnóstico precede a Operação
+
+1 por cliente no MVP (UNIQUE). Notes em prosa + recommended_product opcional.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `client_id` | uuid NOT NULL UNIQUE → clients (CASCADE) | |
+| `notes` | text NOT NULL | CHECK length 10-10000 |
+| `recommended_product` | enum `product_recommendation` | core/spark/studio nullable |
+| `conducted_at` | date | nullable |
+| `created_at`, `updated_at` | timestamptz | |
+
+`operations.diagnostic_id` FK SET NULL liga Op opcionalmente ao diagnóstico do cliente.
+
+---
+
+### `quick_wins` — unidade de avanço (PRD §04)
+
+Vinculado a Operação (CASCADE) e opcionalmente a Frente (SET NULL). Executor FK auth.users (SET NULL).
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `operation_id` | uuid NOT NULL → operations (CASCADE) | |
+| `frente_id` | uuid → frentes (SET NULL) | opcional |
+| `executor_id` | uuid → auth.users (SET NULL) | quem registrou |
+| `title` | text NOT NULL | CHECK length 3-200 |
+| `description` | text | CHECK length ≤ 5000 |
+| `happened_at` | date NOT NULL default current_date | |
+| `created_at`, `updated_at` | timestamptz | |
+
+Index `idx_quick_wins_operation_happened` (operation_id, happened_at DESC).
+
+---
+
+### `quick_win_impacts` — M:N QW × operation_villain (Inv. 08)
+
+Soma de `impact_pct` por `operation_villain_id` capped 100% via **trigger BEFORE INSERT/UPDATE**. Trigger **AFTER** sincroniza `operation_villains.progress_pct = SUM(impact_pct)`.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `quick_win_id` | uuid NOT NULL → quick_wins (CASCADE) | |
+| `operation_villain_id` | uuid NOT NULL → operation_villains (CASCADE) | |
+| `impact_pct` | int NOT NULL | CHECK 1-100 |
+| `created_at` | timestamptz | |
+
+UNIQUE(quick_win_id, operation_villain_id) — sem duplicata. Index parcial em operation_villain_id pra perf da soma.
+
+Trigger `validate_quick_win_impact_sum` (BEFORE INSERT/UPDATE) rejeita com `check_violation` se sum > 100. Mensagem inclui "Inv. 08".
+
+Trigger `sync_operation_villain_progress` (AFTER INSERT/UPDATE/DELETE) recalcula progress_pct do `operation_villain` afetado.
+
 ---
 
 ## Enums
@@ -342,6 +402,7 @@ Index `idx_operation_villains_operation_created` (operation_id, created_at DESC)
 | `sla_severity` | low, medium, high |
 | `sla_incident_status` | open, responded, resolved, cancelled |
 | `severity_level` | low, medium, high, critical |
+| `product_recommendation` | core, spark, studio |
 
 ---
 
@@ -349,8 +410,7 @@ Index `idx_operation_villains_operation_created` (operation_id, created_at DESC)
 
 - `profiles` — perfis dos usuários (papel Admin/Membro/Visualizador); sem 02
 - `villains` — catálogo de marca (seed 7 records); sem 04
-- `quick_wins` + `quick_win_catalog` — impactos capped por vilão; sem 04
-- `diagnostics` — diagnóstico com vilões detectados; sem 04
+- `quick_win_catalog` — tipos pré-definidos com pesos sugeridos; v2 (deferida)
 - `credentials` — refs Bitwarden; v2 (adiada per AD-009)
 - `notifications` — Discord webhook events; sem 05
 - `form_templates` — refs Tally; sem 05
@@ -370,6 +430,7 @@ Index `idx_operation_villains_operation_created` (operation_id, created_at DESC)
 | 20260517194119 | sla | 2026-05-17 (via MCP) |
 | 20260517200953 | villains_catalog | 2026-05-17 (via MCP) |
 | 20260517203345 | operation_villains | 2026-05-17 (via MCP) |
+| 20260517205902 | diagnostico_quickwins | 2026-05-17 (via MCP) |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações

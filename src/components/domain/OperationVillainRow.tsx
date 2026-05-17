@@ -99,7 +99,6 @@ export function OperationVillainRow({
             {editing && (
               <EditOperationVillainForm
                 itemId={item.id}
-                initialProgressPct={item.progressPct}
                 initialEvidence={item.evidence}
                 onClose={() => setEditing(false)}
               />

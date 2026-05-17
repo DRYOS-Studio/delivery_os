@@ -44,7 +44,6 @@ function parseAssign(formData: FormData) {
 
 function parseEdit(formData: FormData) {
   return {
-    progress_pct: ((formData.get("progress_pct") as string | null) ?? "0").trim(),
     evidence: ((formData.get("evidence") as string | null) ?? "").trim(),
   };
 }
@@ -123,7 +122,6 @@ export async function updateOperationVillainAction(
   const { error } = await supabase
     .from("operation_villains")
     .update({
-      progress_pct: data.progress_pct,
       evidence: data.evidence ?? null,
     })
     .eq("id", id);

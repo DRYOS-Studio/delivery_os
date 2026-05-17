@@ -20,6 +20,7 @@ type CreateInput = {
   monthly_recurring_revenue: number | null;
   response_hours: number | null;
   resolution_hours: number | null;
+  diagnostic_id: string | null;
   start_date: string | null;
   end_date: string | null;
 };
@@ -33,6 +34,7 @@ function parseFormDataToInput(formData: FormData): {
   monthly_recurring_revenue: number | null;
   response_hours: string;
   resolution_hours: string;
+  diagnostic_id: string;
   start_date: string;
   end_date: string;
 } {
@@ -48,6 +50,7 @@ function parseFormDataToInput(formData: FormData): {
       mrrNumber !== null && Number.isFinite(mrrNumber) ? mrrNumber : null,
     response_hours: ((formData.get("response_hours") as string | null) ?? "").trim(),
     resolution_hours: ((formData.get("resolution_hours") as string | null) ?? "").trim(),
+    diagnostic_id: ((formData.get("diagnostic_id") as string | null) ?? "").trim(),
     start_date: ((formData.get("start_date") as string | null) ?? "").trim(),
     end_date: ((formData.get("end_date") as string | null) ?? "").trim(),
   };
@@ -71,6 +74,7 @@ function validate(formData: FormData): ActionResult<CreateInput> {
     monthly_recurring_revenue: parsed.data.monthly_recurring_revenue ?? null,
     response_hours: parsed.data.response_hours ?? null,
     resolution_hours: parsed.data.resolution_hours ?? null,
+    diagnostic_id: parsed.data.diagnostic_id ?? null,
     start_date: parsed.data.start_date ?? null,
     end_date: parsed.data.end_date ?? null,
   });
@@ -126,6 +130,7 @@ export async function updateOperationAction(
       monthly_recurring_revenue: v.data.monthly_recurring_revenue,
       response_hours: v.data.response_hours,
       resolution_hours: v.data.resolution_hours,
+      diagnostic_id: v.data.diagnostic_id,
       start_date: v.data.start_date,
       end_date: v.data.end_date,
     })

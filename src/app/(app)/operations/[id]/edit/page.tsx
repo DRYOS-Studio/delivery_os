@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { OperationForm } from "@/components/domain/OperationForm";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { listClients } from "@/lib/db/queries/clients";
+import { listDiagnosticsForSelect } from "@/lib/db/queries/diagnostics";
 import {
   getOperation,
   operationHasActiveFrentes,
@@ -17,10 +18,11 @@ export default async function Page({
   const { id } = await params;
   if (!UUID_RE.test(id)) redirect("/operations");
 
-  const [op, hasFrentes, clients] = await Promise.all([
+  const [op, hasFrentes, clients, diagnosticsByClient] = await Promise.all([
     getOperation(id),
     operationHasActiveFrentes(id),
     listClients(),
+    listDiagnosticsForSelect(),
   ]);
   if (!op) redirect("/operations");
 
@@ -34,6 +36,7 @@ export default async function Page({
         initialData={op}
         clientsForSelect={clientsForSelect}
         canArchive={!hasFrentes}
+        diagnosticsByClient={diagnosticsByClient}
       />
     </>
   );
