@@ -19,7 +19,8 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 | **Briefing** | `briefings`, `briefing_versions` | 2 |
 | **Reuniões / Decisões** | `meetings`, `meeting_attendees`, `decisions` | 3 |
 | **Anexos** | `attachments` | 1 |
-| **Total atual** | | **11** |
+| **Acesso público** | `public_links` | 1 |
+| **Total atual** | | **12** |
 
 ---
 
@@ -221,6 +222,27 @@ Download via `/api/attachments/[id]/download` Route Handler → signed URL TTL 5
 
 ---
 
+### `public_links` — token de acesso externo
+
+Múltiplos links por Operação, revogáveis individualmente. Sem auth: quem tem o token vê. `expires_at` reservado, sem validação no MVP.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `operation_id` | uuid NOT NULL → operations (CASCADE) | |
+| `token` | uuid NOT NULL UNIQUE default gen_random_uuid() | |
+| `label` | text | identificação livre (cliente, contato) |
+| `last_accessed_at` | timestamptz | fire-and-forget update no GET |
+| `revoked_at` | timestamptz | soft revogação |
+| `expires_at` | timestamptz | reservado pra v2 |
+| `created_at`, `updated_at` | timestamptz | |
+
+Trigger `set_public_links_updated_at` + index `idx_public_links_operation_created`.
+
+Rota pública: `/public/[token]` (fora do `(app)`, sem auth). Download de anexo público: `/public/[token]/attachments/[aid]/download` com tripla validação (token válido + attachment pertence à op + meeting visibility=cliente se aplicável).
+
+---
+
 ## Enums
 
 | Enum | Valores |
@@ -260,6 +282,7 @@ Download via `/api/attachments/[id]/download` Route Handler → signed URL TTL 5
 | 20260517125711 | briefing_vivo | 2026-05-17 (via MCP) |
 | 20260517163210 | meetings_decisions | 2026-05-17 (via MCP) |
 | 20260517174018 | attachments | 2026-05-17 (via MCP) |
+| 20260517182352 | public_links | 2026-05-17 (via MCP) |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações

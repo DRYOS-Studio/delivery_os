@@ -6,6 +6,7 @@ import { FrentesListSection } from "@/components/domain/FrentesListSection";
 import { MeetingsDecisionsTimeline } from "@/components/domain/MeetingsDecisionsTimeline";
 import { OperationHero } from "@/components/domain/OperationHero";
 import { PlaceholderSection } from "@/components/domain/PlaceholderSection";
+import { PublicLinksSection } from "@/components/domain/PublicLinksSection";
 import {
   countAttachmentsByMeeting,
   listAttachmentsByOperation,
@@ -14,7 +15,9 @@ import { getBriefingFreshness } from "@/lib/db/queries/briefings";
 import { listDecisionsByOperation } from "@/lib/db/queries/decisions";
 import { listMeetingsByOperation } from "@/lib/db/queries/meetings";
 import { getOperation } from "@/lib/db/queries/operations";
+import { listPublicLinksByOperation } from "@/lib/db/queries/publicLinks";
 import { relativeFromNow } from "@/lib/utils/date";
+import { getBaseUrl } from "@/lib/utils/url";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -33,6 +36,8 @@ export default async function Page({
     decisions,
     attachments,
     meetingAttachmentCounts,
+    publicLinks,
+    baseUrl,
   ] = await Promise.all([
     getOperation(id),
     getBriefingFreshness(id),
@@ -40,6 +45,8 @@ export default async function Page({
     listDecisionsByOperation(id),
     listAttachmentsByOperation(id, "none"),
     countAttachmentsByMeeting(id),
+    listPublicLinksByOperation(id),
+    getBaseUrl(),
   ]);
   if (!op) notFound();
 
@@ -82,6 +89,12 @@ export default async function Page({
       />
 
       <AttachmentsSection attachments={attachments} operationId={op.id} />
+
+      <PublicLinksSection
+        links={publicLinks}
+        operationId={op.id}
+        baseUrl={baseUrl}
+      />
 
       <FinanceCards op={op} />
 

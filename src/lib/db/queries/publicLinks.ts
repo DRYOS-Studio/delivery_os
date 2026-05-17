@@ -1,0 +1,76 @@
+import { createAdmin, createServer } from "@/lib/db/client";
+import type { Database } from "@/lib/db/types";
+
+export type PublicLinkRow = Database["public"]["Tables"]["public_links"]["Row"];
+
+export type PublicLinkListItem = {
+  id: string;
+  token: string;
+  label: string | null;
+  lastAccessedAt: string | null;
+  revokedAt: string | null;
+  expiresAt: string | null;
+  createdAt: string;
+};
+
+export type PublicLinkResolved = {
+  id: string;
+  operationId: string;
+  revokedAt: string | null;
+};
+
+export async function listPublicLinksByOperation(
+  operationId: string,
+): Promise<PublicLinkListItem[]> {
+  const supabase = await createServer();
+  const { data, error } = await supabase
+    .from("public_links")
+    .select(
+      "id, token, label, last_accessed_at, revoked_at, expires_at, created_at",
+    )
+    .eq("operation_id", operationId)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(`listPublicLinksByOperation: ${error.message}`);
+  if (!data) return [];
+  return data.map((r) => ({
+    id: r.id,
+    token: r.token,
+    label: r.label,
+    lastAccessedAt: r.last_accessed_at,
+    revokedAt: r.revoked_at,
+    expiresAt: r.expires_at,
+    createdAt: r.created_at,
+  }));
+}
+
+// Server-only helper. Fire-and-forget update; silenciosamente ignora erros.
+export async function touchPublicLinkAccess(linkId: string): Promise<void> {
+  try {
+    const admin = createAdmin();
+    await admin
+      .from("public_links")
+      .update({ last_accessed_at: new Date().toISOString() })
+      .eq("id", linkId);
+  } catch {
+    // silent
+  }
+}
+
+// Server-only. Usa createAdmin pra bypassar RLS — chamado pela rota pública sem auth.
+export async function getPublicLinkByToken(
+  token: string,
+): Promise<PublicLinkResolved | null> {
+  const admin = createAdmin();
+  const { data, error } = await admin
+    .from("public_links")
+    .select("id, operation_id, revoked_at")
+    .eq("token", token)
+    .maybeSingle();
+  if (error) throw new Error(`getPublicLinkByToken: ${error.message}`);
+  if (!data) return null;
+  return {
+    id: data.id,
+    operationId: data.operation_id,
+    revokedAt: data.revoked_at,
+  };
+}
