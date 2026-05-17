@@ -65,6 +65,98 @@ export type Database = {
           },
         ]
       }
+      briefing_versions: {
+        Row: {
+          author_id: string | null
+          briefing_id: string
+          contexto: string | null
+          created_at: string
+          escopo_excluido: string | null
+          escopo_incluido: string | null
+          id: string
+          objetivos: string | null
+          observacoes: string | null
+          premissas: string | null
+          riscos: string | null
+          stakeholders: string | null
+        }
+        Insert: {
+          author_id?: string | null
+          briefing_id: string
+          contexto?: string | null
+          created_at?: string
+          escopo_excluido?: string | null
+          escopo_incluido?: string | null
+          id?: string
+          objetivos?: string | null
+          observacoes?: string | null
+          premissas?: string | null
+          riscos?: string | null
+          stakeholders?: string | null
+        }
+        Update: {
+          author_id?: string | null
+          briefing_id?: string
+          contexto?: string | null
+          created_at?: string
+          escopo_excluido?: string | null
+          escopo_incluido?: string | null
+          id?: string
+          objetivos?: string | null
+          observacoes?: string | null
+          premissas?: string | null
+          riscos?: string | null
+          stakeholders?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_briefing_versions_briefing_id"
+            columns: ["briefing_id"]
+            isOneToOne: false
+            referencedRelation: "briefings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      briefings: {
+        Row: {
+          created_at: string
+          current_version_id: string | null
+          id: string
+          operation_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_version_id?: string | null
+          id?: string
+          operation_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_version_id?: string | null
+          id?: string
+          operation_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_briefings_current_version_id"
+            columns: ["current_version_id"]
+            isOneToOne: false
+            referencedRelation: "briefing_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_briefings_operation_id"
+            columns: ["operation_id"]
+            isOneToOne: true
+            referencedRelation: "operations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           archived_at: string | null

@@ -1,5 +1,5 @@
 import { createBrowserClient, createServerClient } from "@supabase/ssr";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import type { Database } from "./types";
 
@@ -43,5 +43,15 @@ export function createBrowser(): SupabaseClient<Database> {
   return createBrowserClient<Database>(
     requiredEnv("NEXT_PUBLIC_SUPABASE_URL"),
     requiredEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"),
+  );
+}
+
+// Admin (service role). Server-only; bypasses RLS.
+// Usar com cuidado: só pra resolver dados de `auth.users` (e-mail por id).
+export function createAdmin(): SupabaseClient<Database> {
+  return createClient<Database>(
+    requiredEnv("NEXT_PUBLIC_SUPABASE_URL"),
+    requiredEnv("SUPABASE_SECRET_KEY"),
+    { auth: { autoRefreshToken: false, persistSession: false } },
   );
 }
