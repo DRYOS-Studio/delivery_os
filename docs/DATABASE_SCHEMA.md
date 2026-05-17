@@ -97,6 +97,8 @@ Status acionável validado no banco (CHECK).
 
 CHECKs `chk_frentes_actionable_status_min_length` + `chk_frentes_actionable_status_not_generic` garantem "status acionável" (princípio 04).
 
+Index parcial `idx_frentes_actionable_status_since_active` em `(actionable_status_since ASC) WHERE archived_at IS NULL` otimiza queries de staleness (Home + sidebar badge).
+
 ---
 
 ### `allocations` — relação Pessoa × Frente
@@ -283,6 +285,7 @@ Rota pública: `/public/[token]` (fora do `(app)`, sem auth). Download de anexo 
 | 20260517163210 | meetings_decisions | 2026-05-17 (via MCP) |
 | 20260517174018 | attachments | 2026-05-17 (via MCP) |
 | 20260517182352 | public_links | 2026-05-17 (via MCP) |
+| 20260517184006 | idx_frentes_actionable_status_since | 2026-05-17 (via MCP) |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações
