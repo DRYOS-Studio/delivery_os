@@ -2,9 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FinanceCards } from "@/components/domain/FinanceCards";
 import { FrentesListSection } from "@/components/domain/FrentesListSection";
+import { MeetingsDecisionsTimeline } from "@/components/domain/MeetingsDecisionsTimeline";
 import { OperationHero } from "@/components/domain/OperationHero";
 import { PlaceholderSection } from "@/components/domain/PlaceholderSection";
 import { getBriefingFreshness } from "@/lib/db/queries/briefings";
+import { listDecisionsByOperation } from "@/lib/db/queries/decisions";
+import { listMeetingsByOperation } from "@/lib/db/queries/meetings";
 import { getOperation } from "@/lib/db/queries/operations";
 import { relativeFromNow } from "@/lib/utils/date";
 
@@ -18,9 +21,11 @@ export default async function Page({
   const { id } = await params;
   if (!UUID_RE.test(id)) notFound();
 
-  const [op, briefingFreshness] = await Promise.all([
+  const [op, briefingFreshness, meetings, decisions] = await Promise.all([
     getOperation(id),
     getBriefingFreshness(id),
+    listMeetingsByOperation(id),
+    listDecisionsByOperation(id),
   ]);
   if (!op) notFound();
 
@@ -55,10 +60,10 @@ export default async function Page({
         </p>
       </section>
 
-      <PlaceholderSection
-        title="Reuniões e decisões"
-        subtitle="Timeline de reuniões com cliente + decisões estruturadas com visibility própria."
-        comingIn="sem 03"
+      <MeetingsDecisionsTimeline
+        meetings={meetings}
+        decisions={decisions}
+        operationId={op.id}
       />
 
       <FinanceCards op={op} />

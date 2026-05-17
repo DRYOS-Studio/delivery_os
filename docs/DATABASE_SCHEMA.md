@@ -17,7 +17,8 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 | **Entrega** | `frentes`, `allocations` | 2 |
 | **Pessoas** | `persons` | 1 |
 | **Briefing** | `briefings`, `briefing_versions` | 2 |
-| **Total atual** | | **7** |
+| **Reuniões / Decisões** | `meetings`, `meeting_attendees`, `decisions` | 3 |
+| **Total atual** | | **10** |
 
 ---
 
@@ -144,6 +145,56 @@ RLS: SELECT + INSERT pra `authenticated`. Sem policy UPDATE/DELETE = bloqueado.
 
 ---
 
+### `meetings` — reunião com cliente ou interna
+
+Registro temporal ligado à Operação. Visibility própria (Inv. 05).
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `operation_id` | uuid NOT NULL → operations (CASCADE) | |
+| `title` | text NOT NULL | Zod min 3 max 200 |
+| `scheduled_at` | timestamptz NOT NULL default now | reunião agendada (futura ou passada) |
+| `notes` | text | livre, max 5000 chars (Zod) |
+| `visibility` | enum `meeting_visibility` default `interno` | interno / cliente |
+| `created_at`, `updated_at` | timestamptz | |
+
+Trigger `set_meetings_updated_at` + index `idx_meetings_operation_scheduled` (operation_id, scheduled_at DESC).
+
+---
+
+### `meeting_attendees` — N:N reunião × pessoa
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `meeting_id` | uuid → meetings (CASCADE) | parte do PK composto |
+| `person_id` | uuid → persons (RESTRICT) | preserva histórico se pessoa arquivada |
+| `created_at` | timestamptz | |
+
+PK composto `(meeting_id, person_id)` bloqueia duplicatas.
+
+---
+
+### `decisions` — registro perpétuo (Inv. 02)
+
+Standalone (operation_id NOT NULL) com FK opcional pra meeting (SET NULL).
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `operation_id` | uuid NOT NULL → operations (CASCADE) | |
+| `meeting_id` | uuid → meetings (SET NULL) | opcional; apagar reunião preserva decisão |
+| `title` | text NOT NULL | |
+| `context` | text | situação que motivou (opcional) |
+| `decision` | text NOT NULL | decisão tomada em prosa |
+| `visibility` | enum `decision_visibility` default `cliente` | independente da reunião (Inv. 05) |
+| `decided_at` | timestamptz NOT NULL default now | |
+| `created_at`, `updated_at` | timestamptz | |
+
+Trigger `set_decisions_updated_at` + index `idx_decisions_operation_decided` (operation_id, decided_at DESC).
+
+---
+
 ## Enums
 
 | Enum | Valores |
@@ -156,13 +207,14 @@ RLS: SELECT + INSERT pra `authenticated`. Sem policy UPDATE/DELETE = bloqueado.
 | `person_kind` | internal, external |
 | `allocation_role` | responsavel, executor, aprovador, plantao |
 | `recurrence` | mensal, trimestral, anual, unica |
+| `meeting_visibility` | interno, cliente |
+| `decision_visibility` | interno, cliente |
 
 ---
 
 ## Próximas tabelas planejadas (roadmap)
 
 - `profiles` — perfis dos usuários (papel Admin/Membro/Visualizador); sem 02
-- `meetings` + `decisions` — reuniões e decisões com `visibility`; sem 03
 - `attachments` — Storage refs; sem 03
 - `sla` — campos estruturados; sem 03 (pode ser inlined em operations dependendo do modelo)
 - `villains` — catálogo de marca (seed 7 records); sem 04
@@ -181,6 +233,7 @@ RLS: SELECT + INSERT pra `authenticated`. Sem policy UPDATE/DELETE = bloqueado.
 |---|---|---|
 | 20260515000001 | initial_schema | 2026-05-15 (via MCP, AD-007) |
 | 20260517125711 | briefing_vivo | 2026-05-17 (via MCP) |
+| 20260517163210 | meetings_decisions | 2026-05-17 (via MCP) |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações
