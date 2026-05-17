@@ -5,6 +5,7 @@ import { FinanceCards } from "@/components/domain/FinanceCards";
 import { FrentesListSection } from "@/components/domain/FrentesListSection";
 import { MeetingsDecisionsTimeline } from "@/components/domain/MeetingsDecisionsTimeline";
 import { OperationHero } from "@/components/domain/OperationHero";
+import { OperationVillainsSection } from "@/components/domain/OperationVillainsSection";
 import { PlaceholderSection } from "@/components/domain/PlaceholderSection";
 import { PublicLinksSection } from "@/components/domain/PublicLinksSection";
 import { SLASection } from "@/components/domain/SLASection";
@@ -19,6 +20,10 @@ import {
   listIncidentsByOperation,
 } from "@/lib/db/queries/incidents";
 import { listMeetingsByOperation } from "@/lib/db/queries/meetings";
+import {
+  listAvailableVillains,
+  listVillainsByOperation,
+} from "@/lib/db/queries/operation-villains";
 import { getOperation } from "@/lib/db/queries/operations";
 import { listPublicLinksByOperation } from "@/lib/db/queries/publicLinks";
 import { relativeFromNow } from "@/lib/utils/date";
@@ -45,6 +50,8 @@ export default async function Page({
     baseUrl,
     incidents,
     openIncidentsCount,
+    operationVillains,
+    availableVillains,
   ] = await Promise.all([
     getOperation(id),
     getBriefingFreshness(id),
@@ -56,6 +63,8 @@ export default async function Page({
     getBaseUrl(),
     listIncidentsByOperation(id),
     countOpenIncidents(id),
+    listVillainsByOperation(id),
+    listAvailableVillains(id),
   ]);
   if (!op) notFound();
 
@@ -63,10 +72,10 @@ export default async function Page({
     <>
       <OperationHero op={op} briefingFreshness={briefingFreshness} />
 
-      <PlaceholderSection
-        title="Vilões em luta"
-        subtitle="Quando o Diagnóstico estiver pronto, os vilões da Operação aparecem aqui com progresso e quick wins."
-        comingIn="sem 04"
+      <OperationVillainsSection
+        items={operationVillains}
+        availableVillains={availableVillains}
+        operationId={op.id}
       />
 
       <FrentesListSection frentes={op.frentes} operationId={op.id} />
