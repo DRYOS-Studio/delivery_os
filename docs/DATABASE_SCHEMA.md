@@ -21,7 +21,8 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 | **Anexos** | `attachments` | 1 |
 | **Acesso público** | `public_links` | 1 |
 | **SLA** | `sla_incidents` | 1 |
-| **Total atual** | | **13** |
+| **Vilões (catálogo)** | `villains` | 1 |
+| **Total atual** | | **14** |
 
 ---
 
@@ -276,6 +277,31 @@ Trigger `set_sla_incidents_updated_at` + index `idx_sla_incidents_operation_open
 
 ---
 
+### `villains` — catálogo da marca DRYOS
+
+7 registros canon (Manualis, Silos, Retrabalho, Lento, Achismo, Drenador, Enganador). **Inv. 06**: nunca delete, só archive — RLS **sem policy DELETE** (defense-in-depth no banco).
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `name` | text NOT NULL | "Capitão Manualis", etc |
+| `slug` | text UNIQUE NOT NULL | CHECK regex `^[a-z0-9-]+$`, length 2-60 |
+| `quote` | text NOT NULL | Frase típica (1ª pessoa) |
+| `description` | text NOT NULL | Narrativa curta (Zod 10-500 chars) |
+| `icon_name` | text NOT NULL | Lucide component name; map em `villain-icons.ts` (20 opções) |
+| `pill_variant` | text NOT NULL | CHECK IN ('neutral','oak','sage','ok','warning','critical') |
+| `display_order` | int NOT NULL UNIQUE | 1-7 no seed; até 99 permitido |
+| `archived_at` | timestamptz | soft delete via Inv. 06 |
+| `created_at`, `updated_at` | timestamptz | |
+
+Trigger `set_villains_updated_at` + 2 indexes (display_order asc + parcial archived_at IS NULL).
+
+Seed inline na migration via `ON CONFLICT (slug) DO NOTHING` (idempotente).
+
+RLS policies: SELECT + INSERT + UPDATE pra authenticated. **Sem DELETE.**
+
+---
+
 ## Enums
 
 | Enum | Valores |
@@ -319,6 +345,7 @@ Trigger `set_sla_incidents_updated_at` + index `idx_sla_incidents_operation_open
 | 20260517182352 | public_links | 2026-05-17 (via MCP) |
 | 20260517184006 | idx_frentes_actionable_status_since | 2026-05-17 (via MCP) |
 | 20260517194119 | sla | 2026-05-17 (via MCP) |
+| 20260517200953 | villains_catalog | 2026-05-17 (via MCP) |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações
