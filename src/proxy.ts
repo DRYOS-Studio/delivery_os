@@ -7,7 +7,12 @@ function requiredEnv(key: string): string {
   return value;
 }
 
-const PUBLIC_PREFIXES = ["/login", "/auth/callback", "/api/webhooks"];
+const PUBLIC_PREFIXES = [
+  "/login",
+  "/auth/callback",
+  "/api/webhooks",
+  "/public",
+];
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
