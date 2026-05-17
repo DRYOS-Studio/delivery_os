@@ -65,6 +65,63 @@ export type Database = {
           },
         ]
       }
+      attachments: {
+        Row: {
+          created_at: string
+          description: string | null
+          filename: string
+          id: string
+          meeting_id: string | null
+          mime_type: string
+          operation_id: string
+          size_bytes: number
+          storage_path: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          filename: string
+          id?: string
+          meeting_id?: string | null
+          mime_type: string
+          operation_id: string
+          size_bytes: number
+          storage_path: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          filename?: string
+          id?: string
+          meeting_id?: string | null
+          mime_type?: string
+          operation_id?: string
+          size_bytes?: number
+          storage_path?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_attachments_meeting_id"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_attachments_operation_id"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "operations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       briefing_versions: {
         Row: {
           author_id: string | null

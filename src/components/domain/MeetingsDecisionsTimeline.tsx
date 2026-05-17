@@ -1,4 +1,4 @@
-import { CalendarDays, Gavel, Lock, Plus, Users } from "lucide-react";
+import { CalendarDays, Gavel, Lock, Paperclip, Plus, Users } from "lucide-react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
@@ -29,10 +29,12 @@ export function MeetingsDecisionsTimeline({
   meetings,
   decisions,
   operationId,
+  meetingAttachmentCounts,
 }: {
   meetings: MeetingListItem[];
   decisions: DecisionListItem[];
   operationId: string;
+  meetingAttachmentCounts?: Map<string, number> | undefined;
 }): React.JSX.Element {
   const items: TimelineItemData[] = [
     ...meetings.map(
@@ -113,6 +115,11 @@ export function MeetingsDecisionsTimeline({
               key={`${item.type}-${item.payload.id}`}
               item={item}
               operationId={operationId}
+              attachmentCount={
+                item.type === "meeting"
+                  ? (meetingAttachmentCounts?.get(item.payload.id) ?? 0)
+                  : 0
+              }
             />
           ))}
           {total > LIMIT && (
@@ -140,9 +147,11 @@ function VisibilityPill({ value }: { value: VisibilityValue }) {
 function TimelineItem({
   item,
   operationId,
+  attachmentCount,
 }: {
   item: TimelineItemData;
   operationId: string;
+  attachmentCount: number;
 }) {
   const Icon = item.type === "meeting" ? CalendarDays : Gavel;
   const title = item.payload.title;
@@ -180,6 +189,15 @@ function TimelineItem({
                 {title}
               </span>
               <VisibilityPill value={visibility} />
+              {attachmentCount > 0 && (
+                <span
+                  className="inline-flex items-center gap-1 font-mono text-[10px] text-mute"
+                  title={`${attachmentCount} anexo(s)`}
+                >
+                  <Paperclip className="w-3 h-3" strokeWidth={1.75} />
+                  {attachmentCount}
+                </span>
+              )}
             </div>
             <p className="font-mono text-[11px] text-mute">
               {formatDateTimeBR(item.timestamp)} · {relativeFromNow(item.timestamp)}
