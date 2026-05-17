@@ -641,6 +641,48 @@ export type Database = {
           },
         ]
       }
+      villains: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          description: string
+          display_order: number
+          icon_name: string
+          id: string
+          name: string
+          pill_variant: string
+          quote: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          description: string
+          display_order: number
+          icon_name: string
+          id?: string
+          name: string
+          pill_variant: string
+          quote: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          description?: string
+          display_order?: number
+          icon_name?: string
+          id?: string
+          name?: string
+          pill_variant?: string
+          quote?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
