@@ -22,7 +22,8 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 | **Acesso público** | `public_links` | 1 |
 | **SLA** | `sla_incidents` | 1 |
 | **Vilões (catálogo)** | `villains` | 1 |
-| **Total atual** | | **14** |
+| **Operação × Vilão** | `operation_villains` | 1 |
+| **Total atual** | | **15** |
 
 ---
 
@@ -302,6 +303,28 @@ RLS policies: SELECT + INSERT + UPDATE pra authenticated. **Sem DELETE.**
 
 ---
 
+### `operation_villains` — M:N entre Operação e Vilão
+
+Relação produzida pelo Diagnóstico (futura feature) ou atribuição manual via UI. **Inv. 07**: `initial_severity` write-once via trigger. **Inv. 08** parcial: `progress_pct` capped 0-100.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `operation_id` | uuid NOT NULL → operations (CASCADE) | |
+| `villain_id` | uuid NOT NULL → villains (RESTRICT) | preserva histórico mesmo se vilão for archived |
+| `initial_severity` | enum `severity_level` NOT NULL | low/medium/high/critical — write-once via trigger |
+| `progress_pct` | int NOT NULL default 0 | CHECK 0..100 |
+| `evidence` | text | CHECK length ≤ 1000 |
+| `created_at`, `updated_at` | timestamptz | |
+
+UNIQUE(operation_id, villain_id) — vilão não duplica na Op.
+
+Trigger `lock_operation_villain_initial_severity` BEFORE UPDATE rejeita mudança em `initial_severity` com `RAISE EXCEPTION ... ERRCODE = 'check_violation'`.
+
+Index `idx_operation_villains_operation_created` (operation_id, created_at DESC).
+
+---
+
 ## Enums
 
 | Enum | Valores |
@@ -318,6 +341,7 @@ RLS policies: SELECT + INSERT + UPDATE pra authenticated. **Sem DELETE.**
 | `decision_visibility` | interno, cliente |
 | `sla_severity` | low, medium, high |
 | `sla_incident_status` | open, responded, resolved, cancelled |
+| `severity_level` | low, medium, high, critical |
 
 ---
 
@@ -325,7 +349,6 @@ RLS policies: SELECT + INSERT + UPDATE pra authenticated. **Sem DELETE.**
 
 - `profiles` — perfis dos usuários (papel Admin/Membro/Visualizador); sem 02
 - `villains` — catálogo de marca (seed 7 records); sem 04
-- `operation_villains` — M:N com severidade inicial + progresso; sem 04
 - `quick_wins` + `quick_win_catalog` — impactos capped por vilão; sem 04
 - `diagnostics` — diagnóstico com vilões detectados; sem 04
 - `credentials` — refs Bitwarden; v2 (adiada per AD-009)
@@ -346,6 +369,7 @@ RLS policies: SELECT + INSERT + UPDATE pra authenticated. **Sem DELETE.**
 | 20260517184006 | idx_frentes_actionable_status_since | 2026-05-17 (via MCP) |
 | 20260517194119 | sla | 2026-05-17 (via MCP) |
 | 20260517200953 | villains_catalog | 2026-05-17 (via MCP) |
+| 20260517203345 | operation_villains | 2026-05-17 (via MCP) |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações

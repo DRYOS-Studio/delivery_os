@@ -4,7 +4,9 @@ import { PublicFrentesList } from "@/components/domain/PublicFrentesList";
 import { PublicHero } from "@/components/domain/PublicHero";
 import { PublicSLAList } from "@/components/domain/PublicSLAList";
 import { PublicTimeline } from "@/components/domain/PublicTimeline";
+import { PublicVillainsList } from "@/components/domain/PublicVillainsList";
 import { listPublicIncidents } from "@/lib/db/queries/incidents";
+import { listPublicVillains } from "@/lib/db/queries/operation-villains";
 import {
   getOperationPublicView,
   listPublicAttachments,
@@ -34,18 +36,21 @@ export default async function Page({
   // Fire-and-forget; sem await crítico
   await touchPublicLinkAccess(link.id);
 
-  const [op, meetings, decisions, attachments, incidents] = await Promise.all([
-    getOperationPublicView(link.operationId),
-    listPublicMeetings(link.operationId),
-    listPublicDecisions(link.operationId),
-    listPublicAttachments(link.operationId),
-    listPublicIncidents(link.operationId),
-  ]);
+  const [op, meetings, decisions, attachments, incidents, villains] =
+    await Promise.all([
+      getOperationPublicView(link.operationId),
+      listPublicMeetings(link.operationId),
+      listPublicDecisions(link.operationId),
+      listPublicAttachments(link.operationId),
+      listPublicIncidents(link.operationId),
+      listPublicVillains(link.operationId),
+    ]);
   if (!op) notFound();
 
   return (
     <>
       <PublicHero op={op} />
+      <PublicVillainsList items={villains} />
       <PublicFrentesList frentes={op.frentes} />
       <PublicTimeline meetings={meetings} decisions={decisions} />
       <PublicAttachmentsList attachments={attachments} token={token} />

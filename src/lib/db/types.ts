@@ -438,6 +438,54 @@ export type Database = {
           },
         ]
       }
+      operation_villains: {
+        Row: {
+          created_at: string
+          evidence: string | null
+          id: string
+          initial_severity: Database["public"]["Enums"]["severity_level"]
+          operation_id: string
+          progress_pct: number
+          updated_at: string
+          villain_id: string
+        }
+        Insert: {
+          created_at?: string
+          evidence?: string | null
+          id?: string
+          initial_severity: Database["public"]["Enums"]["severity_level"]
+          operation_id: string
+          progress_pct?: number
+          updated_at?: string
+          villain_id: string
+        }
+        Update: {
+          created_at?: string
+          evidence?: string | null
+          id?: string
+          initial_severity?: Database["public"]["Enums"]["severity_level"]
+          operation_id?: string
+          progress_pct?: number
+          updated_at?: string
+          villain_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_operation_villains_operation_id"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "operations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_operation_villains_villain_id"
+            columns: ["villain_id"]
+            isOneToOne: false
+            referencedRelation: "villains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       operations: {
         Row: {
           archived_at: string | null
@@ -705,6 +753,7 @@ export type Database = {
       person_kind: "internal" | "external"
       product_line: "core" | "spark" | "studio"
       recurrence: "mensal" | "trimestral" | "anual" | "unica"
+      severity_level: "low" | "medium" | "high" | "critical"
       sla_incident_status: "open" | "responded" | "resolved" | "cancelled"
       sla_severity: "low" | "medium" | "high"
     }
@@ -849,6 +898,7 @@ export const Constants = {
       person_kind: ["internal", "external"],
       product_line: ["core", "spark", "studio"],
       recurrence: ["mensal", "trimestral", "anual", "unica"],
+      severity_level: ["low", "medium", "high", "critical"],
       sla_incident_status: ["open", "responded", "resolved", "cancelled"],
       sla_severity: ["low", "medium", "high"],
     },
