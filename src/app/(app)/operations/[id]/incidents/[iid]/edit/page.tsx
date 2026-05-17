@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { IncidentForm } from "@/components/domain/IncidentForm";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { getProfile } from "@/lib/auth/server";
 import { getIncident } from "@/lib/db/queries/incidents";
 import { getOperation } from "@/lib/db/queries/operations";
 
@@ -22,13 +23,16 @@ export default async function Page({
   if (!incident) redirect(`/operations/${id}`);
   if (incident.operation_id !== id) redirect(`/operations/${id}`);
 
+  const profile = await getProfile();
+  const isAdmin = profile?.role === "admin";
+
   return (
     <>
       <PageHeader
         title={`Editar incidente — ${incident.title}`}
         subtitle={`${op.client.name} · ${op.name}`}
       />
-      <IncidentForm mode="edit" operationId={op.id} initialData={incident} />
+      <IncidentForm mode="edit" operationId={op.id} initialData={incident} isAdmin={isAdmin} />
     </>
   );
 }

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { ClientForm } from "@/components/domain/ClientForm";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { getProfile } from "@/lib/auth/server";
 import {
   clientHasActiveOperations,
   getClient,
@@ -20,6 +21,8 @@ export default async function Page({
   if (!client) redirect("/clients");
 
   const hasOps = await clientHasActiveOperations(id);
+  const profile = await getProfile();
+  const isAdmin = profile?.role === "admin";
 
   return (
     <>
@@ -29,6 +32,7 @@ export default async function Page({
         initialData={client}
         canChangeSlug={!hasOps}
         canArchive={!hasOps}
+        isAdmin={isAdmin}
       />
     </>
   );

@@ -25,7 +25,8 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 | **Operação × Vilão** | `operation_villains` | 1 |
 | **Diagnóstico** | `diagnostics` | 1 |
 | **Quick Wins** | `quick_wins`, `quick_win_impacts` | 2 |
-| **Total atual** | | **18** |
+| **Profiles** | `profiles` | 1 |
+| **Total atual** | | **19** |
 
 ---
 
@@ -385,6 +386,29 @@ Trigger `sync_operation_villain_progress` (AFTER INSERT/UPDATE/DELETE) recalcula
 
 ---
 
+### `profiles` — papel do usuário autenticado (Inv. 14)
+
+1:1 com `auth.users` via PK = FK. Diferencia admin de member dentro do app. Visualizador externo é coberto por `/public/[token]` (sem auth).
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK → auth.users (CASCADE) | |
+| `role` | enum `user_role` NOT NULL default 'member' | admin / member |
+| `name` | text | nullable; display name livre |
+| `created_at`, `updated_at` | timestamptz | |
+
+Trigger `create_profile_for_new_user` (AFTER INSERT em auth.users, SECURITY DEFINER) cria profile automático com role='member' em cada signup. Backfill na migration cobriu users existentes; seed `rafaelemeth@gmail.com` virou admin.
+
+RLS:
+- SELECT pra authenticated (todos veem todos — necessário pra section "Usuários" em /admin)
+- UPDATE só admin (policy WITH CHECK `(SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'`)
+- INSERT bloqueado pra authenticated (só via trigger SECURITY DEFINER)
+- DELETE bloqueado (sem policy)
+
+**Gate na aplicação:** helpers `requireAdmin` (server redirect) e `requireAdminAction` (ActionResult). Actions destrutivas (archive×4, delete×7, villain catalog×3, revokePublicLink, setUserRole) chamam `requireAdminAction`. UI esconde botões destrutivos e info comercial (MRR/recorrência) pra member.
+
+---
+
 ## Enums
 
 | Enum | Valores |
@@ -403,12 +427,12 @@ Trigger `sync_operation_villain_progress` (AFTER INSERT/UPDATE/DELETE) recalcula
 | `sla_incident_status` | open, responded, resolved, cancelled |
 | `severity_level` | low, medium, high, critical |
 | `product_recommendation` | core, spark, studio |
+| `user_role` | admin, member |
 
 ---
 
 ## Próximas tabelas planejadas (roadmap)
 
-- `profiles` — perfis dos usuários (papel Admin/Membro/Visualizador); sem 02
 - `villains` — catálogo de marca (seed 7 records); sem 04
 - `quick_win_catalog` — tipos pré-definidos com pesos sugeridos; v2 (deferida)
 - `credentials` — refs Bitwarden; v2 (adiada per AD-009)
@@ -431,6 +455,7 @@ Trigger `sync_operation_villain_progress` (AFTER INSERT/UPDATE/DELETE) recalcula
 | 20260517200953 | villains_catalog | 2026-05-17 (via MCP) |
 | 20260517203345 | operation_villains | 2026-05-17 (via MCP) |
 | 20260517205902 | diagnostico_quickwins | 2026-05-17 (via MCP) |
+| 20260517225505 | profiles | 2026-05-17 (via MCP) |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações

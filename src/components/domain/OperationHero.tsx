@@ -44,9 +44,11 @@ type BriefingFreshness = {
 export function OperationHero({
   op,
   briefingFreshness,
+  isAdmin = false,
 }: {
   op: OperationDetail;
   briefingFreshness?: BriefingFreshness | undefined;
+  isAdmin?: boolean;
 }) {
   return (
     <section className="relative bg-oak text-bg rounded-lg p-8 overflow-hidden mb-9">
@@ -123,11 +125,18 @@ export function OperationHero({
         <p className="font-body text-base opacity-70 mt-1">{op.name}</p>
 
         <div className="flex flex-wrap gap-x-7 gap-y-3 mt-7">
-          <MetaChip
-            label="Recorrência"
-            value={op.recurrence ? RECURRENCE_LABEL[op.recurrence] : "—"}
-          />
-          <MetaChip label="MRR" value={formatMoneyBR(op.monthlyRecurringRevenue)} />
+          {isAdmin && (
+            <>
+              <MetaChip
+                label="Recorrência"
+                value={op.recurrence ? RECURRENCE_LABEL[op.recurrence] : "—"}
+              />
+              <MetaChip
+                label="MRR"
+                value={formatMoneyBR(op.monthlyRecurringRevenue)}
+              />
+            </>
+          )}
           <MetaChip
             label="SLA · Resposta"
             value={formatHours(op.responseHours)}

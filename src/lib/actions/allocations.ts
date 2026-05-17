@@ -1,7 +1,7 @@
 "use server";
 
 import { type ActionResult, dbErr, err, ok } from "@/lib/actions/_types";
-import { requireUserAction } from "@/lib/auth/server";
+import { requireAdminAction, requireUserAction } from "@/lib/auth/server";
 import { createServer } from "@/lib/db/client";
 import { getAllocation } from "@/lib/db/queries/allocations";
 import { getFrente } from "@/lib/db/queries/frentes";
@@ -113,6 +113,9 @@ export async function deleteAllocationAction(
 ): Promise<ActionResult<{ frenteId: string; operationId: string }>> {
   const userResult = await requireUserAction();
   if (!userResult.ok) return userResult;
+
+  const adminGuard = await requireAdminAction();
+  if (!adminGuard.ok) return adminGuard;
 
   const current = await getAllocation(id);
   if (!current) return err("Alocação não encontrada.", "not_found");

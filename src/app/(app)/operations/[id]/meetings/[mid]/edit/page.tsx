@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { AttachmentsSection } from "@/components/domain/AttachmentsSection";
 import { MeetingForm } from "@/components/domain/MeetingForm";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { getProfile } from "@/lib/auth/server";
 import { listAttachmentsByMeeting } from "@/lib/db/queries/attachments";
 import {
   getMeeting,
@@ -32,6 +33,9 @@ export default async function Page({
     listAttachmentsByMeeting(mid),
   ]);
 
+  const profile = await getProfile();
+  const isAdmin = profile?.role === "admin";
+
   return (
     <>
       <PageHeader
@@ -44,12 +48,14 @@ export default async function Page({
         clientName={op.client.name}
         initialData={meeting}
         attendeeCandidates={attendeeCandidates}
+        isAdmin={isAdmin}
       />
       <div className="mt-9">
         <AttachmentsSection
           attachments={attachments}
           operationId={op.id}
           meetingId={mid}
+          isAdmin={isAdmin}
         />
       </div>
     </>

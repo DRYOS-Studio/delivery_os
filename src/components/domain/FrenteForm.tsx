@@ -21,7 +21,7 @@ import {
   type FrenteOutput,
 } from "@/lib/validators/frente";
 
-type Props =
+type Props = (
   | {
       mode: "create";
       operationId: string;
@@ -33,7 +33,8 @@ type Props =
       operationId: string;
       internalPersons: InternalPersonItem[];
       canArchive: boolean;
-    };
+    }
+) & { isAdmin?: boolean };
 
 const CYCLE_OPTIONS: { value: "a" | "b" | "c" | "d" | "e"; label: string }[] = [
   { value: "a", label: "A — Finito puro (Studio one-off)" },
@@ -74,6 +75,7 @@ function mapErrorToFields(
 export function FrenteForm(props: Props): React.JSX.Element {
   const router = useRouter();
   const isEdit = props.mode === "edit";
+  const isAdmin = props.isAdmin ?? false;
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [isArchiving, setIsArchiving] = useState(false);
 
@@ -345,7 +347,7 @@ export function FrenteForm(props: Props): React.JSX.Element {
             </Button>
           </Link>
         </div>
-        {isEdit && props.canArchive && (
+        {isEdit && props.canArchive && isAdmin && (
           <Button
             type="button"
             variant="ghost"

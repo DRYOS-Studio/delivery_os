@@ -25,7 +25,7 @@ import {
   type DecisionOutput,
 } from "@/lib/validators/decision";
 
-type Props =
+type Props = (
   | {
       mode: "create";
       operationId: string;
@@ -36,7 +36,8 @@ type Props =
       operationId: string;
       initialData: DecisionRow;
       meetings: MeetingListItem[];
-    };
+    }
+) & { isAdmin?: boolean };
 
 function mapErrorToFields(
   code: string | undefined,
@@ -64,6 +65,7 @@ function defaultDecidedAt(): string {
 export function DecisionForm(props: Props): React.JSX.Element {
   const router = useRouter();
   const isEdit = props.mode === "edit";
+  const isAdmin = props.isAdmin ?? false;
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -252,7 +254,7 @@ export function DecisionForm(props: Props): React.JSX.Element {
             </Button>
           </Link>
         </div>
-        {isEdit && (
+        {isEdit && isAdmin && (
           <Button
             type="button"
             variant="ghost"

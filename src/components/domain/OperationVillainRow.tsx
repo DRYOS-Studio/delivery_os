@@ -26,8 +26,10 @@ const VARIANT_BG: Record<PillVariant, string> = {
 
 export function OperationVillainRow({
   item,
+  isAdmin = false,
 }: {
   item: OperationVillainListItem;
+  isAdmin?: boolean;
 }): React.JSX.Element {
   const [editing, setEditing] = useState(false);
   const Icon = resolveVillainIcon(item.villain.iconName);
@@ -71,10 +73,12 @@ export function OperationVillainRow({
                   <Pencil className="w-3 h-3" strokeWidth={1.75} />
                   {editing ? "Fechar" : "Editar"}
                 </button>
-                <RemoveOperationVillainButton
-                  itemId={item.id}
-                  villainName={item.villain.name}
-                />
+                {isAdmin && (
+                  <RemoveOperationVillainButton
+                    itemId={item.id}
+                    villainName={item.villain.name}
+                  />
+                )}
               </div>
             </div>
 

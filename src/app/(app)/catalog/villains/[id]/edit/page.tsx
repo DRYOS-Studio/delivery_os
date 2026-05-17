@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { ArchiveVillainButton } from "@/components/domain/ArchiveVillainButton";
 import { VillainForm } from "@/components/domain/VillainForm";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { requireAdmin } from "@/lib/auth/server";
 import { getVillain } from "@/lib/db/queries/villains";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -11,6 +12,8 @@ export default async function Page({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireAdmin("/catalog");
+
   const { id } = await params;
   if (!UUID_RE.test(id)) redirect("/catalog");
 

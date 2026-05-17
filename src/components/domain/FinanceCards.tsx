@@ -16,7 +16,14 @@ const RECURRENCE_LABEL: Record<
   unica: "Única",
 };
 
-export function FinanceCards({ op }: { op: OperationDetail }) {
+export function FinanceCards({
+  op,
+  isAdmin = false,
+}: {
+  op: OperationDetail;
+  isAdmin?: boolean;
+}) {
+  if (!isAdmin) return null;
   const hasMrr =
     op.monthlyRecurringRevenue !== null &&
     op.monthlyRecurringRevenue !== undefined;

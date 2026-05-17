@@ -15,8 +15,10 @@ const VARIANT_BG: Record<PillVariant, string> = {
 
 export function VillainCard({
   villain,
+  isAdmin = false,
 }: {
   villain: VillainListItem;
+  isAdmin?: boolean;
 }): React.JSX.Element {
   const Icon = resolveVillainIcon(villain.iconName);
   const variant = (villain.pillVariant as PillVariant) ?? "neutral";
@@ -50,12 +52,14 @@ export function VillainCard({
           {villain.description}
         </p>
 
-        <Link
-          href={`/catalog/villains/${villain.id}/edit`}
-          className="font-mono text-xs text-oak hover:underline inline-block"
-        >
-          Editar →
-        </Link>
+        {isAdmin && (
+          <Link
+            href={`/catalog/villains/${villain.id}/edit`}
+            className="font-mono text-xs text-oak hover:underline inline-block"
+          >
+            Editar →
+          </Link>
+        )}
       </div>
     </Card>
   );

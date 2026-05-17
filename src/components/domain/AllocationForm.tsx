@@ -19,7 +19,7 @@ import {
   type AllocationOutput,
 } from "@/lib/validators/allocation";
 
-type Props =
+type Props = (
   | {
       mode: "create";
       operationId: string;
@@ -32,7 +32,8 @@ type Props =
       operationId: string;
       frenteId: string;
       internalPersons: InternalPersonItem[];
-    };
+    }
+) & { isAdmin?: boolean };
 
 const ROLE_OPTIONS: { value: AllocationOutput["role"]; label: string }[] = [
   { value: "responsavel", label: "Responsável" },
@@ -68,6 +69,7 @@ function todayBR(): string {
 export function AllocationForm(props: Props): React.JSX.Element {
   const router = useRouter();
   const isEdit = props.mode === "edit";
+  const isAdmin = props.isAdmin ?? false;
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -254,7 +256,7 @@ export function AllocationForm(props: Props): React.JSX.Element {
             </Button>
           </Link>
         </div>
-        {isEdit && (
+        {isEdit && isAdmin && (
           <Button
             type="button"
             variant="ghost"

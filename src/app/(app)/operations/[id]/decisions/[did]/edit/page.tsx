@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { DecisionForm } from "@/components/domain/DecisionForm";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { getProfile } from "@/lib/auth/server";
 import { getDecision } from "@/lib/db/queries/decisions";
 import { listMeetingsByOperation } from "@/lib/db/queries/meetings";
 import { getOperation } from "@/lib/db/queries/operations";
@@ -24,6 +25,9 @@ export default async function Page({
   if (!decision) redirect(`/operations/${id}`);
   if (decision.operation_id !== id) redirect(`/operations/${id}`);
 
+  const profile = await getProfile();
+  const isAdmin = profile?.role === "admin";
+
   return (
     <>
       <PageHeader
@@ -35,6 +39,7 @@ export default async function Page({
         operationId={op.id}
         initialData={decision}
         meetings={meetings}
+        isAdmin={isAdmin}
       />
     </>
   );
