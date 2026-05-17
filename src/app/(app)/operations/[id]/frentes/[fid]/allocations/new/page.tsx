@@ -1,12 +1,7 @@
 import { redirect } from "next/navigation";
-import { AllocationsSection } from "@/components/domain/AllocationsSection";
-import { FrenteForm } from "@/components/domain/FrenteForm";
+import { AllocationForm } from "@/components/domain/AllocationForm";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { listAllocationsByFrente } from "@/lib/db/queries/allocations";
-import {
-  frenteHasActiveAllocations,
-  getFrente,
-} from "@/lib/db/queries/frentes";
+import { getFrente } from "@/lib/db/queries/frentes";
 import { getOperation } from "@/lib/db/queries/operations";
 import { listInternalPersons } from "@/lib/db/queries/persons";
 
@@ -20,12 +15,10 @@ export default async function Page({
   const { id, fid } = await params;
   if (!UUID_RE.test(id) || !UUID_RE.test(fid)) redirect("/operations");
 
-  const [op, frente, hasAllocs, persons, allocations] = await Promise.all([
+  const [op, frente, persons] = await Promise.all([
     getOperation(id),
     getFrente(fid),
-    frenteHasActiveAllocations(fid),
     listInternalPersons(),
-    listAllocationsByFrente(fid),
   ]);
   if (!op) redirect("/operations");
   if (!frente) redirect(`/operations/${id}`);
@@ -34,20 +27,14 @@ export default async function Page({
   return (
     <>
       <PageHeader
-        title={`Editar Frente — ${frente.name}`}
-        subtitle={`${op.client.name} · ${op.name}`}
+        title="Nova alocação"
+        subtitle={`${frente.name} · ${op.name} · ${op.client.name}`}
       />
-      <FrenteForm
-        mode="edit"
-        initialData={frente}
-        operationId={id}
-        internalPersons={persons}
-        canArchive={!hasAllocs}
-      />
-      <AllocationsSection
-        allocations={allocations}
+      <AllocationForm
+        mode="create"
         operationId={id}
         frenteId={fid}
+        internalPersons={persons}
       />
     </>
   );
