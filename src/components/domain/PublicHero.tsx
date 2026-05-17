@@ -1,5 +1,6 @@
 import { Pill } from "@/components/ui/Pill";
 import type { PublicOperationView } from "@/lib/db/queries/public";
+import { formatHours } from "@/lib/utils/sla";
 
 const PRODUCT_LABEL = {
   core: "Core",
@@ -42,6 +43,12 @@ export function PublicHero({
           {STATUS_LABEL[op.status]}
         </Pill>
         {op.archivedAt && <Pill variant="neutral">Arquivada</Pill>}
+        {(op.responseHours !== null || op.resolutionHours !== null) && (
+          <Pill variant="oak">
+            SLA: resp {formatHours(op.responseHours)} · res{" "}
+            {formatHours(op.resolutionHours)}
+          </Pill>
+        )}
       </div>
     </section>
   );

@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { OperationDetail } from "@/lib/db/queries/operations";
 import { formatDateBR, relativeFromNow } from "@/lib/utils/date";
 import { formatMoneyBR } from "@/lib/utils/money";
+import { formatHours } from "@/lib/utils/sla";
 
 const PRODUCT_LINE_LABEL: Record<OperationDetail["productLine"], string> = {
   core: "Core",
@@ -127,6 +128,14 @@ export function OperationHero({
             value={op.recurrence ? RECURRENCE_LABEL[op.recurrence] : "—"}
           />
           <MetaChip label="MRR" value={formatMoneyBR(op.monthlyRecurringRevenue)} />
+          <MetaChip
+            label="SLA · Resposta"
+            value={formatHours(op.responseHours)}
+          />
+          <MetaChip
+            label="SLA · Resolução"
+            value={formatHours(op.resolutionHours)}
+          />
           <MetaChip label="Início" value={formatDateBR(op.startDate)} />
           <MetaChip label="Fim" value={formatDateBR(op.endDate)} />
           <MetaChip label="Criado" value={formatDateBR(op.createdAt)} />

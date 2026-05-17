@@ -11,6 +11,8 @@ export type PublicOperationView = {
   productLine: Database["public"]["Enums"]["product_line"];
   status: Database["public"]["Enums"]["operation_status"];
   archivedAt: string | null;
+  responseHours: number | null;
+  resolutionHours: number | null;
   frentes: Array<{
     id: string;
     name: string;
@@ -31,6 +33,7 @@ export async function getOperationPublicView(
     .select(
       `
       id, name, product_line, status, archived_at,
+      response_hours, resolution_hours,
       client:clients!fk_operations_client_id (name),
       frentes!fk_frentes_operation_id (
         id, name, cycle_type, domain, phase, actionable_status, actionable_status_since, archived_at
@@ -61,6 +64,8 @@ export async function getOperationPublicView(
     productLine: data.product_line,
     status: data.status,
     archivedAt: data.archived_at,
+    responseHours: data.response_hours,
+    resolutionHours: data.resolution_hours,
     frentes,
   };
 }

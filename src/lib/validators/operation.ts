@@ -25,6 +25,24 @@ const mrrInput = z.preprocess((v) => {
   return v;
 }, z.number().nonnegative("MRR não pode ser negativo.").nullable());
 
+const optionalIntHours = z.preprocess(
+  (v) => {
+    if (v === "" || v === null || v === undefined) return undefined;
+    if (typeof v === "number") return Math.trunc(v);
+    if (typeof v === "string") {
+      const n = Number(v.replace(",", "."));
+      return Number.isFinite(n) ? Math.trunc(n) : v;
+    }
+    return v;
+  },
+  z
+    .number()
+    .int("Use horas inteiras.")
+    .min(0, "Não pode ser negativo.")
+    .max(720, "Máximo 720h (30d).")
+    .optional(),
+);
+
 export const operationSchema = z
   .object({
     client_id: z.string().uuid("Cliente obrigatório."),
@@ -43,6 +61,8 @@ export const operationSchema = z
     monthly_recurring_revenue: mrrInput,
     start_date: dateString,
     end_date: dateString,
+    response_hours: optionalIntHours,
+    resolution_hours: optionalIntHours,
   })
   .refine(
     (data) =>

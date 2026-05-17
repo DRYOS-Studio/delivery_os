@@ -69,6 +69,8 @@ export function OperationForm(props: Props): React.JSX.Element {
         recurrence: props.initialData.recurrence ?? undefined,
         monthly_recurring_revenue:
           props.initialData.monthlyRecurringRevenue ?? null,
+        response_hours: props.initialData.responseHours ?? undefined,
+        resolution_hours: props.initialData.resolutionHours ?? undefined,
         start_date: props.initialData.startDate ?? undefined,
         end_date: props.initialData.endDate ?? undefined,
       }
@@ -79,6 +81,8 @@ export function OperationForm(props: Props): React.JSX.Element {
         status: "em_construcao",
         recurrence: undefined,
         monthly_recurring_revenue: null,
+        response_hours: undefined,
+        resolution_hours: undefined,
         start_date: undefined,
         end_date: undefined,
       };
@@ -124,6 +128,18 @@ export function OperationForm(props: Props): React.JSX.Element {
       data.monthly_recurring_revenue !== null &&
         data.monthly_recurring_revenue !== undefined
         ? String(data.monthly_recurring_revenue)
+        : "",
+    );
+    fd.set(
+      "response_hours",
+      data.response_hours !== undefined && data.response_hours !== null
+        ? String(data.response_hours)
+        : "",
+    );
+    fd.set(
+      "resolution_hours",
+      data.resolution_hours !== undefined && data.resolution_hours !== null
+        ? String(data.resolution_hours)
         : "",
     );
     fd.set("start_date", data.start_date ?? "");
@@ -301,6 +317,46 @@ export function OperationForm(props: Props): React.JSX.Element {
             }}
             placeholder="R$ 0,00"
             disabled={busy}
+            className={inputCn}
+          />
+        </Field>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Field
+          label="SLA — Resposta (horas)"
+          htmlFor="response_hours"
+          error={errors.response_hours?.message}
+          hint="Tempo prometido pra primeira resposta. Em branco = sem SLA."
+        >
+          <input
+            id="response_hours"
+            type="number"
+            min={0}
+            max={720}
+            step={1}
+            {...register("response_hours")}
+            disabled={busy}
+            placeholder="4"
+            className={inputCn}
+          />
+        </Field>
+
+        <Field
+          label="SLA — Resolução (horas)"
+          htmlFor="resolution_hours"
+          error={errors.resolution_hours?.message}
+          hint="Tempo prometido pra resolução total. Em branco = sem SLA."
+        >
+          <input
+            id="resolution_hours"
+            type="number"
+            min={0}
+            max={720}
+            step={1}
+            {...register("resolution_hours")}
+            disabled={busy}
+            placeholder="24"
             className={inputCn}
           />
         </Field>
