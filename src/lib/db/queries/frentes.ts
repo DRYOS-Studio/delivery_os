@@ -26,3 +26,69 @@ export async function frenteHasActiveAllocations(
   if (error) throw new Error(`frenteHasActiveAllocations: ${error.message}`);
   return (count ?? 0) > 0;
 }
+
+export type FrenteAttentionItem = {
+  id: string;
+  name: string;
+  cycleType: Database["public"]["Enums"]["frente_cycle_type"];
+  actionableStatus: string;
+  actionableStatusSince: string;
+  operation: { id: string; name: string };
+  client: { name: string };
+  responsible: { id: string; name: string } | null;
+};
+
+export async function listFrentesNeedingAttention(
+  limit = 8,
+): Promise<FrenteAttentionItem[]> {
+  const supabase = await createServer();
+  const sevenDaysAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
+  const { data, error } = await supabase
+    .from("frentes")
+    .select(
+      `
+      id, name, cycle_type, actionable_status, actionable_status_since,
+      operation:operations!fk_frentes_operation_id (
+        id, name,
+        client:clients!fk_operations_client_id (name)
+      ),
+      responsible:persons!fk_frentes_responsible_person_id (id, name)
+      `,
+    )
+    .is("archived_at", null)
+    .lt("actionable_status_since", sevenDaysAgo)
+    .order("actionable_status_since", { ascending: true })
+    .limit(limit);
+  if (error) throw new Error(`listFrentesNeedingAttention: ${error.message}`);
+  if (!data) return [];
+
+  return data.map((f): FrenteAttentionItem => ({
+    id: f.id,
+    name: f.name,
+    cycleType: f.cycle_type,
+    actionableStatus: f.actionable_status,
+    actionableStatusSince: f.actionable_status_since,
+    operation: {
+      id: f.operation?.id ?? "",
+      name: f.operation?.name ?? "—",
+    },
+    client: {
+      name: f.operation?.client?.name ?? "—",
+    },
+    responsible: f.responsible
+      ? { id: f.responsible.id, name: f.responsible.name }
+      : null,
+  }));
+}
+
+export async function countHotCriticalFrentes(): Promise<number> {
+  const supabase = await createServer();
+  const fourteenDaysAgo = new Date(Date.now() - 14 * 86_400_000).toISOString();
+  const { count, error } = await supabase
+    .from("frentes")
+    .select("id", { count: "exact", head: true })
+    .is("archived_at", null)
+    .lt("actionable_status_since", fourteenDaysAgo);
+  if (error) throw new Error(`countHotCriticalFrentes: ${error.message}`);
+  return count ?? 0;
+}

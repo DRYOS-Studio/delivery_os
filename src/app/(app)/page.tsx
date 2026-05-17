@@ -1,10 +1,15 @@
 import { Plus } from "lucide-react";
 import Link from "next/link";
+import { FrentesAttentionSection } from "@/components/domain/FrentesAttentionSection";
 import { OperationCard } from "@/components/domain/OperationCard";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import { getUser } from "@/lib/auth/server";
+import {
+  countHotCriticalFrentes,
+  listFrentesNeedingAttention,
+} from "@/lib/db/queries/frentes";
 import {
   getActiveOperations,
   type OperationCardData,
@@ -45,8 +50,13 @@ type Tab = {
 };
 
 export default async function Page() {
-  const user = await getUser();
-  const operations = await getActiveOperations();
+  const [user, operations, attentionFrentes, hotCriticalCount] =
+    await Promise.all([
+      getUser(),
+      getActiveOperations(),
+      listFrentesNeedingAttention(),
+      countHotCriticalFrentes(),
+    ]);
 
   const name = nameFromEmail(user?.email);
   const hour = new Date().getHours();
@@ -98,6 +108,11 @@ export default async function Page() {
           </div>
         ))}
       </div>
+
+      <FrentesAttentionSection
+        frentes={attentionFrentes}
+        hotCriticalCount={hotCriticalCount}
+      />
 
       {operations.length === 0 ? (
         <div className="text-center py-14">

@@ -30,12 +30,20 @@ export function SidebarNav({
   clientsCount,
   operationsCount,
   personsCount,
+  hotCriticalCount,
 }: {
   clientsCount?: number;
   operationsCount?: number;
   personsCount?: number;
+  hotCriticalCount?: number;
 }) {
   const pathname = usePathname();
+  const hotCritDisplay =
+    hotCriticalCount && hotCriticalCount > 0
+      ? hotCriticalCount >= 10
+        ? "9+"
+        : String(hotCriticalCount)
+      : null;
 
   const groups: readonly NavGroup[] = [
     {
@@ -97,7 +105,12 @@ export function SidebarNav({
               >
                 <Icon className="w-4 h-4" strokeWidth={1.75} />
                 <span>{item.label}</span>
-                {item.count != null && (
+                {item.href === "/" && hotCritDisplay && (
+                  <Pill variant="critical" className="ml-auto">
+                    {hotCritDisplay}
+                  </Pill>
+                )}
+                {item.href !== "/" && item.count != null && (
                   <Pill variant="neutral" className="ml-auto">
                     {item.count}
                   </Pill>

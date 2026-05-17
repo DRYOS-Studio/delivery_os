@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/Button";
+import { StalenessPill } from "@/components/ui/StalenessPill";
 import {
   archiveFrenteAction,
   createFrenteAction,
@@ -13,6 +14,7 @@ import {
 } from "@/lib/actions/frentes";
 import type { FrenteRow } from "@/lib/db/queries/frentes";
 import type { InternalPersonItem } from "@/lib/db/queries/persons";
+import { daysSince } from "@/lib/utils/staleness";
 import {
   frenteSchema,
   type FrenteInput,
@@ -255,6 +257,17 @@ export function FrenteForm(props: Props): React.JSX.Element {
         required
         error={errors.actionable_status?.message}
         hint='Formato "aguardando X de Y desde Z". Mínimo 15 chars; sem genéricos ("em andamento", "pendente"...).'
+        labelExtra={
+          props.mode === "edit" ? (
+            <span className="inline-flex items-center gap-2 font-mono text-[10px] text-mute normal-case tracking-normal">
+              Atualizado há{" "}
+              {daysSince(props.initialData.actionable_status_since)}d
+              <StalenessPill
+                since={props.initialData.actionable_status_since}
+              />
+            </span>
+          ) : undefined
+        }
       >
         <textarea
           id="actionable_status"
@@ -358,6 +371,7 @@ function Field({
   hint,
   error,
   children,
+  labelExtra,
 }: {
   label: string;
   htmlFor: string;
@@ -365,15 +379,19 @@ function Field({
   hint?: string | undefined;
   error?: string | undefined;
   children: React.ReactNode;
+  labelExtra?: React.ReactNode | undefined;
 }) {
   return (
     <div className="space-y-1">
       <label
         htmlFor={htmlFor}
-        className="block font-mono text-[10px] text-mute uppercase tracking-wide"
+        className="flex items-center justify-between gap-2 font-mono text-[10px] text-mute uppercase tracking-wide"
       >
-        {label}
-        {required && <span className="text-critical ml-1">*</span>}
+        <span>
+          {label}
+          {required && <span className="text-critical ml-1">*</span>}
+        </span>
+        {labelExtra}
       </label>
       {children}
       {hint && !error && (

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Pill, type PillVariant } from "@/components/ui/Pill";
+import { StalenessPill } from "@/components/ui/StalenessPill";
 import type { FrenteListItem } from "@/lib/db/queries/operations";
 import { getInitials } from "@/lib/utils/initials";
 
@@ -97,7 +98,12 @@ export function FrentesListSection({
                   )}
                 </div>
                 <div className="col-span-3 font-body text-sm text-ink-soft truncate">
-                  {truncate(f.actionableStatus, 70)}
+                  <div className="flex items-center gap-2">
+                    <span className="truncate">
+                      {truncate(f.actionableStatus, 70)}
+                    </span>
+                    <StalenessPill since={f.actionableStatusSince} />
+                  </div>
                 </div>
                 <div className="col-span-1 text-right">
                   <Link

@@ -4,18 +4,25 @@ import { getUser } from "@/lib/auth/server";
 import { SidebarNav } from "@/components/layout/SidebarNav";
 import { Avatar } from "@/components/ui/Avatar";
 import { countActiveClients } from "@/lib/db/queries/clients";
+import { countHotCriticalFrentes } from "@/lib/db/queries/frentes";
 import { countActiveOperations } from "@/lib/db/queries/operations";
 import { countActivePersons } from "@/lib/db/queries/persons";
 import { initialsFromEmail } from "@/lib/utils/initials";
 
 export async function Sidebar() {
-  const [user, clientsCount, operationsCount, personsCounts] =
-    await Promise.all([
-      getUser(),
-      countActiveClients(),
-      countActiveOperations(),
-      countActivePersons(),
-    ]);
+  const [
+    user,
+    clientsCount,
+    operationsCount,
+    personsCounts,
+    hotCriticalCount,
+  ] = await Promise.all([
+    getUser(),
+    countActiveClients(),
+    countActiveOperations(),
+    countActivePersons(),
+    countHotCriticalFrentes(),
+  ]);
   const email = user?.email ?? "anon";
 
   return (
@@ -38,6 +45,7 @@ export async function Sidebar() {
         clientsCount={clientsCount}
         operationsCount={operationsCount}
         personsCount={personsCounts.total}
+        hotCriticalCount={hotCriticalCount}
       />
 
       <div className="flex-1" />
