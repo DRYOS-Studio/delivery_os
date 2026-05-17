@@ -18,6 +18,8 @@ type CreateInput = {
   status: "em_construcao" | "em_operacao" | "janela_critica";
   recurrence: "mensal" | "trimestral" | "anual" | "unica" | null;
   monthly_recurring_revenue: number | null;
+  response_hours: number | null;
+  resolution_hours: number | null;
   start_date: string | null;
   end_date: string | null;
 };
@@ -29,6 +31,8 @@ function parseFormDataToInput(formData: FormData): {
   status: string;
   recurrence: string;
   monthly_recurring_revenue: number | null;
+  response_hours: string;
+  resolution_hours: string;
   start_date: string;
   end_date: string;
 } {
@@ -42,6 +46,8 @@ function parseFormDataToInput(formData: FormData): {
     recurrence: ((formData.get("recurrence") as string | null) ?? "").trim(),
     monthly_recurring_revenue:
       mrrNumber !== null && Number.isFinite(mrrNumber) ? mrrNumber : null,
+    response_hours: ((formData.get("response_hours") as string | null) ?? "").trim(),
+    resolution_hours: ((formData.get("resolution_hours") as string | null) ?? "").trim(),
     start_date: ((formData.get("start_date") as string | null) ?? "").trim(),
     end_date: ((formData.get("end_date") as string | null) ?? "").trim(),
   };
@@ -63,6 +69,8 @@ function validate(formData: FormData): ActionResult<CreateInput> {
     status: parsed.data.status,
     recurrence: parsed.data.recurrence ?? null,
     monthly_recurring_revenue: parsed.data.monthly_recurring_revenue ?? null,
+    response_hours: parsed.data.response_hours ?? null,
+    resolution_hours: parsed.data.resolution_hours ?? null,
     start_date: parsed.data.start_date ?? null,
     end_date: parsed.data.end_date ?? null,
   });
@@ -116,6 +124,8 @@ export async function updateOperationAction(
       status: v.data.status,
       recurrence: v.data.recurrence,
       monthly_recurring_revenue: v.data.monthly_recurring_revenue,
+      response_hours: v.data.response_hours,
+      resolution_hours: v.data.resolution_hours,
       start_date: v.data.start_date,
       end_date: v.data.end_date,
     })

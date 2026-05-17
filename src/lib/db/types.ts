@@ -449,6 +449,8 @@ export type Database = {
           name: string
           product_line: Database["public"]["Enums"]["product_line"]
           recurrence: Database["public"]["Enums"]["recurrence"] | null
+          resolution_hours: number | null
+          response_hours: number | null
           start_date: string | null
           status: Database["public"]["Enums"]["operation_status"]
           updated_at: string
@@ -463,6 +465,8 @@ export type Database = {
           name: string
           product_line: Database["public"]["Enums"]["product_line"]
           recurrence?: Database["public"]["Enums"]["recurrence"] | null
+          resolution_hours?: number | null
+          response_hours?: number | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["operation_status"]
           updated_at?: string
@@ -477,6 +481,8 @@ export type Database = {
           name?: string
           product_line?: Database["public"]["Enums"]["product_line"]
           recurrence?: Database["public"]["Enums"]["recurrence"] | null
+          resolution_hours?: number | null
+          response_hours?: number | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["operation_status"]
           updated_at?: string
@@ -582,6 +588,59 @@ export type Database = {
           },
         ]
       }
+      sla_incidents: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          opened_at: string
+          opened_by: string | null
+          operation_id: string
+          resolved_at: string | null
+          responded_at: string | null
+          severity: Database["public"]["Enums"]["sla_severity"]
+          status: Database["public"]["Enums"]["sla_incident_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          opened_at?: string
+          opened_by?: string | null
+          operation_id: string
+          resolved_at?: string | null
+          responded_at?: string | null
+          severity?: Database["public"]["Enums"]["sla_severity"]
+          status?: Database["public"]["Enums"]["sla_incident_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          opened_at?: string
+          opened_by?: string | null
+          operation_id?: string
+          resolved_at?: string | null
+          responded_at?: string | null
+          severity?: Database["public"]["Enums"]["sla_severity"]
+          status?: Database["public"]["Enums"]["sla_incident_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_sla_incidents_operation_id"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "operations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -604,6 +663,8 @@ export type Database = {
       person_kind: "internal" | "external"
       product_line: "core" | "spark" | "studio"
       recurrence: "mensal" | "trimestral" | "anual" | "unica"
+      sla_incident_status: "open" | "responded" | "resolved" | "cancelled"
+      sla_severity: "low" | "medium" | "high"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -746,6 +807,8 @@ export const Constants = {
       person_kind: ["internal", "external"],
       product_line: ["core", "spark", "studio"],
       recurrence: ["mensal", "trimestral", "anual", "unica"],
+      sla_incident_status: ["open", "responded", "resolved", "cancelled"],
+      sla_severity: ["low", "medium", "high"],
     },
   },
 } as const

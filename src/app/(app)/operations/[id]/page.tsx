@@ -7,12 +7,17 @@ import { MeetingsDecisionsTimeline } from "@/components/domain/MeetingsDecisions
 import { OperationHero } from "@/components/domain/OperationHero";
 import { PlaceholderSection } from "@/components/domain/PlaceholderSection";
 import { PublicLinksSection } from "@/components/domain/PublicLinksSection";
+import { SLASection } from "@/components/domain/SLASection";
 import {
   countAttachmentsByMeeting,
   listAttachmentsByOperation,
 } from "@/lib/db/queries/attachments";
 import { getBriefingFreshness } from "@/lib/db/queries/briefings";
 import { listDecisionsByOperation } from "@/lib/db/queries/decisions";
+import {
+  countOpenIncidents,
+  listIncidentsByOperation,
+} from "@/lib/db/queries/incidents";
 import { listMeetingsByOperation } from "@/lib/db/queries/meetings";
 import { getOperation } from "@/lib/db/queries/operations";
 import { listPublicLinksByOperation } from "@/lib/db/queries/publicLinks";
@@ -38,6 +43,8 @@ export default async function Page({
     meetingAttachmentCounts,
     publicLinks,
     baseUrl,
+    incidents,
+    openIncidentsCount,
   ] = await Promise.all([
     getOperation(id),
     getBriefingFreshness(id),
@@ -47,6 +54,8 @@ export default async function Page({
     countAttachmentsByMeeting(id),
     listPublicLinksByOperation(id),
     getBaseUrl(),
+    listIncidentsByOperation(id),
+    countOpenIncidents(id),
   ]);
   if (!op) notFound();
 
@@ -89,6 +98,16 @@ export default async function Page({
       />
 
       <AttachmentsSection attachments={attachments} operationId={op.id} />
+
+      <SLASection
+        incidents={incidents}
+        openCount={openIncidentsCount}
+        op={{
+          response_hours: op.responseHours,
+          resolution_hours: op.resolutionHours,
+        }}
+        operationId={op.id}
+      />
 
       <PublicLinksSection
         links={publicLinks}

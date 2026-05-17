@@ -20,7 +20,8 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 | **Reuniões / Decisões** | `meetings`, `meeting_attendees`, `decisions` | 3 |
 | **Anexos** | `attachments` | 1 |
 | **Acesso público** | `public_links` | 1 |
-| **Total atual** | | **12** |
+| **SLA** | `sla_incidents` | 1 |
+| **Total atual** | | **13** |
 
 ---
 
@@ -73,6 +74,8 @@ CHECK `chk_persons_kind_consistency`: garante exclusividade.
 | `monthly_recurring_revenue` | numeric(14,2) | nullable (Studio one-off) |
 | `recurrence` | enum `recurrence` | mensal / trimestral / anual / unica; nullable |
 | `start_date`, `end_date` | date | nullable; Tipo C/E não tem fim (validado via Frente) |
+| `response_hours` | int | SLA prometido pra primeira resposta. CHECK 0-720. Null = sem SLA |
+| `resolution_hours` | int | SLA prometido pra resolução total. CHECK 0-720. Null = sem SLA |
 | `created_at`, `updated_at`, `archived_at` | timestamptz | |
 
 ---
@@ -245,6 +248,34 @@ Rota pública: `/public/[token]` (fora do `(app)`, sem auth). Download de anexo 
 
 ---
 
+### `sla_incidents` — incidente operacional com timestamps
+
+SLA prometido vive em `operations.response_hours/resolution_hours`. Breach calculado em runtime via helper `utils/sla.ts`.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `operation_id` | uuid NOT NULL → operations (CASCADE) | |
+| `title` | text NOT NULL | min 3 max 200 (Zod) |
+| `description` | text | max 5000 (Zod) |
+| `severity` | enum `sla_severity` default `medium` | low / medium / high |
+| `status` | enum `sla_incident_status` default `open` | open / responded / resolved / cancelled |
+| `opened_at` | timestamptz NOT NULL default now | |
+| `responded_at` | timestamptz | exigido se status >= responded |
+| `resolved_at` | timestamptz | exigido se status = resolved |
+| `opened_by` | uuid → auth.users (SET NULL) | |
+| `created_at`, `updated_at` | timestamptz | |
+
+CHECKs:
+- `responded_at >= opened_at`
+- `resolved_at >= responded_at` (se ambos NOT NULL)
+- status `responded`/`resolved` requer `responded_at`
+- status `resolved` requer `resolved_at`
+
+Trigger `set_sla_incidents_updated_at` + index `idx_sla_incidents_operation_opened` (operation_id, opened_at DESC).
+
+---
+
 ## Enums
 
 | Enum | Valores |
@@ -259,13 +290,14 @@ Rota pública: `/public/[token]` (fora do `(app)`, sem auth). Download de anexo 
 | `recurrence` | mensal, trimestral, anual, unica |
 | `meeting_visibility` | interno, cliente |
 | `decision_visibility` | interno, cliente |
+| `sla_severity` | low, medium, high |
+| `sla_incident_status` | open, responded, resolved, cancelled |
 
 ---
 
 ## Próximas tabelas planejadas (roadmap)
 
 - `profiles` — perfis dos usuários (papel Admin/Membro/Visualizador); sem 02
-- `sla` — campos estruturados; sem 03 (pode ser inlined em operations dependendo do modelo)
 - `villains` — catálogo de marca (seed 7 records); sem 04
 - `operation_villains` — M:N com severidade inicial + progresso; sem 04
 - `quick_wins` + `quick_win_catalog` — impactos capped por vilão; sem 04
@@ -286,6 +318,7 @@ Rota pública: `/public/[token]` (fora do `(app)`, sem auth). Download de anexo 
 | 20260517174018 | attachments | 2026-05-17 (via MCP) |
 | 20260517182352 | public_links | 2026-05-17 (via MCP) |
 | 20260517184006 | idx_frentes_actionable_status_since | 2026-05-17 (via MCP) |
+| 20260517194119 | sla | 2026-05-17 (via MCP) |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações
