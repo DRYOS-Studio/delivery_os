@@ -239,6 +239,7 @@ export type FrenteListItem = {
   actionableStatusSince: string;
   responsiblePersonId: string | null;
   responsibleName: string | null;
+  openTasksCount: number;
 };
 
 export type OperationDetail = {
@@ -272,7 +273,8 @@ export async function getOperation(id: string): Promise<OperationDetail | null> 
         id, name, cycle_type, domain, phase,
         actionable_status, actionable_status_since,
         responsible_person_id, archived_at, created_at,
-        responsible:persons!fk_frentes_responsible_person_id(name)
+        responsible:persons!fk_frentes_responsible_person_id(name),
+        tasks(id, status)
       )
       `,
     )
@@ -285,17 +287,25 @@ export async function getOperation(id: string): Promise<OperationDetail | null> 
   const frentes: FrenteListItem[] = (data.frentes ?? [])
     .filter((f) => f.archived_at === null)
     .sort((a, b) => a.created_at.localeCompare(b.created_at))
-    .map((f) => ({
-      id: f.id,
-      name: f.name,
-      cycleType: f.cycle_type,
-      domain: f.domain,
-      phase: f.phase,
-      actionableStatus: f.actionable_status,
-      actionableStatusSince: f.actionable_status_since,
-      responsiblePersonId: f.responsible_person_id,
-      responsibleName: f.responsible?.name ?? null,
-    }));
+    .map((f) => {
+      const tasksList = (f as unknown as { tasks?: Array<{ status: string }> })
+        .tasks ?? [];
+      const openTasksCount = tasksList.filter(
+        (t) => t.status !== "done",
+      ).length;
+      return {
+        id: f.id,
+        name: f.name,
+        cycleType: f.cycle_type,
+        domain: f.domain,
+        phase: f.phase,
+        actionableStatus: f.actionable_status,
+        actionableStatusSince: f.actionable_status_since,
+        responsiblePersonId: f.responsible_person_id,
+        responsibleName: f.responsible?.name ?? null,
+        openTasksCount,
+      };
+    });
 
   return {
     id: data.id,
