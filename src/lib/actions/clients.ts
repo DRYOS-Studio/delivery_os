@@ -1,7 +1,11 @@
 "use server";
 
 import { type ActionResult, dbErr, err, ok } from "@/lib/actions/_types";
-import { requireAdminAction, requireUserAction } from "@/lib/auth/server";
+import {
+  getProfile,
+  requireAdminAction,
+  requireUserAction,
+} from "@/lib/auth/server";
 import { createServer } from "@/lib/db/client";
 import { clientHasActiveOperations, getClient } from "@/lib/db/queries/clients";
 import { clientSchema, type ClientOutput } from "@/lib/validators/client";
@@ -118,10 +122,13 @@ export async function updateClientAction(
   if (parsed.data.slug !== current.slug) {
     const hasOps = await clientHasActiveOperations(id);
     if (hasOps) {
-      return err(
-        "Cliente tem Operações ativas; slug não pode mudar.",
-        "slug_locked",
-      );
+      const profile = await getProfile();
+      if (profile?.role !== "admin") {
+        return err(
+          "Cliente tem Operações ativas; slug não pode mudar.",
+          "slug_locked",
+        );
+      }
     }
   }
 

@@ -30,7 +30,8 @@ export default async function Page({
       <ClientForm
         mode="edit"
         initialData={client}
-        canChangeSlug={!hasOps}
+        canChangeSlug={isAdmin || !hasOps}
+        hasActiveOperations={hasOps}
         canArchive={!hasOps}
         isAdmin={isAdmin}
       />
