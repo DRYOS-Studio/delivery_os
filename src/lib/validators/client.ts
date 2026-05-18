@@ -14,7 +14,10 @@ const optionalText = (max: number, msg?: string) =>
 
 const optionalDigits = (len: number, msg: string) =>
   z.preprocess(
-    emptyToUndefined,
+    (v) => {
+      if (v === "" || v === null || v === undefined) return undefined;
+      return String(v).replace(/\D/g, "");
+    },
     z
       .string()
       .regex(new RegExp(`^\\d{${len}}$`), msg)
