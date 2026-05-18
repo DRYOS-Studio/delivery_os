@@ -21,10 +21,12 @@ export type Database = {
           end_date: string | null
           frente_id: string
           id: string
+          monthly_cost: number | null
           person_id: string
           role: Database["public"]["Enums"]["allocation_role"]
           start_date: string
           updated_at: string
+          weekly_hours: number | null
         }
         Insert: {
           capacity_weekly_pct?: number
@@ -32,10 +34,12 @@ export type Database = {
           end_date?: string | null
           frente_id: string
           id?: string
+          monthly_cost?: number | null
           person_id: string
           role: Database["public"]["Enums"]["allocation_role"]
           start_date?: string
           updated_at?: string
+          weekly_hours?: number | null
         }
         Update: {
           capacity_weekly_pct?: number
@@ -43,10 +47,12 @@ export type Database = {
           end_date?: string | null
           frente_id?: string
           id?: string
+          monthly_cost?: number | null
           person_id?: string
           role?: Database["public"]["Enums"]["allocation_role"]
           start_date?: string
           updated_at?: string
+          weekly_hours?: number | null
         }
         Relationships: [
           {
@@ -692,12 +698,14 @@ export type Database = {
         Row: {
           archived_at: string | null
           client_id: string | null
+          contracted_weekly_hours: number | null
           created_at: string
           email: string | null
           external_role: string | null
           hourly_rate: number | null
           id: string
           kind: Database["public"]["Enums"]["person_kind"]
+          monthly_compensation: number | null
           name: string
           specialty: string | null
           updated_at: string
@@ -705,12 +713,14 @@ export type Database = {
         Insert: {
           archived_at?: string | null
           client_id?: string | null
+          contracted_weekly_hours?: number | null
           created_at?: string
           email?: string | null
           external_role?: string | null
           hourly_rate?: number | null
           id?: string
           kind: Database["public"]["Enums"]["person_kind"]
+          monthly_compensation?: number | null
           name: string
           specialty?: string | null
           updated_at?: string
@@ -718,12 +728,14 @@ export type Database = {
         Update: {
           archived_at?: string | null
           client_id?: string | null
+          contracted_weekly_hours?: number | null
           created_at?: string
           email?: string | null
           external_role?: string | null
           hourly_rate?: number | null
           id?: string
           kind?: Database["public"]["Enums"]["person_kind"]
+          monthly_compensation?: number | null
           name?: string
           specialty?: string | null
           updated_at?: string

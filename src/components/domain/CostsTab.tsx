@@ -181,17 +181,33 @@ export function CostsTab({ operationId, breakdown }: Props) {
                     </Link>
                   </div>
                   <div className="col-span-2 font-mono text-sm text-ink">
-                    {a.capacityPct}%
+                    {a.fixedMonthlyCost !== null ? (
+                      <span className="text-mute-soft">— valor fechado —</span>
+                    ) : (
+                      <>
+                        {a.effectiveWeeklyHours.toFixed(1)}h/sem
+                        {a.weeklyHours === null && (
+                          <span
+                            className="text-mute-soft ml-1"
+                            title={`Derivado de ${a.capacityPct}% × contratadas`}
+                          >
+                            ({a.capacityPct}%)
+                          </span>
+                        )}
+                      </>
+                    )}
                   </div>
                   <div className="col-span-3 font-mono text-sm text-ink">
-                    {a.hourlyRate !== null ? (
+                    {a.fixedMonthlyCost !== null ? (
+                      <span className="text-mute-soft">fechado</span>
+                    ) : a.hourlyRate !== null ? (
                       `${formatMoneyBR(a.hourlyRate)}/h`
                     ) : (
                       <span className="text-mute-soft">— sem taxa —</span>
                     )}
                   </div>
                   <div className="col-span-3 font-mono text-sm text-ink text-right">
-                    {a.hourlyRate !== null ? (
+                    {a.fixedMonthlyCost !== null || a.hourlyRate !== null ? (
                       formatMoneyBR(a.monthlyCost)
                     ) : (
                       <span className="text-mute-soft">—</span>

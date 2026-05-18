@@ -27,6 +27,32 @@ const capacityNumber = z.preprocess(
     .max(100, "Capacidade máxima 100%."),
 );
 
+const weeklyHoursInput = z.preprocess(
+  (v) => {
+    if (v === "" || v === null || v === undefined) return null;
+    if (typeof v === "number") return v;
+    if (typeof v === "string") {
+      const n = Number(v.replace(",", "."));
+      return Number.isFinite(n) ? n : v;
+    }
+    return v;
+  },
+  z.number().nonnegative("Horas não podem ser negativas.").nullable(),
+);
+
+const monthlyCostInput = z.preprocess(
+  (v) => {
+    if (v === "" || v === null || v === undefined) return null;
+    if (typeof v === "number") return v;
+    if (typeof v === "string") {
+      const n = Number(v.replace(",", "."));
+      return Number.isFinite(n) ? n : v;
+    }
+    return v;
+  },
+  z.number().nonnegative("Valor não pode ser negativo.").nullable(),
+);
+
 export const allocationSchema = z
   .object({
     person_id: z.string().uuid("Pessoa obrigatória."),
@@ -34,6 +60,8 @@ export const allocationSchema = z
       message: "Papel obrigatório.",
     }),
     capacity_weekly_pct: capacityNumber,
+    weekly_hours: weeklyHoursInput,
+    monthly_cost: monthlyCostInput,
     start_date: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/, "Data de início obrigatória."),

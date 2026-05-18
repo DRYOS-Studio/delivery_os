@@ -78,6 +78,16 @@ export function AllocationForm(props: Props): React.JSX.Element {
         person_id: props.initialData.person_id,
         role: props.initialData.role,
         capacity_weekly_pct: Number(props.initialData.capacity_weekly_pct),
+        weekly_hours:
+          props.initialData.weekly_hours !== null &&
+          props.initialData.weekly_hours !== undefined
+            ? Number(props.initialData.weekly_hours)
+            : null,
+        monthly_cost:
+          props.initialData.monthly_cost !== null &&
+          props.initialData.monthly_cost !== undefined
+            ? Number(props.initialData.monthly_cost)
+            : null,
         start_date: props.initialData.start_date,
         end_date: props.initialData.end_date ?? undefined,
       }
@@ -85,6 +95,8 @@ export function AllocationForm(props: Props): React.JSX.Element {
         person_id: "",
         role: "executor",
         capacity_weekly_pct: 0,
+        weekly_hours: null,
+        monthly_cost: null,
         start_date: todayBR(),
         end_date: undefined,
       };
@@ -107,6 +119,18 @@ export function AllocationForm(props: Props): React.JSX.Element {
     fd.set("person_id", data.person_id);
     fd.set("role", data.role);
     fd.set("capacity_weekly_pct", String(data.capacity_weekly_pct));
+    fd.set(
+      "weekly_hours",
+      data.weekly_hours !== null && data.weekly_hours !== undefined
+        ? String(data.weekly_hours)
+        : "",
+    );
+    fd.set(
+      "monthly_cost",
+      data.monthly_cost !== null && data.monthly_cost !== undefined
+        ? String(data.monthly_cost)
+        : "",
+    );
     fd.set("start_date", data.start_date);
     fd.set("end_date", data.end_date ?? "");
 
@@ -195,23 +219,59 @@ export function AllocationForm(props: Props): React.JSX.Element {
         </Field>
 
         <Field
-          label="Capacidade semanal (%)"
-          htmlFor="capacity_weekly_pct"
-          required
-          error={errors.capacity_weekly_pct?.message}
-          hint="0 a 100"
+          label="Horas/semana alocadas"
+          htmlFor="weekly_hours"
+          error={errors.weekly_hours?.message}
+          hint="Ex: 16h/sem. Usado se valor mensal fechado abaixo estiver vazio."
         >
           <input
-            id="capacity_weekly_pct"
-            type="text"
-            inputMode="decimal"
-            {...register("capacity_weekly_pct")}
+            id="weekly_hours"
+            type="number"
+            step="0.5"
+            min={0}
+            {...register("weekly_hours")}
             disabled={busy}
-            placeholder="40"
+            placeholder="16"
             className={inputCn}
           />
         </Field>
       </div>
+
+      <Field
+        label="Valor mensal fechado (R$)"
+        htmlFor="monthly_cost"
+        error={errors.monthly_cost?.message}
+        hint="Custo mensal fechado direto. Quando preenchido, ignora cálculo por horas. Útil pra freelancer/contrato fechado."
+      >
+        <input
+          id="monthly_cost"
+          type="number"
+          step="0.01"
+          min={0}
+          {...register("monthly_cost")}
+          disabled={busy}
+          placeholder="0.00"
+          className={inputCn}
+        />
+      </Field>
+
+      <Field
+        label="Capacidade semanal (%) — legacy"
+        htmlFor="capacity_weekly_pct"
+        required
+        error={errors.capacity_weekly_pct?.message}
+        hint="0 a 100. Usado se horas/semana acima estiverem em branco."
+      >
+        <input
+          id="capacity_weekly_pct"
+          type="text"
+          inputMode="decimal"
+          {...register("capacity_weekly_pct")}
+          disabled={busy}
+          placeholder="40"
+          className={inputCn}
+        />
+      </Field>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Field

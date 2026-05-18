@@ -23,6 +23,12 @@ function parseFormData(formData: FormData) {
     external_role: ((formData.get("external_role") as string | null) ?? "").trim(),
     client_id: ((formData.get("client_id") as string | null) ?? "").trim(),
     hourly_rate: ((formData.get("hourly_rate") as string | null) ?? "").trim(),
+    monthly_compensation: (
+      (formData.get("monthly_compensation") as string | null) ?? ""
+    ).trim(),
+    contracted_weekly_hours: (
+      (formData.get("contracted_weekly_hours") as string | null) ?? ""
+    ).trim(),
   };
 }
 
@@ -66,6 +72,8 @@ export async function createPersonAction(
           external_role: null,
           client_id: null,
           hourly_rate: data.hourly_rate ?? null,
+          monthly_compensation: data.monthly_compensation ?? null,
+          contracted_weekly_hours: data.contracted_weekly_hours ?? null,
         }
       : {
           kind: "external",
@@ -75,6 +83,8 @@ export async function createPersonAction(
           external_role: data.external_role,
           client_id: data.client_id,
           hourly_rate: data.hourly_rate ?? null,
+          monthly_compensation: data.monthly_compensation ?? null,
+          contracted_weekly_hours: data.contracted_weekly_hours ?? null,
         };
 
   const { data: row, error: dbError } = await supabase
@@ -120,6 +130,8 @@ export async function updatePersonAction(
           email: data.email ?? null,
           specialty: data.specialty,
           hourly_rate: data.hourly_rate ?? null,
+          monthly_compensation: data.monthly_compensation ?? null,
+          contracted_weekly_hours: data.contracted_weekly_hours ?? null,
         }
       : {
           name: data.name,
@@ -127,6 +139,8 @@ export async function updatePersonAction(
           external_role: data.external_role,
           client_id: data.client_id,
           hourly_rate: data.hourly_rate ?? null,
+          monthly_compensation: data.monthly_compensation ?? null,
+          contracted_weekly_hours: data.contracted_weekly_hours ?? null,
         };
 
   const supabase = await createServer();
