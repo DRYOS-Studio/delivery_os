@@ -21,6 +21,8 @@ export type AllocationCost = {
   personId: string;
   personName: string;
   capacityPct: number;
+  weeklyHours: number | null;
+  effectiveWeeklyHours: number;
   hourlyRate: number | null;
   monthlyCost: number;
 };
@@ -94,24 +96,21 @@ export async function getOperationCost(
   return mapCost(data as RawCostRow);
 }
 
+type PersonInJoin = {
+  id: string;
+  name: string;
+  hourly_rate: number | string | null;
+  monthly_compensation: number | string | null;
+  contracted_weekly_hours: number | string | null;
+  archived_at: string | null;
+};
+
 type AllocJoin = {
   id: string;
   capacity_weekly_pct: number | string;
+  weekly_hours: number | string | null;
   end_date: string | null;
-  person:
-    | {
-        id: string;
-        name: string;
-        hourly_rate: number | string | null;
-        archived_at: string | null;
-      }
-    | Array<{
-        id: string;
-        name: string;
-        hourly_rate: number | string | null;
-        archived_at: string | null;
-      }>
-    | null;
+  person: PersonInJoin | PersonInJoin[] | null;
   frente:
     | { id: string; operation_id: string; archived_at: string | null }
     | Array<{ id: string; operation_id: string; archived_at: string | null }>
@@ -165,8 +164,10 @@ export async function getOperationMonthlyCosts(
     .from("allocations")
     .select(
       `
-      id, capacity_weekly_pct, end_date,
-      person:persons!fk_allocations_person_id(id, name, hourly_rate, archived_at),
+      id, capacity_weekly_pct, weekly_hours, end_date,
+      person:persons!fk_allocations_person_id(
+        id, name, hourly_rate, monthly_compensation, contracted_weekly_hours, archived_at
+      ),
       frente:frentes!fk_allocations_frente_id(id, operation_id, archived_at)
       `,
     )
@@ -184,17 +185,53 @@ export async function getOperationMonthlyCosts(
     if (!frente || frente.operation_id !== operationId) continue;
     if (frente.archived_at !== null) continue;
     if (!person || person.archived_at !== null) continue;
-    const rate =
+
+    const compensation =
+      person.monthly_compensation === null ||
+      person.monthly_compensation === undefined
+        ? null
+        : Number(person.monthly_compensation);
+    const contracted =
+      person.contracted_weekly_hours === null ||
+      person.contracted_weekly_hours === undefined
+        ? null
+        : Number(person.contracted_weekly_hours);
+    const hourlyRateRaw =
       person.hourly_rate === null || person.hourly_rate === undefined
         ? null
         : Number(person.hourly_rate);
+
+    const allocWeekly =
+      a.weekly_hours === null || a.weekly_hours === undefined
+        ? null
+        : Number(a.weekly_hours);
     const capPct = Number(a.capacity_weekly_pct);
-    const monthly = rate !== null ? (capPct / 100) * rate * 160 : 0;
+
+    let rate: number | null = null;
+    if (compensation !== null && contracted !== null && contracted > 0) {
+      rate = compensation / (contracted * 4);
+    } else if (hourlyRateRaw !== null) {
+      rate = hourlyRateRaw;
+    }
+
+    let effectiveWeekly: number;
+    if (allocWeekly !== null) {
+      effectiveWeekly = allocWeekly;
+    } else if (contracted !== null && contracted > 0) {
+      effectiveWeekly = (capPct / 100) * contracted;
+    } else {
+      effectiveWeekly = (capPct / 100) * 40;
+    }
+
+    const monthly = rate !== null ? rate * effectiveWeekly * 4 : 0;
+
     allocations.push({
       allocationId: a.id,
       personId: person.id,
       personName: person.name,
       capacityPct: capPct,
+      weeklyHours: allocWeekly,
+      effectiveWeeklyHours: effectiveWeekly,
       hourlyRate: rate,
       monthlyCost: monthly,
     });

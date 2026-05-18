@@ -181,7 +181,15 @@ export function CostsTab({ operationId, breakdown }: Props) {
                     </Link>
                   </div>
                   <div className="col-span-2 font-mono text-sm text-ink">
-                    {a.capacityPct}%
+                    {a.effectiveWeeklyHours.toFixed(1)}h/sem
+                    {a.weeklyHours === null && (
+                      <span
+                        className="text-mute-soft ml-1"
+                        title={`Derivado de ${a.capacityPct}% × contratadas`}
+                      >
+                        ({a.capacityPct}%)
+                      </span>
+                    )}
                   </div>
                   <div className="col-span-3 font-mono text-sm text-ink">
                     {a.hourlyRate !== null ? (

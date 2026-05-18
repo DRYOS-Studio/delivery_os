@@ -1,6 +1,6 @@
 # Database Schema
 
-**Última análise**: 2026-05-18 (operation-costs)
+**Última análise**: 2026-05-18 (salary-based-costs)
 **Projeto Supabase**: `Delivery OS` (`tmsaucxoeqpfluzwrwkc`)
 **Schema**: `public`
 
@@ -72,7 +72,9 @@ Discriminada por `kind`; campos mutuamente exclusivos via CHECK constraint.
 | `specialty` | text | NOT NULL se `internal`, NULL se `external` |
 | `external_role` | text | NOT NULL se `external`, NULL se `internal` |
 | `client_id` | uuid → clients (RESTRICT) | NOT NULL se `external`, NULL se `internal` |
-| `hourly_rate` | numeric(10,2) | nullable; taxa horária BRL/h. Usada no cálculo de custo derivado de alocação. Admin-only via UI |
+| `hourly_rate` | numeric(10,2) | nullable; taxa horária BRL/h (legacy). Usada se salário/horas não preenchidos |
+| `monthly_compensation` | numeric(12,2) | nullable; salário/compensação mensal bruto (BRL/mês). Junto com contracted_weekly_hours, deriva taxa horária |
+| `contracted_weekly_hours` | numeric(5,2) | nullable; horas contratadas/semana (ex: 40 CLT). Junto com salário, deriva taxa |
 | `created_at`, `updated_at`, `archived_at` | timestamptz | |
 
 CHECK `chk_persons_kind_consistency`: garante exclusividade.
@@ -130,7 +132,8 @@ Index parcial `idx_frentes_actionable_status_since_active` em `(actionable_statu
 | `person_id` | uuid NOT NULL → persons (CASCADE) | |
 | `frente_id` | uuid NOT NULL → frentes (CASCADE) | |
 | `role` | enum `allocation_role` | responsavel / executor / aprovador / plantao |
-| `capacity_weekly_pct` | numeric(5,2) NOT NULL default 0 | CHECK 0..100 |
+| `capacity_weekly_pct` | numeric(5,2) NOT NULL default 0 | CHECK 0..100 (legacy; usado se weekly_hours null) |
+| `weekly_hours` | numeric(5,2) | nullable; horas/semana alocadas (preferido). Custo mensal: rate × weekly_hours × 4 |
 | `start_date` | date NOT NULL default current_date | |
 | `end_date` | date | nullable |
 | `created_at`, `updated_at` | timestamptz | sem `archived_at` — é puro relacionamento |
@@ -519,6 +522,7 @@ RLS:
 | 20260518000001 | tasks | 2026-05-18 (via MCP) |
 | 20260518010001 | clients_enrich | 2026-05-18 (via MCP) |
 | 20260518020001 | operation_costs | 2026-05-18 (via MCP) |
+| 20260518030001 | salary_based_costs | 2026-05-18 (via MCP) |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações

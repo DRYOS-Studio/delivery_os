@@ -67,6 +67,10 @@ export function PersonForm(props: Props): React.JSX.Element {
           email: props.initialData.email ?? undefined,
           specialty: props.initialData.specialty ?? "",
           hourly_rate: props.initialData.hourly_rate ?? null,
+          monthly_compensation:
+            props.initialData.monthly_compensation ?? null,
+          contracted_weekly_hours:
+            props.initialData.contracted_weekly_hours ?? null,
         }
       : {
           kind: "external",
@@ -75,6 +79,10 @@ export function PersonForm(props: Props): React.JSX.Element {
           external_role: props.initialData.external_role ?? "",
           client_id: props.initialData.client_id ?? "",
           hourly_rate: props.initialData.hourly_rate ?? null,
+          monthly_compensation:
+            props.initialData.monthly_compensation ?? null,
+          contracted_weekly_hours:
+            props.initialData.contracted_weekly_hours ?? null,
         }
     : {
         kind: "internal",
@@ -82,6 +90,8 @@ export function PersonForm(props: Props): React.JSX.Element {
         email: undefined,
         specialty: "",
         hourly_rate: null,
+        monthly_compensation: null,
+        contracted_weekly_hours: null,
       };
 
   const {
@@ -126,6 +136,20 @@ export function PersonForm(props: Props): React.JSX.Element {
       "hourly_rate",
       data.hourly_rate !== null && data.hourly_rate !== undefined
         ? String(data.hourly_rate)
+        : "",
+    );
+    fd.set(
+      "monthly_compensation",
+      data.monthly_compensation !== null &&
+        data.monthly_compensation !== undefined
+        ? String(data.monthly_compensation)
+        : "",
+    );
+    fd.set(
+      "contracted_weekly_hours",
+      data.contracted_weekly_hours !== null &&
+        data.contracted_weekly_hours !== undefined
+        ? String(data.contracted_weekly_hours)
         : "",
     );
 
@@ -279,25 +303,74 @@ export function PersonForm(props: Props): React.JSX.Element {
       )}
 
       {isAdmin ? (
-        <Field
-          label="Taxa horária (R$/h)"
-          htmlFor="hourly_rate"
-          error={errors.hourly_rate?.message}
-          hint="Usada no cálculo de custo de alocações. Em branco = sem custo derivado."
-        >
-          <input
-            id="hourly_rate"
-            type="number"
-            step="0.01"
-            min={0}
-            {...register("hourly_rate")}
-            placeholder="0.00"
-            disabled={busy}
-            className={inputCn}
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field
+              label="Salário mensal (R$)"
+              htmlFor="monthly_compensation"
+              error={errors.monthly_compensation?.message}
+              hint="Compensação bruta mensal. Junto com horas contratadas, deriva taxa horária."
+            >
+              <input
+                id="monthly_compensation"
+                type="number"
+                step="0.01"
+                min={0}
+                {...register("monthly_compensation")}
+                placeholder="0.00"
+                disabled={busy}
+                className={inputCn}
+              />
+            </Field>
+
+            <Field
+              label="Horas contratadas/semana"
+              htmlFor="contracted_weekly_hours"
+              error={errors.contracted_weekly_hours?.message}
+              hint="Ex: 40 (CLT padrão). Usada com salário pra derivar rate."
+            >
+              <input
+                id="contracted_weekly_hours"
+                type="number"
+                step="0.5"
+                min={0}
+                {...register("contracted_weekly_hours")}
+                placeholder="40"
+                disabled={busy}
+                className={inputCn}
+              />
+            </Field>
+          </div>
+
+          <DerivedRateHint
+            compensation={watch("monthly_compensation")}
+            contracted={watch("contracted_weekly_hours")}
           />
-        </Field>
+
+          <Field
+            label="Taxa horária (R$/h) — legacy"
+            htmlFor="hourly_rate"
+            error={errors.hourly_rate?.message}
+            hint="Fallback usado se salário + horas estiverem em branco. Prefira preencher salário."
+          >
+            <input
+              id="hourly_rate"
+              type="number"
+              step="0.01"
+              min={0}
+              {...register("hourly_rate")}
+              placeholder="0.00"
+              disabled={busy}
+              className={inputCn}
+            />
+          </Field>
+        </>
       ) : (
-        <input type="hidden" {...register("hourly_rate")} />
+        <>
+          <input type="hidden" {...register("hourly_rate")} />
+          <input type="hidden" {...register("monthly_compensation")} />
+          <input type="hidden" {...register("contracted_weekly_hours")} />
+        </>
       )}
 
       <div className="flex items-center justify-between pt-2">
@@ -324,6 +397,37 @@ export function PersonForm(props: Props): React.JSX.Element {
         )}
       </div>
     </form>
+  );
+}
+
+function DerivedRateHint({
+  compensation,
+  contracted,
+}: {
+  compensation: unknown;
+  contracted: unknown;
+}) {
+  const c =
+    compensation === null || compensation === undefined || compensation === ""
+      ? null
+      : typeof compensation === "number"
+        ? compensation
+        : Number(String(compensation).replace(",", "."));
+  const h =
+    contracted === null || contracted === undefined || contracted === ""
+      ? null
+      : typeof contracted === "number"
+        ? contracted
+        : Number(String(contracted).replace(",", "."));
+  if (c === null || h === null || !Number.isFinite(c) || !Number.isFinite(h))
+    return null;
+  if (c <= 0 || h <= 0) return null;
+  const rate = c / (h * 4);
+  return (
+    <p className="font-mono text-[10px] text-mute -mt-2">
+      Taxa derivada: R$ {rate.toFixed(2)}/h ({h}h/sem × 4 sem ={" "}
+      {(h * 4).toFixed(1)}h/mês)
+    </p>
   );
 }
 

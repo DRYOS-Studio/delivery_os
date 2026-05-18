@@ -14,6 +14,7 @@ function parseFormData(formData: FormData) {
     person_id: ((formData.get("person_id") as string | null) ?? "").trim(),
     role: ((formData.get("role") as string | null) ?? "").trim(),
     capacity_weekly_pct: (formData.get("capacity_weekly_pct") as string | null) ?? "",
+    weekly_hours: (formData.get("weekly_hours") as string | null) ?? "",
     start_date: ((formData.get("start_date") as string | null) ?? "").trim(),
     end_date: ((formData.get("end_date") as string | null) ?? "").trim(),
   };
@@ -56,6 +57,7 @@ export async function createAllocationAction(
       person_id: data.person_id,
       role: data.role,
       capacity_weekly_pct: data.capacity_weekly_pct,
+      weekly_hours: data.weekly_hours ?? null,
       start_date: data.start_date,
       end_date: data.end_date ?? null,
     })
@@ -92,6 +94,7 @@ export async function updateAllocationAction(
     .update({
       role: data.role,
       capacity_weekly_pct: data.capacity_weekly_pct,
+      weekly_hours: data.weekly_hours ?? null,
       start_date: data.start_date,
       end_date: data.end_date ?? null,
     })
