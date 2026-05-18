@@ -73,7 +73,14 @@ export function FrentesListSection({
                 key={f.id}
                 className={`grid grid-cols-12 gap-3 items-center px-4 py-3 ${idx !== frentes.length - 1 ? "border-b border-line" : ""}`}
               >
-                <div className="col-span-3 font-medium text-ink">{f.name}</div>
+                <div className="col-span-3 font-medium text-ink">
+                  <Link
+                    href={`/operations/${operationId}/frentes/${f.id}`}
+                    className="hover:underline"
+                  >
+                    {f.name}
+                  </Link>
+                </div>
                 <div className="col-span-1">
                   <Pill variant="oak">Tipo {f.cycleType.toUpperCase()}</Pill>
                 </div>

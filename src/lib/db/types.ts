@@ -857,6 +857,83 @@ export type Database = {
           },
         ]
       }
+      tasks: {
+        Row: {
+          assignee_person_id: string | null
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          frente_id: string
+          id: string
+          quick_win_id: string | null
+          sla_incident_id: string | null
+          status: Database["public"]["Enums"]["task_status"]
+          tags: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assignee_person_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          frente_id: string
+          id?: string
+          quick_win_id?: string | null
+          sla_incident_id?: string | null
+          status?: Database["public"]["Enums"]["task_status"]
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assignee_person_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          frente_id?: string
+          id?: string
+          quick_win_id?: string | null
+          sla_incident_id?: string | null
+          status?: Database["public"]["Enums"]["task_status"]
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_tasks_assignee_person_id"
+            columns: ["assignee_person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_tasks_frente_id"
+            columns: ["frente_id"]
+            isOneToOne: false
+            referencedRelation: "frentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_tasks_quick_win_id"
+            columns: ["quick_win_id"]
+            isOneToOne: false
+            referencedRelation: "quick_wins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_tasks_sla_incident_id"
+            columns: ["sla_incident_id"]
+            isOneToOne: false
+            referencedRelation: "sla_incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       villains: {
         Row: {
           archived_at: string | null
@@ -925,6 +1002,7 @@ export type Database = {
       severity_level: "low" | "medium" | "high" | "critical"
       sla_incident_status: "open" | "responded" | "resolved" | "cancelled"
       sla_severity: "low" | "medium" | "high"
+      task_status: "todo" | "doing" | "blocked" | "done"
       user_role: "admin" | "member"
     }
     CompositeTypes: {
@@ -1072,6 +1150,7 @@ export const Constants = {
       severity_level: ["low", "medium", "high", "critical"],
       sla_incident_status: ["open", "responded", "resolved", "cancelled"],
       sla_severity: ["low", "medium", "high"],
+      task_status: ["todo", "doing", "blocked", "done"],
       user_role: ["admin", "member"],
     },
   },

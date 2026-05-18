@@ -11,6 +11,7 @@ export type DashboardSummary = {
   internalPersons: number;
   externalPersons: number;
   openAllocations: number;
+  openTasks: number;
 };
 
 export type ClientMRR = {
@@ -40,6 +41,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     internalCountRes,
     externalCountRes,
     openAllocsRes,
+    openTasksRes,
   ] = await Promise.all([
     supabase
       .from("operations")
@@ -66,6 +68,10 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
       .from("allocations")
       .select("id", { count: "exact", head: true })
       .is("end_date", null),
+    supabase
+      .from("tasks")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["todo", "doing", "blocked"]),
   ]);
 
   if (opsRes.error)
@@ -89,6 +95,10 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
   if (openAllocsRes.error)
     throw new Error(
       `dashboard.getDashboardSummary.allocs: ${openAllocsRes.error.message}`,
+    );
+  if (openTasksRes.error)
+    throw new Error(
+      `dashboard.getDashboardSummary.tasks: ${openTasksRes.error.message}`,
     );
 
   const ops = opsRes.data ?? [];
@@ -119,6 +129,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     internalPersons: internalCountRes.count ?? 0,
     externalPersons: externalCountRes.count ?? 0,
     openAllocations: openAllocsRes.count ?? 0,
+    openTasks: openTasksRes.count ?? 0,
   };
 }
 

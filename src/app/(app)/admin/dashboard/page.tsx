@@ -36,6 +36,7 @@ export default async function Page() {
           archivedOperations={summary.archivedOperations}
           frentesHealthy={summary.frentesHealthy}
           frentesStale={summary.frentesStale}
+          openTasks={summary.openTasks}
         />
         <DashboardVillainsSection
           topVillains={topVillains}
