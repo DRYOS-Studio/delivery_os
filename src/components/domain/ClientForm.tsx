@@ -34,6 +34,7 @@ type Props = (
       initialData: ClientDetail;
       canChangeSlug: boolean;
       canArchive: boolean;
+      hasActiveOperations?: boolean;
     }
 ) & { isAdmin?: boolean };
 
@@ -140,6 +141,19 @@ export function ClientForm(props: Props): React.JSX.Element {
 
   async function onSubmit(data: ClientOutput) {
     setGeneralError(null);
+
+    if (
+      isEdit &&
+      props.mode === "edit" &&
+      props.hasActiveOperations &&
+      data.slug !== props.initialData.slug
+    ) {
+      const confirmed = window.confirm(
+        "Mudar slug pode quebrar referências externas. Continuar?",
+      );
+      if (!confirmed) return;
+    }
+
     const fd = new FormData();
     fd.set("name", data.name);
     fd.set("slug", data.slug);
@@ -220,7 +234,11 @@ export function ClientForm(props: Props): React.JSX.Element {
           hint={
             slugDisabled
               ? "Slug não pode mudar enquanto houver Operações ativas."
-              : "minúsculas, números e hífens"
+              : isEdit &&
+                  props.mode === "edit" &&
+                  props.hasActiveOperations
+                ? "Mudar slug com Operações ativas pode quebrar referências externas."
+                : "minúsculas, números e hífens"
           }
         >
           <input
