@@ -1,6 +1,6 @@
 # Database Schema
 
-**Última análise**: 2026-05-17
+**Última análise**: 2026-05-18
 **Projeto Supabase**: `Delivery OS` (`tmsaucxoeqpfluzwrwkc`)
 **Schema**: `public`
 
@@ -14,7 +14,7 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 |---|---|---|
 | **Cliente** | `clients` | 1 |
 | **Operação** | `operations` | 1 |
-| **Entrega** | `frentes`, `allocations` | 2 |
+| **Entrega** | `frentes`, `allocations`, `tasks` | 3 |
 | **Pessoas** | `persons` | 1 |
 | **Briefing** | `briefings`, `briefing_versions` | 2 |
 | **Reuniões / Decisões** | `meetings`, `meeting_attendees`, `decisions` | 3 |
@@ -26,7 +26,7 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 | **Diagnóstico** | `diagnostics` | 1 |
 | **Quick Wins** | `quick_wins`, `quick_win_impacts` | 2 |
 | **Profiles** | `profiles` | 1 |
-| **Total atual** | | **19** |
+| **Total atual** | | **20** |
 
 ---
 
@@ -121,6 +121,30 @@ Index parcial `idx_frentes_actionable_status_since_active` em `(actionable_statu
 | `start_date` | date NOT NULL default current_date | |
 | `end_date` | date | nullable |
 | `created_at`, `updated_at` | timestamptz | sem `archived_at` — é puro relacionamento |
+
+---
+
+### `tasks` — tarefa planejada por Frente
+
+Cobre o gap entre Decisão (perpétuo), Reunião (touchpoint), SLA Incident (não-planejado) e Quick Win (vinculado a vilão). Interna — sem visibility, não aparece em `/public/[token]`.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | gen_random_uuid() |
+| `frente_id` | uuid NOT NULL → frentes (CASCADE) | Inv. de família |
+| `title` | text NOT NULL | CHECK length ≥ 3 |
+| `description` | text | markdown livre, nullable |
+| `status` | enum `task_status` | `todo` / `doing` / `blocked` / `done`, default `todo` |
+| `assignee_person_id` | uuid → persons (SET NULL) | nullable; person arquivada não derruba task |
+| `due_date` | date | granularidade dia |
+| `tags` | text[] | livre; dedup no front |
+| `quick_win_id` | uuid → quick_wins (SET NULL) | vínculo opcional |
+| `sla_incident_id` | uuid → sla_incidents (SET NULL) | vínculo opcional |
+| `created_at`, `updated_at`, `completed_at` | timestamptz | `completed_at` auto-managed por trigger |
+
+Trigger `manage_task_completed_at` (BEFORE INSERT OR UPDATE): set quando status → `done`, clear quando sai de `done`.
+Indexes: `(frente_id, status)` + `assignee_person_id` (partial WHERE NOT NULL).
+RLS: `tasks_authenticated_full` (delete bloqueado pra member via `requireAdminAction` na action — Inv. 14).
 
 ---
 
@@ -428,6 +452,7 @@ RLS:
 | `severity_level` | low, medium, high, critical |
 | `product_recommendation` | core, spark, studio |
 | `user_role` | admin, member |
+| `task_status` | todo, doing, blocked, done |
 
 ---
 
@@ -456,6 +481,7 @@ RLS:
 | 20260517203345 | operation_villains | 2026-05-17 (via MCP) |
 | 20260517205902 | diagnostico_quickwins | 2026-05-17 (via MCP) |
 | 20260517225505 | profiles | 2026-05-17 (via MCP) |
+| 20260518000001 | tasks | 2026-05-18 (via MCP) |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações

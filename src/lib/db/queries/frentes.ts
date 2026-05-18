@@ -81,6 +81,59 @@ export async function listFrentesNeedingAttention(
   }));
 }
 
+export type FrenteDetail = {
+  id: string;
+  operationId: string;
+  name: string;
+  cycleType: Database["public"]["Enums"]["frente_cycle_type"];
+  domain: Database["public"]["Enums"]["frente_domain"];
+  phase: Database["public"]["Enums"]["frente_phase"];
+  actionableStatus: string;
+  actionableStatusSince: string;
+  startDate: string | null;
+  endDate: string | null;
+  responsiblePersonId: string | null;
+  responsibleName: string | null;
+};
+
+export async function getFrenteDetail(
+  id: string,
+): Promise<FrenteDetail | null> {
+  const supabase = await createServer();
+  const { data, error } = await supabase
+    .from("frentes")
+    .select(
+      `
+      id, operation_id, name, cycle_type, domain, phase,
+      actionable_status, actionable_status_since,
+      start_date, end_date, responsible_person_id,
+      responsible:persons!fk_frentes_responsible_person_id(name)
+      `,
+    )
+    .eq("id", id)
+    .is("archived_at", null)
+    .maybeSingle();
+  if (error) throw new Error(`getFrenteDetail: ${error.message}`);
+  if (!data) return null;
+  const resp = Array.isArray(data.responsible)
+    ? (data.responsible[0] ?? null)
+    : data.responsible;
+  return {
+    id: data.id,
+    operationId: data.operation_id,
+    name: data.name,
+    cycleType: data.cycle_type,
+    domain: data.domain,
+    phase: data.phase,
+    actionableStatus: data.actionable_status,
+    actionableStatusSince: data.actionable_status_since,
+    startDate: data.start_date,
+    endDate: data.end_date,
+    responsiblePersonId: data.responsible_person_id,
+    responsibleName: resp?.name ?? null,
+  };
+}
+
 export async function countHotCriticalFrentes(): Promise<number> {
   const supabase = await createServer();
   const fourteenDaysAgo = new Date(Date.now() - 14 * 86_400_000).toISOString();
