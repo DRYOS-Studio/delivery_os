@@ -6,6 +6,7 @@ import {
   Contact,
   Home,
   LayoutDashboard,
+  Settings,
   Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -19,6 +20,7 @@ type NavItem = {
   label: string;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
   count?: number | undefined;
+  exactMatch?: boolean;
 };
 
 type NavGroup = {
@@ -75,8 +77,9 @@ export function SidebarNav({
   const adminGroup: NavGroup = {
     label: "Admin",
     items: [
+      { href: "/admin/dashboard", label: "Painel", icon: LayoutDashboard },
       { href: "/catalog", label: "Catálogo", icon: BookOpen },
-      { href: "/admin", label: "Painel", icon: LayoutDashboard },
+      { href: "/admin", label: "Admin", icon: Settings, exactMatch: true },
     ],
   };
 
@@ -95,7 +98,10 @@ export function SidebarNav({
             const isActive =
               item.href === "/"
                 ? pathname === "/"
-                : pathname === item.href || pathname.startsWith(`${item.href}/`);
+                : item.exactMatch
+                  ? pathname === item.href
+                  : pathname === item.href ||
+                    pathname.startsWith(`${item.href}/`);
             const Icon = item.icon;
             return (
               <Link
