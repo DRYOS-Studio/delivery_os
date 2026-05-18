@@ -83,6 +83,11 @@ export function AllocationForm(props: Props): React.JSX.Element {
           props.initialData.weekly_hours !== undefined
             ? Number(props.initialData.weekly_hours)
             : null,
+        monthly_cost:
+          props.initialData.monthly_cost !== null &&
+          props.initialData.monthly_cost !== undefined
+            ? Number(props.initialData.monthly_cost)
+            : null,
         start_date: props.initialData.start_date,
         end_date: props.initialData.end_date ?? undefined,
       }
@@ -91,6 +96,7 @@ export function AllocationForm(props: Props): React.JSX.Element {
         role: "executor",
         capacity_weekly_pct: 0,
         weekly_hours: null,
+        monthly_cost: null,
         start_date: todayBR(),
         end_date: undefined,
       };
@@ -117,6 +123,12 @@ export function AllocationForm(props: Props): React.JSX.Element {
       "weekly_hours",
       data.weekly_hours !== null && data.weekly_hours !== undefined
         ? String(data.weekly_hours)
+        : "",
+    );
+    fd.set(
+      "monthly_cost",
+      data.monthly_cost !== null && data.monthly_cost !== undefined
+        ? String(data.monthly_cost)
         : "",
     );
     fd.set("start_date", data.start_date);
@@ -210,7 +222,7 @@ export function AllocationForm(props: Props): React.JSX.Element {
           label="Horas/semana alocadas"
           htmlFor="weekly_hours"
           error={errors.weekly_hours?.message}
-          hint="Ex: 16h/sem. Preferido pra cálculo de custo."
+          hint="Ex: 16h/sem. Usado se valor mensal fechado abaixo estiver vazio."
         >
           <input
             id="weekly_hours"
@@ -224,6 +236,24 @@ export function AllocationForm(props: Props): React.JSX.Element {
           />
         </Field>
       </div>
+
+      <Field
+        label="Valor mensal fechado (R$)"
+        htmlFor="monthly_cost"
+        error={errors.monthly_cost?.message}
+        hint="Custo mensal fechado direto. Quando preenchido, ignora cálculo por horas. Útil pra freelancer/contrato fechado."
+      >
+        <input
+          id="monthly_cost"
+          type="number"
+          step="0.01"
+          min={0}
+          {...register("monthly_cost")}
+          disabled={busy}
+          placeholder="0.00"
+          className={inputCn}
+        />
+      </Field>
 
       <Field
         label="Capacidade semanal (%) — legacy"

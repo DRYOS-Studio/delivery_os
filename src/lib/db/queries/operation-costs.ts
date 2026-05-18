@@ -24,6 +24,7 @@ export type AllocationCost = {
   weeklyHours: number | null;
   effectiveWeeklyHours: number;
   hourlyRate: number | null;
+  fixedMonthlyCost: number | null;
   monthlyCost: number;
 };
 
@@ -109,6 +110,7 @@ type AllocJoin = {
   id: string;
   capacity_weekly_pct: number | string;
   weekly_hours: number | string | null;
+  monthly_cost: number | string | null;
   end_date: string | null;
   person: PersonInJoin | PersonInJoin[] | null;
   frente:
@@ -164,7 +166,7 @@ export async function getOperationMonthlyCosts(
     .from("allocations")
     .select(
       `
-      id, capacity_weekly_pct, weekly_hours, end_date,
+      id, capacity_weekly_pct, weekly_hours, monthly_cost, end_date,
       person:persons!fk_allocations_person_id(
         id, name, hourly_rate, monthly_compensation, contracted_weekly_hours, archived_at
       ),
@@ -205,6 +207,10 @@ export async function getOperationMonthlyCosts(
       a.weekly_hours === null || a.weekly_hours === undefined
         ? null
         : Number(a.weekly_hours);
+    const fixedMonthly =
+      a.monthly_cost === null || a.monthly_cost === undefined
+        ? null
+        : Number(a.monthly_cost);
     const capPct = Number(a.capacity_weekly_pct);
 
     let rate: number | null = null;
@@ -223,7 +229,12 @@ export async function getOperationMonthlyCosts(
       effectiveWeekly = (capPct / 100) * 40;
     }
 
-    const monthly = rate !== null ? rate * effectiveWeekly * 4 : 0;
+    const monthly =
+      fixedMonthly !== null
+        ? fixedMonthly
+        : rate !== null
+          ? rate * effectiveWeekly * 4
+          : 0;
 
     allocations.push({
       allocationId: a.id,
@@ -233,6 +244,7 @@ export async function getOperationMonthlyCosts(
       weeklyHours: allocWeekly,
       effectiveWeeklyHours: effectiveWeekly,
       hourlyRate: rate,
+      fixedMonthlyCost: fixedMonthly,
       monthlyCost: monthly,
     });
   }

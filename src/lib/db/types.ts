@@ -21,6 +21,7 @@ export type Database = {
           end_date: string | null
           frente_id: string
           id: string
+          monthly_cost: number | null
           person_id: string
           role: Database["public"]["Enums"]["allocation_role"]
           start_date: string
@@ -33,6 +34,7 @@ export type Database = {
           end_date?: string | null
           frente_id: string
           id?: string
+          monthly_cost?: number | null
           person_id: string
           role: Database["public"]["Enums"]["allocation_role"]
           start_date?: string
@@ -45,6 +47,7 @@ export type Database = {
           end_date?: string | null
           frente_id?: string
           id?: string
+          monthly_cost?: number | null
           person_id?: string
           role?: Database["public"]["Enums"]["allocation_role"]
           start_date?: string

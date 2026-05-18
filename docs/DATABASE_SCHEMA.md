@@ -133,7 +133,8 @@ Index parcial `idx_frentes_actionable_status_since_active` em `(actionable_statu
 | `frente_id` | uuid NOT NULL → frentes (CASCADE) | |
 | `role` | enum `allocation_role` | responsavel / executor / aprovador / plantao |
 | `capacity_weekly_pct` | numeric(5,2) NOT NULL default 0 | CHECK 0..100 (legacy; usado se weekly_hours null) |
-| `weekly_hours` | numeric(5,2) | nullable; horas/semana alocadas (preferido). Custo mensal: rate × weekly_hours × 4 |
+| `weekly_hours` | numeric(5,2) | nullable; horas/semana alocadas. Custo: rate × weekly_hours × 4 |
+| `monthly_cost` | numeric(12,2) | nullable; valor mensal fechado pra esta alocação. Quando preenchido, vira custo direto e ignora cálculo por horas |
 | `start_date` | date NOT NULL default current_date | |
 | `end_date` | date | nullable |
 | `created_at`, `updated_at` | timestamptz | sem `archived_at` — é puro relacionamento |
@@ -523,6 +524,7 @@ RLS:
 | 20260518010001 | clients_enrich | 2026-05-18 (via MCP) |
 | 20260518020001 | operation_costs | 2026-05-18 (via MCP) |
 | 20260518030001 | salary_based_costs | 2026-05-18 (via MCP) |
+| 20260518030002 | allocation_monthly_cost | 2026-05-18 (via MCP) |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações
