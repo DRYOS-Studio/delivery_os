@@ -1,6 +1,6 @@
 # Database Schema
 
-**Última análise**: 2026-05-18
+**Última análise**: 2026-05-18 (clients-enrich)
 **Projeto Supabase**: `Delivery OS` (`tmsaucxoeqpfluzwrwkc`)
 **Schema**: `public`
 
@@ -39,11 +39,21 @@ Origem de Operações, Pessoas externas, Credenciais (v2).
 | Coluna | Tipo | Notas |
 |---|---|---|
 | `id` | uuid PK | gen_random_uuid() |
-| `name` | text NOT NULL | razão social / nome de mercado |
+| `name` | text NOT NULL | nome fantasia / uso interno |
 | `slug` | text UNIQUE NOT NULL | URL-safe; pra futuro link público |
+| `legal_name` | text | razão social (PJ) |
+| `cnpj` | text | só dígitos (14); CHECK length=14; display formata |
+| `inscricao_estadual` | text | nullable |
+| `primary_contact_name` | text | contato principal, texto livre (não FK pra persons) |
+| `primary_contact_email` | text | CHECK shape `%_@_%.%` |
+| `primary_contact_phone` | text | sem máscara (BR/intl) |
+| `address_street`, `address_number`, `address_complement`, `address_district`, `address_city` | text | endereço plano nullable |
+| `address_state` | text | UF 2 chars maiúsculas; CHECK length=2 |
+| `address_zip` | text | só dígitos (8); CHECK length=8; display formata |
 | `notes` | text | livre, max 1000 chars (validado no app) |
 | `created_at`, `updated_at`, `archived_at` | timestamptz | soft-delete via `archived_at` |
 
+CHECKs: `cnpj`, `address_state`, `address_zip` (length), `primary_contact_email` (shape).
 RLS: `authenticated_full_access` (sem 1). Granularidade Admin/Membro entra com `profiles` (sem 2+).
 
 ---
@@ -482,6 +492,7 @@ RLS:
 | 20260517205902 | diagnostico_quickwins | 2026-05-17 (via MCP) |
 | 20260517225505 | profiles | 2026-05-17 (via MCP) |
 | 20260518000001 | tasks | 2026-05-18 (via MCP) |
+| 20260518010001 | clients_enrich | 2026-05-18 (via MCP) |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações

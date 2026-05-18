@@ -85,6 +85,57 @@ export async function countActiveClients(): Promise<number> {
   return count ?? 0;
 }
 
+export type ClientSummary = {
+  activeOperations: number;
+  archivedOperations: number;
+  activeFrentes: number;
+  mrrTotal: number;
+};
+
+export async function getClientSummary(
+  clientId: string,
+): Promise<ClientSummary> {
+  const supabase = await createServer();
+
+  const opsRes = await supabase
+    .from("operations")
+    .select("id, archived_at, monthly_recurring_revenue")
+    .eq("client_id", clientId);
+  if (opsRes.error)
+    throw new Error(`getClientSummary.ops: ${opsRes.error.message}`);
+
+  const ops = opsRes.data ?? [];
+  const active = ops.filter((o) => !o.archived_at);
+  const activeOperations = active.length;
+  const archivedOperations = ops.length - activeOperations;
+  const mrrTotal = active.reduce(
+    (sum, o) => sum + (o.monthly_recurring_revenue ?? 0),
+    0,
+  );
+
+  let activeFrentes = 0;
+  const activeOpIds = active.map((o) => o.id);
+  if (activeOpIds.length > 0) {
+    const frentesRes = await supabase
+      .from("frentes")
+      .select("id", { count: "exact", head: true })
+      .is("archived_at", null)
+      .in("operation_id", activeOpIds);
+    if (frentesRes.error)
+      throw new Error(
+        `getClientSummary.frentes: ${frentesRes.error.message}`,
+      );
+    activeFrentes = frentesRes.count ?? 0;
+  }
+
+  return {
+    activeOperations,
+    archivedOperations,
+    activeFrentes,
+    mrrTotal,
+  };
+}
+
 export async function clientHasActiveOperations(
   clientId: string,
 ): Promise<boolean> {

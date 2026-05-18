@@ -4,7 +4,7 @@ import { type ActionResult, dbErr, err, ok } from "@/lib/actions/_types";
 import { requireAdminAction, requireUserAction } from "@/lib/auth/server";
 import { createServer } from "@/lib/db/client";
 import { clientHasActiveOperations, getClient } from "@/lib/db/queries/clients";
-import { clientSchema } from "@/lib/validators/client";
+import { clientSchema, type ClientOutput } from "@/lib/validators/client";
 
 type PostgresError = { code?: string; message: string };
 
@@ -12,15 +12,56 @@ function isUniqueViolation(error: PostgresError): boolean {
   return error.code === "23505";
 }
 
-function formDataToClientInput(formData: FormData): {
-  name: string;
-  slug: string;
-  notes: string;
-} {
+function stripDigits(raw: string | null): string {
+  return (raw ?? "").replace(/\D/g, "");
+}
+
+function get(formData: FormData, key: string): string {
+  return (formData.get(key) as string | null) ?? "";
+}
+
+function formDataToClientInput(formData: FormData) {
+  const cnpjRaw = stripDigits(formData.get("cnpj") as string | null);
+  const zipRaw = stripDigits(formData.get("address_zip") as string | null);
+  const stateRaw = get(formData, "address_state").trim().toUpperCase();
   return {
-    name: (formData.get("name") as string | null) ?? "",
-    slug: (formData.get("slug") as string | null) ?? "",
-    notes: (formData.get("notes") as string | null) ?? "",
+    name: get(formData, "name"),
+    slug: get(formData, "slug"),
+    notes: get(formData, "notes"),
+    legal_name: get(formData, "legal_name"),
+    cnpj: cnpjRaw,
+    inscricao_estadual: get(formData, "inscricao_estadual"),
+    primary_contact_name: get(formData, "primary_contact_name"),
+    primary_contact_email: get(formData, "primary_contact_email"),
+    primary_contact_phone: get(formData, "primary_contact_phone"),
+    address_street: get(formData, "address_street"),
+    address_number: get(formData, "address_number"),
+    address_complement: get(formData, "address_complement"),
+    address_district: get(formData, "address_district"),
+    address_city: get(formData, "address_city"),
+    address_state: stateRaw,
+    address_zip: zipRaw,
+  };
+}
+
+function toDbPayload(data: ClientOutput) {
+  return {
+    name: data.name,
+    slug: data.slug,
+    notes: data.notes ?? null,
+    legal_name: data.legal_name ?? null,
+    cnpj: data.cnpj ?? null,
+    inscricao_estadual: data.inscricao_estadual ?? null,
+    primary_contact_name: data.primary_contact_name ?? null,
+    primary_contact_email: data.primary_contact_email ?? null,
+    primary_contact_phone: data.primary_contact_phone ?? null,
+    address_street: data.address_street ?? null,
+    address_number: data.address_number ?? null,
+    address_complement: data.address_complement ?? null,
+    address_district: data.address_district ?? null,
+    address_city: data.address_city ?? null,
+    address_state: data.address_state ?? null,
+    address_zip: data.address_zip ?? null,
   };
 }
 
@@ -41,11 +82,7 @@ export async function createClientAction(
   const supabase = await createServer();
   const { data, error: dbError } = await supabase
     .from("clients")
-    .insert({
-      name: parsed.data.name,
-      slug: parsed.data.slug,
-      notes: parsed.data.notes ?? null,
-    })
+    .insert(toDbPayload(parsed.data))
     .select("id, slug")
     .single();
 
@@ -91,11 +128,7 @@ export async function updateClientAction(
   const supabase = await createServer();
   const { error: dbError } = await supabase
     .from("clients")
-    .update({
-      name: parsed.data.name,
-      slug: parsed.data.slug,
-      notes: parsed.data.notes ?? null,
-    })
+    .update(toDbPayload(parsed.data))
     .eq("id", id);
 
   if (dbError) {
