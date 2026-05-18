@@ -521,6 +521,53 @@ export type Database = {
           },
         ]
       }
+      operation_costs: {
+        Row: {
+          amount: number
+          created_at: string
+          ended_at: string | null
+          id: string
+          label: string
+          notes: string | null
+          operation_id: string
+          recurrence: Database["public"]["Enums"]["cost_recurrence"]
+          started_at: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          label: string
+          notes?: string | null
+          operation_id: string
+          recurrence?: Database["public"]["Enums"]["cost_recurrence"]
+          started_at?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          label?: string
+          notes?: string | null
+          operation_id?: string
+          recurrence?: Database["public"]["Enums"]["cost_recurrence"]
+          started_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_operation_costs_operation_id"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "operations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       operation_villains: {
         Row: {
           created_at: string
@@ -577,6 +624,7 @@ export type Database = {
           diagnostic_id: string | null
           end_date: string | null
           id: string
+          monthly_fixed_cost: number | null
           monthly_recurring_revenue: number | null
           name: string
           product_line: Database["public"]["Enums"]["product_line"]
@@ -594,6 +642,7 @@ export type Database = {
           diagnostic_id?: string | null
           end_date?: string | null
           id?: string
+          monthly_fixed_cost?: number | null
           monthly_recurring_revenue?: number | null
           name: string
           product_line: Database["public"]["Enums"]["product_line"]
@@ -611,6 +660,7 @@ export type Database = {
           diagnostic_id?: string | null
           end_date?: string | null
           id?: string
+          monthly_fixed_cost?: number | null
           monthly_recurring_revenue?: number | null
           name?: string
           product_line?: Database["public"]["Enums"]["product_line"]
@@ -645,6 +695,7 @@ export type Database = {
           created_at: string
           email: string | null
           external_role: string | null
+          hourly_rate: number | null
           id: string
           kind: Database["public"]["Enums"]["person_kind"]
           name: string
@@ -657,6 +708,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           external_role?: string | null
+          hourly_rate?: number | null
           id?: string
           kind: Database["public"]["Enums"]["person_kind"]
           name: string
@@ -669,6 +721,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           external_role?: string | null
+          hourly_rate?: number | null
           id?: string
           kind?: Database["public"]["Enums"]["person_kind"]
           name?: string
@@ -1024,6 +1077,7 @@ export type Database = {
     }
     Enums: {
       allocation_role: "responsavel" | "executor" | "aprovador" | "plantao"
+      cost_recurrence: "mensal" | "unica"
       decision_visibility: "interno" | "cliente"
       frente_cycle_type: "a" | "b" | "c" | "d" | "e"
       frente_domain: "infra" | "dados_analiticos" | "dados_tecnicos"
@@ -1171,6 +1225,7 @@ export const Constants = {
   public: {
     Enums: {
       allocation_role: ["responsavel", "executor", "aprovador", "plantao"],
+      cost_recurrence: ["mensal", "unica"],
       decision_visibility: ["interno", "cliente"],
       frente_cycle_type: ["a", "b", "c", "d", "e"],
       frente_domain: ["infra", "dados_analiticos", "dados_tecnicos"],

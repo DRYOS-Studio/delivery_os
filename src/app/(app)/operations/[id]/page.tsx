@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AttachmentsSection } from "@/components/domain/AttachmentsSection";
+import { CostsTab } from "@/components/domain/CostsTab";
 import { FinanceCards } from "@/components/domain/FinanceCards";
 import { FrentesListSection } from "@/components/domain/FrentesListSection";
 import { MeetingsDecisionsTimeline } from "@/components/domain/MeetingsDecisionsTimeline";
@@ -11,6 +12,8 @@ import { QuickWinsSection } from "@/components/domain/QuickWinsSection";
 import { SLASection } from "@/components/domain/SLASection";
 import { TabsNav, type TabDef } from "@/components/ui/TabsNav";
 import { getProfile } from "@/lib/auth/server";
+import { getOperationMonthlyCosts } from "@/lib/db/queries/operation-costs";
+import { computeMargin, type MarginResult } from "@/lib/utils/margin";
 import {
   countAttachmentsByMeeting,
   listAttachmentsByOperation,
@@ -41,9 +44,10 @@ type OperationTabKey =
   | "eventos"
   | "anexos"
   | "sla"
+  | "custos"
   | "publico";
 
-const VALID_TABS: ReadonlyArray<OperationTabKey> = [
+const PUBLIC_TABS: ReadonlyArray<OperationTabKey> = [
   "visao",
   "frentes",
   "briefing",
@@ -53,8 +57,14 @@ const VALID_TABS: ReadonlyArray<OperationTabKey> = [
   "publico",
 ];
 
-function normalizeTab(raw: string | undefined): OperationTabKey {
-  return VALID_TABS.includes(raw as OperationTabKey)
+function normalizeTab(
+  raw: string | undefined,
+  isAdmin: boolean,
+): OperationTabKey {
+  const allowed: ReadonlyArray<OperationTabKey> = isAdmin
+    ? [...PUBLIC_TABS, "custos"]
+    : PUBLIC_TABS;
+  return allowed.includes(raw as OperationTabKey)
     ? (raw as OperationTabKey)
     : "visao";
 }
@@ -86,6 +96,7 @@ export default async function Page({
     operationVillains,
     availableVillains,
     quickWins,
+    costsBreakdown,
   ] = await Promise.all([
     getOperation(id),
     getBriefingFreshness(id),
@@ -100,13 +111,18 @@ export default async function Page({
     listVillainsByOperation(id),
     listAvailableVillains(id),
     listQuickWinsByOperation(id),
+    getOperationMonthlyCosts(id),
   ]);
   if (!op) notFound();
 
   const { tab: tabRaw } = await searchParams;
-  const tab = normalizeTab(tabRaw);
+  const tab = normalizeTab(tabRaw, isAdmin);
 
-  const tabs: ReadonlyArray<TabDef<OperationTabKey>> = [
+  const margin: MarginResult | null = isAdmin
+    ? computeMargin(op.monthlyRecurringRevenue, costsBreakdown.totalMonthly)
+    : null;
+
+  const baseTabs: TabDef<OperationTabKey>[] = [
     { key: "visao", label: "Visão geral" },
     { key: "frentes", label: "Frentes", count: op.frentes.length },
     { key: "briefing", label: "Briefing" },
@@ -117,8 +133,16 @@ export default async function Page({
     },
     { key: "anexos", label: "Anexos", count: attachments.length },
     { key: "sla", label: "SLA", count: openIncidentsCount },
-    { key: "publico", label: "Acesso público" },
   ];
+  if (isAdmin) {
+    baseTabs.push({
+      key: "custos",
+      label: "Custos",
+      count: costsBreakdown.adHocItems.length,
+    });
+  }
+  baseTabs.push({ key: "publico", label: "Acesso público" });
+  const tabs: ReadonlyArray<TabDef<OperationTabKey>> = baseTabs;
 
   return (
     <>
@@ -126,6 +150,7 @@ export default async function Page({
         op={op}
         briefingFreshness={briefingFreshness}
         isAdmin={isAdmin}
+        margin={margin}
       />
 
       <TabsNav<OperationTabKey>
@@ -210,6 +235,10 @@ export default async function Page({
           }}
           operationId={op.id}
         />
+      )}
+
+      {tab === "custos" && isAdmin && (
+        <CostsTab operationId={op.id} breakdown={costsBreakdown} />
       )}
 
       {tab === "publico" && (

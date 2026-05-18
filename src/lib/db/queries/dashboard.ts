@@ -1,4 +1,5 @@
 import { createServer } from "@/lib/db/client";
+import { getOperationMonthlyCosts } from "@/lib/db/queries/operation-costs";
 import { STALENESS_THRESHOLDS } from "@/lib/utils/staleness";
 
 export type DashboardSummary = {
@@ -12,6 +13,8 @@ export type DashboardSummary = {
   externalPersons: number;
   openAllocations: number;
   openTasks: number;
+  monthlyCostsTotal: number;
+  monthlyMarginTotal: number;
 };
 
 export type ClientMRR = {
@@ -45,7 +48,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
   ] = await Promise.all([
     supabase
       .from("operations")
-      .select("monthly_recurring_revenue, archived_at"),
+      .select("id, monthly_recurring_revenue, archived_at"),
     supabase
       .from("frentes")
       .select("actionable_status, updated_at")
@@ -119,6 +122,16 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
   ).length;
   const frentesStale = frentes.length - frentesHealthy;
 
+  const activeOpIds = active.map((o) => o.id).filter((x): x is string => !!x);
+  const monthlyCosts = await Promise.all(
+    activeOpIds.map((opId) => getOperationMonthlyCosts(opId)),
+  );
+  const monthlyCostsTotal = monthlyCosts.reduce(
+    (sum, b) => sum + b.totalMonthly,
+    0,
+  );
+  const monthlyMarginTotal = mrrTotal - monthlyCostsTotal;
+
   return {
     mrrTotal,
     activeOperations,
@@ -130,6 +143,8 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     externalPersons: externalCountRes.count ?? 0,
     openAllocations: openAllocsRes.count ?? 0,
     openTasks: openTasksRes.count ?? 0,
+    monthlyCostsTotal,
+    monthlyMarginTotal,
   };
 }
 

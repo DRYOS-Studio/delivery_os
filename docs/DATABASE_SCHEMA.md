@@ -1,6 +1,6 @@
 # Database Schema
 
-**Última análise**: 2026-05-18 (clients-enrich)
+**Última análise**: 2026-05-18 (operation-costs)
 **Projeto Supabase**: `Delivery OS` (`tmsaucxoeqpfluzwrwkc`)
 **Schema**: `public`
 
@@ -26,7 +26,8 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 | **Diagnóstico** | `diagnostics` | 1 |
 | **Quick Wins** | `quick_wins`, `quick_win_impacts` | 2 |
 | **Profiles** | `profiles` | 1 |
-| **Total atual** | | **20** |
+| **Operação · Custos** | `operation_costs` | 1 |
+| **Total atual** | | **21** |
 
 ---
 
@@ -71,6 +72,7 @@ Discriminada por `kind`; campos mutuamente exclusivos via CHECK constraint.
 | `specialty` | text | NOT NULL se `internal`, NULL se `external` |
 | `external_role` | text | NOT NULL se `external`, NULL se `internal` |
 | `client_id` | uuid → clients (RESTRICT) | NOT NULL se `external`, NULL se `internal` |
+| `hourly_rate` | numeric(10,2) | nullable; taxa horária BRL/h. Usada no cálculo de custo derivado de alocação. Admin-only via UI |
 | `created_at`, `updated_at`, `archived_at` | timestamptz | |
 
 CHECK `chk_persons_kind_consistency`: garante exclusividade.
@@ -87,6 +89,7 @@ CHECK `chk_persons_kind_consistency`: garante exclusividade.
 | `name` | text NOT NULL | |
 | `status` | enum `operation_status` default `em_construcao` | em_construcao / em_operacao / janela_critica / arquivada |
 | `monthly_recurring_revenue` | numeric(14,2) | nullable (Studio one-off) |
+| `monthly_fixed_cost` | numeric(12,2) | nullable; custo mensal fixo (hospedagem, infra). Admin-only via UI |
 | `recurrence` | enum `recurrence` | mensal / trimestral / anual / unica; nullable |
 | `start_date`, `end_date` | date | nullable; Tipo C/E não tem fim (validado via Frente) |
 | `response_hours` | int | SLA prometido pra primeira resposta. CHECK 0-720. Null = sem SLA |
@@ -155,6 +158,27 @@ Cobre o gap entre Decisão (perpétuo), Reunião (touchpoint), SLA Incident (nã
 Trigger `manage_task_completed_at` (BEFORE INSERT OR UPDATE): set quando status → `done`, clear quando sai de `done`.
 Indexes: `(frente_id, status)` + `assignee_person_id` (partial WHERE NOT NULL).
 RLS: `tasks_authenticated_full` (delete bloqueado pra member via `requireAdminAction` na action — Inv. 14).
+
+---
+
+### `operation_costs` — custos ad-hoc por Operação
+
+Itens de custo manuais. Custo fixo principal vive em `operations.monthly_fixed_cost`. Custos derivados de pessoas vêm de `allocations × persons.hourly_rate` (não materializados).
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | gen_random_uuid() |
+| `operation_id` | uuid NOT NULL → operations (CASCADE) | |
+| `label` | text NOT NULL | CHECK length >= 2 |
+| `amount` | numeric(12,2) NOT NULL | CHECK >= 0 |
+| `recurrence` | enum `cost_recurrence` | `mensal` (entra na margem) ou `unica` (informativo) |
+| `started_at` | date NOT NULL default current_date | |
+| `ended_at` | date | nullable; CHECK >= started_at |
+| `notes` | text | nullable |
+| `created_at`, `updated_at` | timestamptz | |
+
+Index: `(operation_id, recurrence)`.
+RLS: `operation_costs_authenticated_full` (CRUD gated por `requireAdminAction` — Inv. 14).
 
 ---
 
@@ -463,6 +487,7 @@ RLS:
 | `product_recommendation` | core, spark, studio |
 | `user_role` | admin, member |
 | `task_status` | todo, doing, blocked, done |
+| `cost_recurrence` | mensal, unica |
 
 ---
 
@@ -493,6 +518,7 @@ RLS:
 | 20260517225505 | profiles | 2026-05-17 (via MCP) |
 | 20260518000001 | tasks | 2026-05-18 (via MCP) |
 | 20260518010001 | clients_enrich | 2026-05-18 (via MCP) |
+| 20260518020001 | operation_costs | 2026-05-18 (via MCP) |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações

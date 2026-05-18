@@ -249,6 +249,7 @@ export type OperationDetail = {
   status: Op["status"];
   recurrence: Op["recurrence"];
   monthlyRecurringRevenue: number | null;
+  monthlyFixedCost: number | null;
   responseHours: number | null;
   resolutionHours: number | null;
   diagnosticId: string | null;
@@ -266,7 +267,8 @@ export async function getOperation(id: string): Promise<OperationDetail | null> 
     .select(
       `
       id, name, product_line, status, recurrence,
-      monthly_recurring_revenue, response_hours, resolution_hours,
+      monthly_recurring_revenue, monthly_fixed_cost,
+      response_hours, resolution_hours,
       diagnostic_id, start_date, end_date, created_at,
       client:clients(id, name, slug),
       frentes(
@@ -314,6 +316,7 @@ export async function getOperation(id: string): Promise<OperationDetail | null> 
     status: data.status,
     recurrence: data.recurrence,
     monthlyRecurringRevenue: data.monthly_recurring_revenue,
+    monthlyFixedCost: data.monthly_fixed_cost,
     responseHours: data.response_hours,
     resolutionHours: data.resolution_hours,
     diagnosticId: data.diagnostic_id,

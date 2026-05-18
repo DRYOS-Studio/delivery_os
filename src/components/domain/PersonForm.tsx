@@ -66,6 +66,7 @@ export function PersonForm(props: Props): React.JSX.Element {
           name: props.initialData.name,
           email: props.initialData.email ?? undefined,
           specialty: props.initialData.specialty ?? "",
+          hourly_rate: props.initialData.hourly_rate ?? null,
         }
       : {
           kind: "external",
@@ -73,12 +74,14 @@ export function PersonForm(props: Props): React.JSX.Element {
           email: props.initialData.email ?? undefined,
           external_role: props.initialData.external_role ?? "",
           client_id: props.initialData.client_id ?? "",
+          hourly_rate: props.initialData.hourly_rate ?? null,
         }
     : {
         kind: "internal",
         name: "",
         email: undefined,
         specialty: "",
+        hourly_rate: null,
       };
 
   const {
@@ -119,6 +122,12 @@ export function PersonForm(props: Props): React.JSX.Element {
       fd.set("external_role", data.external_role);
       fd.set("client_id", data.client_id);
     }
+    fd.set(
+      "hourly_rate",
+      data.hourly_rate !== null && data.hourly_rate !== undefined
+        ? String(data.hourly_rate)
+        : "",
+    );
 
     const result = isEdit
       ? await updatePersonAction(props.initialData.id, fd)
@@ -267,6 +276,28 @@ export function PersonForm(props: Props): React.JSX.Element {
             </select>
           </Field>
         </>
+      )}
+
+      {isAdmin ? (
+        <Field
+          label="Taxa horária (R$/h)"
+          htmlFor="hourly_rate"
+          error={errors.hourly_rate?.message}
+          hint="Usada no cálculo de custo de alocações. Em branco = sem custo derivado."
+        >
+          <input
+            id="hourly_rate"
+            type="number"
+            step="0.01"
+            min={0}
+            {...register("hourly_rate")}
+            placeholder="0.00"
+            disabled={busy}
+            className={inputCn}
+          />
+        </Field>
+      ) : (
+        <input type="hidden" {...register("hourly_rate")} />
       )}
 
       <div className="flex items-center justify-between pt-2">

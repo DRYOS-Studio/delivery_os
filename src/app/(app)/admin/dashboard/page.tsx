@@ -30,6 +30,8 @@ export default async function Page() {
           mrrTotal={summary.mrrTotal}
           activeOperations={summary.activeOperations}
           topClients={topClients}
+          monthlyCostsTotal={summary.monthlyCostsTotal}
+          monthlyMarginTotal={summary.monthlyMarginTotal}
         />
         <DashboardCountsGrid
           activeOperations={summary.activeOperations}
