@@ -8,15 +8,18 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { formatMoneyBR } from "@/lib/utils/money";
 
 export type BarDatum = {
   label: string;
   value: number;
 };
 
+export type BarValueFormat = "currency" | "count_operations" | "raw";
+
 type Props = {
   data: BarDatum[];
-  formatValue?: (v: number) => string;
+  format?: BarValueFormat;
   height?: number;
   color?: string;
   emptyLabel?: string;
@@ -26,28 +29,32 @@ function truncate(s: string, n = 20): string {
   return s.length <= n ? s : `${s.slice(0, n - 1)}…`;
 }
 
+function formatValue(v: number, format: BarValueFormat): string {
+  if (format === "currency") return formatMoneyBR(v);
+  if (format === "count_operations")
+    return `${v} ${v === 1 ? "operação" : "operações"}`;
+  return String(v);
+}
+
 function TooltipContent({
   active,
   payload,
-  formatValue,
+  format,
 }: {
   active?: boolean;
   payload?: Array<{ payload: BarDatum; value: number }>;
-  formatValue?: (v: number) => string;
+  format: BarValueFormat;
 }) {
   if (!active || !payload || payload.length === 0) return null;
   const datum = payload[0];
   if (!datum) return null;
-  const formatted = formatValue
-    ? formatValue(datum.value)
-    : String(datum.value);
   return (
     <div className="bg-surface border border-line rounded-sm px-3 py-2 shadow-sm">
       <p className="font-mono text-[10px] uppercase tracking-wide text-mute">
         {datum.payload.label}
       </p>
       <p className="font-display text-sm font-semibold text-ink mt-0.5">
-        {formatted}
+        {formatValue(datum.value, format)}
       </p>
     </div>
   );
@@ -55,7 +62,7 @@ function TooltipContent({
 
 export function HorizontalBarChart({
   data,
-  formatValue,
+  format = "raw",
   height = 240,
   color = "#5C8866",
   emptyLabel = "Sem dados",
@@ -92,11 +99,7 @@ export function HorizontalBarChart({
         <XAxis type="number" hide />
         <Tooltip
           cursor={{ fill: "var(--color-surface-deep, #00000008)" }}
-          content={
-            <TooltipContent
-              {...(formatValue ? { formatValue } : {})}
-            />
-          }
+          content={<TooltipContent format={format} />}
         />
         <Bar dataKey="value" fill={color} radius={[0, 2, 2, 0]} />
       </BarChart>

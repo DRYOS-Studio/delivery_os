@@ -22,15 +22,13 @@ export function DashboardVillainsSection({
         Vilões & Quick Wins
       </h2>
       <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4">
-        <div className="flex flex-col gap-2 p-5 bg-surface border border-line rounded-sm">
+        <div className="flex flex-col gap-2 p-5 bg-surface border border-line rounded-sm min-w-0">
           <p className="font-mono text-[10px] uppercase tracking-wide text-mute">
             Top vilões por frequência
           </p>
           <HorizontalBarChart
             data={chartData}
-            formatValue={(n) =>
-              `${n} ${n === 1 ? "operação" : "operações"}`
-            }
+            format="count_operations"
             emptyLabel="Catálogo ainda não aplicado a operações"
           />
         </div>

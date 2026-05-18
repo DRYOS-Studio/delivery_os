@@ -1,7 +1,8 @@
-import { MetricCard } from "@/components/ui/MetricCard";
 import { HorizontalBarChart } from "@/components/ui/HorizontalBarChart";
+import { MetricCard } from "@/components/ui/MetricCard";
 import type { ClientMRR } from "@/lib/db/queries/dashboard";
 import { formatMoneyBR } from "@/lib/utils/money";
+
 
 type Props = {
   mrrTotal: number;
@@ -26,13 +27,13 @@ export function DashboardMRRSection({
           hint={`${activeOperations} ${activeOperations === 1 ? "operação ativa" : "operações ativas"}`}
           size="lg"
         />
-        <div className="flex flex-col gap-2 p-5 bg-surface border border-line rounded-sm">
+        <div className="flex flex-col gap-2 p-5 bg-surface border border-line rounded-sm min-w-0">
           <p className="font-mono text-[10px] uppercase tracking-wide text-mute">
             Top clientes por MRR
           </p>
           <HorizontalBarChart
             data={chartData}
-            formatValue={formatMoneyBR}
+            format="currency"
             emptyLabel="Sem operações ativas"
           />
         </div>
