@@ -73,13 +73,17 @@ export function FrentesListSection({
                 key={f.id}
                 className={`grid grid-cols-12 gap-3 items-center px-4 py-3 ${idx !== frentes.length - 1 ? "border-b border-line" : ""}`}
               >
-                <div className="col-span-3 font-medium text-ink">
+                <div className="col-span-3 font-medium text-ink flex items-center gap-2">
                   <Link
                     href={`/operations/${operationId}/frentes/${f.id}`}
-                    className="hover:underline"
+                    className="text-oak hover:underline"
                   >
                     {f.name}
                   </Link>
+                  <Pill variant={f.openTasksCount > 0 ? "sage" : "neutral"}>
+                    {f.openTasksCount}
+                    {f.openTasksCount === 1 ? " tarefa" : " tarefas"}
+                  </Pill>
                 </div>
                 <div className="col-span-1">
                   <Pill variant="oak">Tipo {f.cycleType.toUpperCase()}</Pill>
@@ -114,10 +118,10 @@ export function FrentesListSection({
                 </div>
                 <div className="col-span-1 text-right">
                   <Link
-                    href={`/operations/${operationId}/frentes/${f.id}/edit`}
+                    href={`/operations/${operationId}/frentes/${f.id}`}
                     className="text-oak hover:underline text-sm font-medium"
                   >
-                    Editar →
+                    Abrir →
                   </Link>
                 </div>
               </li>
