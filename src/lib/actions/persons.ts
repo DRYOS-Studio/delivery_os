@@ -22,6 +22,7 @@ function parseFormData(formData: FormData) {
     specialty: ((formData.get("specialty") as string | null) ?? "").trim(),
     external_role: ((formData.get("external_role") as string | null) ?? "").trim(),
     client_id: ((formData.get("client_id") as string | null) ?? "").trim(),
+    hourly_rate: ((formData.get("hourly_rate") as string | null) ?? "").trim(),
   };
 }
 
@@ -64,6 +65,7 @@ export async function createPersonAction(
           specialty: data.specialty,
           external_role: null,
           client_id: null,
+          hourly_rate: data.hourly_rate ?? null,
         }
       : {
           kind: "external",
@@ -72,6 +74,7 @@ export async function createPersonAction(
           specialty: null,
           external_role: data.external_role,
           client_id: data.client_id,
+          hourly_rate: data.hourly_rate ?? null,
         };
 
   const { data: row, error: dbError } = await supabase
@@ -116,12 +119,14 @@ export async function updatePersonAction(
           name: data.name,
           email: data.email ?? null,
           specialty: data.specialty,
+          hourly_rate: data.hourly_rate ?? null,
         }
       : {
           name: data.name,
           email: data.email ?? null,
           external_role: data.external_role,
           client_id: data.client_id,
+          hourly_rate: data.hourly_rate ?? null,
         };
 
   const supabase = await createServer();

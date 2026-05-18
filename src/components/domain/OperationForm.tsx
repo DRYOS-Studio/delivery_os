@@ -62,6 +62,11 @@ export function OperationForm(props: Props): React.JSX.Element {
       ? formatMrrInput(props.initialData.monthlyRecurringRevenue)
       : "",
   );
+  const [fixedCostInput, setFixedCostInput] = useState(
+    isEdit
+      ? formatMrrInput(props.initialData.monthlyFixedCost ?? null)
+      : "",
+  );
   const [nameTouched, setNameTouched] = useState(isEdit);
 
   const defaultValues: OperationInput = isEdit
@@ -76,6 +81,8 @@ export function OperationForm(props: Props): React.JSX.Element {
         recurrence: props.initialData.recurrence ?? undefined,
         monthly_recurring_revenue:
           props.initialData.monthlyRecurringRevenue ?? null,
+        monthly_fixed_cost:
+          props.initialData.monthlyFixedCost ?? null,
         response_hours: props.initialData.responseHours ?? undefined,
         resolution_hours: props.initialData.resolutionHours ?? undefined,
         diagnostic_id: props.initialData.diagnosticId ?? undefined,
@@ -89,6 +96,7 @@ export function OperationForm(props: Props): React.JSX.Element {
         status: "em_construcao",
         recurrence: undefined,
         monthly_recurring_revenue: null,
+        monthly_fixed_cost: null,
         response_hours: undefined,
         resolution_hours: undefined,
         diagnostic_id: undefined,
@@ -137,6 +145,12 @@ export function OperationForm(props: Props): React.JSX.Element {
       data.monthly_recurring_revenue !== null &&
         data.monthly_recurring_revenue !== undefined
         ? String(data.monthly_recurring_revenue)
+        : "",
+    );
+    fd.set(
+      "monthly_fixed_cost",
+      data.monthly_fixed_cost !== null && data.monthly_fixed_cost !== undefined
+        ? String(data.monthly_fixed_cost)
         : "",
     );
     fd.set(
@@ -287,42 +301,69 @@ export function OperationForm(props: Props): React.JSX.Element {
       </Field>
 
       {isAdmin ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Field
-            label="Recorrência"
-            htmlFor="recurrence"
-            error={errors.recurrence?.message}
-          >
-            <select
-              id="recurrence"
-              {...register("recurrence")}
-              disabled={busy}
-              className={selectCn}
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field
+              label="Recorrência"
+              htmlFor="recurrence"
+              error={errors.recurrence?.message}
             >
-              <option value="">—</option>
-              <option value="mensal">Mensal</option>
-              <option value="trimestral">Trimestral</option>
-              <option value="anual">Anual</option>
-              <option value="unica">Única</option>
-            </select>
-          </Field>
+              <select
+                id="recurrence"
+                {...register("recurrence")}
+                disabled={busy}
+                className={selectCn}
+              >
+                <option value="">—</option>
+                <option value="mensal">Mensal</option>
+                <option value="trimestral">Trimestral</option>
+                <option value="anual">Anual</option>
+                <option value="unica">Única</option>
+              </select>
+            </Field>
+
+            <Field
+              label="MRR (Receita recorrente mensal)"
+              htmlFor="mrr"
+              error={errors.monthly_recurring_revenue?.message}
+              hint='Aceita "R$ 8.500,00", "8500" etc.'
+            >
+              <input
+                id="mrr"
+                type="text"
+                inputMode="decimal"
+                value={mrrInput}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  setMrrInput(raw);
+                  const parsed = parseMoneyBR(raw);
+                  setValue("monthly_recurring_revenue", parsed, {
+                    shouldValidate: true,
+                  });
+                }}
+                placeholder="R$ 0,00"
+                disabled={busy}
+                className={inputCn}
+              />
+            </Field>
+          </div>
 
           <Field
-            label="MRR (Receita recorrente mensal)"
-            htmlFor="mrr"
-            error={errors.monthly_recurring_revenue?.message}
-            hint='Aceita "R$ 8.500,00", "8500" etc.'
+            label="Custo fixo mensal"
+            htmlFor="monthly_fixed_cost"
+            error={errors.monthly_fixed_cost?.message}
+            hint="Hospedagem, infra etc. Custos de pessoas vêm das alocações."
           >
             <input
-              id="mrr"
+              id="monthly_fixed_cost"
               type="text"
               inputMode="decimal"
-              value={mrrInput}
+              value={fixedCostInput}
               onChange={(e) => {
                 const raw = e.target.value;
-                setMrrInput(raw);
+                setFixedCostInput(raw);
                 const parsed = parseMoneyBR(raw);
-                setValue("monthly_recurring_revenue", parsed, {
+                setValue("monthly_fixed_cost", parsed, {
                   shouldValidate: true,
                 });
               }}
@@ -331,17 +372,15 @@ export function OperationForm(props: Props): React.JSX.Element {
               className={inputCn}
             />
           </Field>
-        </div>
+        </>
       ) : (
         <>
-          <input
-            type="hidden"
-            {...register("recurrence")}
-          />
+          <input type="hidden" {...register("recurrence")} />
           <input
             type="hidden"
             {...register("monthly_recurring_revenue")}
           />
+          <input type="hidden" {...register("monthly_fixed_cost")} />
         </>
       )}
 

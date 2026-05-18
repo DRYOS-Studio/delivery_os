@@ -2,6 +2,10 @@ import { Edit2, FileText } from "lucide-react";
 import Link from "next/link";
 import type { OperationDetail } from "@/lib/db/queries/operations";
 import { formatDateBR, relativeFromNow } from "@/lib/utils/date";
+import {
+  formatMarginPct,
+  type MarginResult,
+} from "@/lib/utils/margin";
 import { formatMoneyBR } from "@/lib/utils/money";
 import { formatHours } from "@/lib/utils/sla";
 
@@ -45,10 +49,12 @@ export function OperationHero({
   op,
   briefingFreshness,
   isAdmin = false,
+  margin,
 }: {
   op: OperationDetail;
   briefingFreshness?: BriefingFreshness | undefined;
   isAdmin?: boolean;
+  margin?: MarginResult | null;
 }) {
   return (
     <section className="relative bg-oak text-bg rounded-lg p-8 overflow-hidden mb-9">
@@ -135,6 +141,9 @@ export function OperationHero({
                 label="MRR"
                 value={formatMoneyBR(op.monthlyRecurringRevenue)}
               />
+              {margin && (
+                <MarginChip margin={margin} />
+              )}
             </>
           )}
           <MetaChip
@@ -161,6 +170,28 @@ function MetaChip({ label, value }: { label: string; value: string }) {
         {label}
       </span>
       <span className="font-body text-sm font-medium">{value}</span>
+    </div>
+  );
+}
+
+function MarginChip({ margin }: { margin: MarginResult }) {
+  const valueLabel = formatMoneyBR(margin.value);
+  const pctLabel = formatMarginPct(margin.pct);
+  const color =
+    margin.level === "positive"
+      ? "text-sage"
+      : margin.level === "low"
+        ? "text-warning"
+        : "text-critical";
+  return (
+    <div className="flex flex-col">
+      <span className="font-mono text-[10px] uppercase tracking-wide opacity-60">
+        Margem
+      </span>
+      <span className={`font-body text-sm font-medium ${color}`}>
+        {valueLabel}
+        <span className="opacity-70 ml-1">({pctLabel})</span>
+      </span>
     </div>
   );
 }

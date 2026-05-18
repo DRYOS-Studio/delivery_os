@@ -25,6 +25,16 @@ const mrrInput = z.preprocess((v) => {
   return v;
 }, z.number().nonnegative("MRR não pode ser negativo.").nullable());
 
+const monthlyFixedCostInput = z.preprocess((v) => {
+  if (v === "" || v === null || v === undefined) return null;
+  if (typeof v === "number") return v;
+  if (typeof v === "string") {
+    const n = Number(v.replace(",", "."));
+    return Number.isFinite(n) ? n : v;
+  }
+  return v;
+}, z.number().nonnegative("Custo fixo não pode ser negativo.").nullable());
+
 const optionalIntHours = z.preprocess(
   (v) => {
     if (v === "" || v === null || v === undefined) return undefined;
@@ -63,6 +73,7 @@ export const operationSchema = z
     end_date: dateString,
     response_hours: optionalIntHours,
     resolution_hours: optionalIntHours,
+    monthly_fixed_cost: monthlyFixedCostInput,
     diagnostic_id: z.preprocess(
       emptyToUndefined,
       z.string().uuid().optional(),
