@@ -2,12 +2,15 @@ import { Edit2 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ClientDiagnosticSection } from "@/components/domain/ClientDiagnosticSection";
+import { ClientIdentitySection } from "@/components/domain/ClientIdentitySection";
+import { ClientSummarySection } from "@/components/domain/ClientSummarySection";
 import { ExternalPersonsList } from "@/components/domain/ExternalPersonsList";
 import { OperationCard } from "@/components/domain/OperationCard";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
-import { getClient } from "@/lib/db/queries/clients";
+import { getProfile } from "@/lib/auth/server";
+import { getClient, getClientSummary } from "@/lib/db/queries/clients";
 import { getDiagnosticByClient } from "@/lib/db/queries/diagnostics";
 import { getActiveOperations } from "@/lib/db/queries/operations";
 import { getExternalPersonsByClient } from "@/lib/db/queries/persons";
@@ -26,11 +29,14 @@ export default async function Page({
   const client = await getClient(id);
   if (!client) notFound();
 
-  const [operations, persons, diagnostic] = await Promise.all([
+  const [operations, persons, diagnostic, summary, profile] = await Promise.all([
     getActiveOperations({ clientId: id }),
     getExternalPersonsByClient(id),
     getDiagnosticByClient(id),
+    getClientSummary(id),
+    getProfile(),
   ]);
+  const isAdmin = profile?.role === "admin";
 
   return (
     <>
@@ -60,6 +66,9 @@ export default async function Page({
           </p>
         </div>
       )}
+
+      <ClientSummarySection summary={summary} isAdmin={isAdmin} />
+      <ClientIdentitySection client={client} />
 
       <ClientDiagnosticSection diagnostic={diagnostic} clientId={client.id} />
 

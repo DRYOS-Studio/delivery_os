@@ -216,29 +216,68 @@ export type Database = {
       }
       clients: {
         Row: {
+          address_city: string | null
+          address_complement: string | null
+          address_district: string | null
+          address_number: string | null
+          address_state: string | null
+          address_street: string | null
+          address_zip: string | null
           archived_at: string | null
+          cnpj: string | null
           created_at: string
           id: string
+          inscricao_estadual: string | null
+          legal_name: string | null
           name: string
           notes: string | null
+          primary_contact_email: string | null
+          primary_contact_name: string | null
+          primary_contact_phone: string | null
           slug: string
           updated_at: string
         }
         Insert: {
+          address_city?: string | null
+          address_complement?: string | null
+          address_district?: string | null
+          address_number?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          address_zip?: string | null
           archived_at?: string | null
+          cnpj?: string | null
           created_at?: string
           id?: string
+          inscricao_estadual?: string | null
+          legal_name?: string | null
           name: string
           notes?: string | null
+          primary_contact_email?: string | null
+          primary_contact_name?: string | null
+          primary_contact_phone?: string | null
           slug: string
           updated_at?: string
         }
         Update: {
+          address_city?: string | null
+          address_complement?: string | null
+          address_district?: string | null
+          address_number?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          address_zip?: string | null
           archived_at?: string | null
+          cnpj?: string | null
           created_at?: string
           id?: string
+          inscricao_estadual?: string | null
+          legal_name?: string | null
           name?: string
           notes?: string | null
+          primary_contact_email?: string | null
+          primary_contact_name?: string | null
+          primary_contact_phone?: string | null
           slug?: string
           updated_at?: string
         }
