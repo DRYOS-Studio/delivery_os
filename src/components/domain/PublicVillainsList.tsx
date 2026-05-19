@@ -20,18 +20,24 @@ const VARIANT_BG: Record<PillVariant, string> = {
 
 export function PublicVillainsList({
   items,
+  narrativesByVillainId,
+  totalVillains = 7,
 }: {
   items: OperationVillainListItem[];
+  narrativesByVillainId?: Record<string, string>;
+  totalVillains?: number;
 }): React.JSX.Element {
   if (items.length === 0) return <></>;
 
   return (
-    <section className="mb-9">
-      <div className="flex items-center gap-2 mb-4">
+    <section className="mb-10">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <h2 className="font-display text-lg text-ink font-semibold">
           Vilões em luta
         </h2>
-        <Pill variant="neutral">{items.length}</Pill>
+        <span className="font-mono text-[10px] uppercase tracking-wide text-mute">
+          {items.length} / {totalVillains}
+        </span>
       </div>
 
       <ul className="space-y-3">
@@ -39,6 +45,8 @@ export function PublicVillainsList({
           const Icon = resolveVillainIcon(item.villain.iconName);
           const villainVariant =
             (item.villain.pillVariant as PillVariant) ?? "neutral";
+          const narrative =
+            narrativesByVillainId?.[item.villainId] ?? item.villain.description;
           return (
             <li key={item.id}>
               <Card>
@@ -58,13 +66,10 @@ export function PublicVillainsList({
                         {SEVERITY_LABEL[item.initialSeverity].toUpperCase()}
                       </Pill>
                     </div>
-                    <p className="font-body text-sm italic text-mute">
-                      “{item.villain.quote}”
+                    <p className="text-sm text-ink-soft whitespace-pre-wrap">
+                      {narrative}
                     </p>
-                    <p className="text-sm text-ink-soft">
-                      {item.villain.description}
-                    </p>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 pt-1">
                       <Pill variant={progressVariant(item.progressPct)}>
                         {item.progressPct}% derrotado
                       </Pill>

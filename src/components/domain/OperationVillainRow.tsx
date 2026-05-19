@@ -1,9 +1,10 @@
 "use client";
 
-import { Pencil } from "lucide-react";
+import { BookOpen, Pencil } from "lucide-react";
 import { useState } from "react";
 import { EditOperationVillainForm } from "@/components/domain/EditOperationVillainForm";
 import { RemoveOperationVillainButton } from "@/components/domain/RemoveOperationVillainButton";
+import { VillainNarrativeForm } from "@/components/domain/VillainNarrativeForm";
 import { VillainProgressBar } from "@/components/domain/VillainProgressBar";
 import { Card } from "@/components/ui/Card";
 import { Pill, type PillVariant } from "@/components/ui/Pill";
@@ -27,11 +28,18 @@ const VARIANT_BG: Record<PillVariant, string> = {
 export function OperationVillainRow({
   item,
   isAdmin = false,
+  currentPeriodYyyymm,
+  currentPeriodLabel,
+  existingNarrative,
 }: {
   item: OperationVillainListItem;
   isAdmin?: boolean;
+  currentPeriodYyyymm: string;
+  currentPeriodLabel: string;
+  existingNarrative: string;
 }): React.JSX.Element {
   const [editing, setEditing] = useState(false);
+  const [editingNarrative, setEditingNarrative] = useState(false);
   const Icon = resolveVillainIcon(item.villain.iconName);
   const villainVariant =
     (item.villain.pillVariant as PillVariant) ?? "neutral";
@@ -67,7 +75,21 @@ export function OperationVillainRow({
               <div className="flex items-center gap-1">
                 <button
                   type="button"
-                  onClick={() => setEditing((v) => !v)}
+                  onClick={() => {
+                    setEditingNarrative((v) => !v);
+                    if (editing) setEditing(false);
+                  }}
+                  className="inline-flex items-center gap-1 text-xs font-mono text-oak hover:underline px-2 py-1"
+                >
+                  <BookOpen className="w-3 h-3" strokeWidth={1.75} />
+                  {editingNarrative ? "Fechar" : "Narrativa do mês"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditing((v) => !v);
+                    if (editingNarrative) setEditingNarrative(false);
+                  }}
                   className="inline-flex items-center gap-1 text-xs font-mono text-oak hover:underline px-2 py-1"
                 >
                   <Pencil className="w-3 h-3" strokeWidth={1.75} />
@@ -105,6 +127,17 @@ export function OperationVillainRow({
                 itemId={item.id}
                 initialEvidence={item.evidence}
                 onClose={() => setEditing(false)}
+              />
+            )}
+
+            {editingNarrative && (
+              <VillainNarrativeForm
+                operationVillainId={item.id}
+                villainName={item.villain.name}
+                periodYyyymm={currentPeriodYyyymm}
+                periodLabel={currentPeriodLabel}
+                initialText={existingNarrative}
+                onClose={() => setEditingNarrative(false)}
               />
             )}
           </div>

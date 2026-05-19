@@ -574,6 +574,51 @@ export type Database = {
           },
         ]
       }
+      operation_villain_narratives: {
+        Row: {
+          created_at: string
+          id: string
+          narrative_text: string
+          operation_id: string
+          period_yyyymm: string
+          updated_at: string
+          villain_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          narrative_text: string
+          operation_id: string
+          period_yyyymm: string
+          updated_at?: string
+          villain_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          narrative_text?: string
+          operation_id?: string
+          period_yyyymm?: string
+          updated_at?: string
+          villain_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_ovn_operation_id"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "operations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ovn_villain_id"
+            columns: ["villain_id"]
+            isOneToOne: false
+            referencedRelation: "villains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       operation_villains: {
         Row: {
           created_at: string

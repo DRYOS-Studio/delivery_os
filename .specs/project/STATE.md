@@ -1,7 +1,7 @@
 # State
 
-**Last Updated:** 2026-05-15
-**Current Work:** week-01-setup — COMPLETE + DEPLOYED em https://delivery-os-phi.vercel.app/. Próximo: feature `auth` (Supabase Auth + middleware + páginas).
+**Last Updated:** 2026-05-19
+**Current Work:** `link-publico-narrativa` — COMPLETE (issue #67). 6 seções do mockup renderizadas no `/public/[token]` aba Visão; narrativa por vilão versionada por mês via `operation_villain_narratives`. Próximos: fila do `catalog-admin` (issues #64, #65, #66) + integrações n8n + dark-mode + polish-migration.
 
 ---
 
