@@ -38,7 +38,7 @@ export async function Sidebar() {
             DRYOS
           </span>
           <span className="font-mono text-[10px] text-mute uppercase tracking-wide">
-            Delivery
+            Studio
           </span>
         </div>
       </div>

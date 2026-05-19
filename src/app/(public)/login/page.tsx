@@ -16,7 +16,7 @@ export default async function LoginPage({
   return (
     <main className="min-h-screen flex items-center justify-center bg-bg p-7">
       <div className="w-full max-w-sm bg-card border border-line rounded shadow-sm p-7">
-        <h1 className="font-display text-2xl text-ink">DRYOS Delivery</h1>
+        <h1 className="font-display text-2xl text-ink">DRYOS Studio</h1>
         <p className="font-mono text-xs text-mute mt-2 mb-6">
           — entre com e-mail e senha
         </p>
