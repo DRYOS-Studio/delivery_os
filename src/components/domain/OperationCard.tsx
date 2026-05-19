@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Pill, type PillVariant } from "@/components/ui/Pill";
 import type { OperationCardData } from "@/lib/db/queries/operations";
+import { formatCycleTypeShort } from "@/lib/utils/cycle-type";
 import { formatDateShortBR } from "@/lib/utils/date";
 
 const PRODUCT_LINE_LABEL: Record<OperationCardData["productLine"], string> = {
@@ -63,7 +64,7 @@ export function OperationCard({ data }: { data: OperationCardData }) {
           </span>
           {firstFrente && (
             <Pill variant="neutral">
-              Tipo {firstFrente.cycle_type.toUpperCase()}
+              {formatCycleTypeShort(firstFrente.cycle_type)}
             </Pill>
           )}
         </div>

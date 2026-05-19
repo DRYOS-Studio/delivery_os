@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Pill, type PillVariant } from "@/components/ui/Pill";
 import type { PersonAllocationItem } from "@/lib/db/queries/persons";
+import { formatCycleTypeShort } from "@/lib/utils/cycle-type";
 
 const ROLE_LABEL: Record<PersonAllocationItem["role"], string> = {
   responsavel: "Responsável",
@@ -96,7 +97,7 @@ export function PersonAllocationsSection({
                   <div className="col-span-5 text-ink-soft">{a.frente.name}</div>
                   <div className="col-span-2">
                     <Pill variant="oak">
-                      Tipo {a.frente.cycleType.toUpperCase()}
+                      {formatCycleTypeShort(a.frente.cycleType)}
                     </Pill>
                   </div>
                   <div className="col-span-3">

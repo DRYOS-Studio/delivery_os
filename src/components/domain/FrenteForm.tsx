@@ -14,6 +14,11 @@ import {
 } from "@/lib/actions/frentes";
 import type { FrenteRow } from "@/lib/db/queries/frentes";
 import type { InternalPersonItem } from "@/lib/db/queries/persons";
+import {
+  CYCLE_TYPE_VALUES,
+  formatCycleTypeLong,
+  type CycleType,
+} from "@/lib/utils/cycle-type";
 import { daysSince } from "@/lib/utils/staleness";
 import {
   frenteSchema,
@@ -36,13 +41,9 @@ type Props = (
     }
 ) & { isAdmin?: boolean };
 
-const CYCLE_OPTIONS: { value: "a" | "b" | "c" | "d" | "e"; label: string }[] = [
-  { value: "a", label: "A — Finito puro (Studio one-off)" },
-  { value: "b", label: "B — Finito → recorrente" },
-  { value: "c", label: "C — Contínuo (Core, Sparks)" },
-  { value: "d", label: "D — Episódico recorrente (Launch)" },
-  { value: "e", label: "E — Manutenção (Evergreen)" },
-];
+const CYCLE_OPTIONS: { value: CycleType; label: string }[] = CYCLE_TYPE_VALUES.map(
+  (value) => ({ value, label: formatCycleTypeLong(value) }),
+);
 
 const DOMAIN_OPTIONS: { value: FrenteOutput["domain"]; label: string }[] = [
   { value: "infra", label: "Infra" },
