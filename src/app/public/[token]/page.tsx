@@ -3,23 +3,27 @@ import { PublicAchievementsList } from "@/components/domain/PublicAchievementsLi
 import { PublicAttachmentsList } from "@/components/domain/PublicAttachmentsList";
 import { PublicFrentesList } from "@/components/domain/PublicFrentesList";
 import { PublicHero } from "@/components/domain/PublicHero";
+import { PublicNextMovesList } from "@/components/domain/PublicNextMovesList";
+import { PublicReportBanner } from "@/components/domain/PublicReportBanner";
+import { PublicReportHero } from "@/components/domain/PublicReportHero";
 import { PublicSLAList } from "@/components/domain/PublicSLAList";
+import { PublicTeamGrid } from "@/components/domain/PublicTeamGrid";
 import { PublicTimeline } from "@/components/domain/PublicTimeline";
 import { PublicVillainsList } from "@/components/domain/PublicVillainsList";
 import { TabsNav, type TabDef } from "@/components/ui/TabsNav";
 import { listPublicIncidents } from "@/lib/db/queries/incidents";
-import { listPublicVillains } from "@/lib/db/queries/operation-villains";
-import { listPublicQuickWins } from "@/lib/db/queries/quick-wins";
 import {
   getOperationPublicView,
   listPublicAttachments,
   listPublicDecisions,
   listPublicMeetings,
 } from "@/lib/db/queries/public";
+import { getReportContext } from "@/lib/db/queries/public-report";
 import {
   getPublicLinkByToken,
   touchPublicLinkAccess,
 } from "@/lib/db/queries/publicLinks";
+import { getCurrentPeriod } from "@/lib/utils/period";
 
 export const dynamic = "force-dynamic";
 
@@ -56,17 +60,18 @@ export default async function Page({
 
   await touchPublicLinkAccess(link.id);
 
-  const [op, meetings, decisions, attachments, incidents, villains, quickWins] =
+  const period = getCurrentPeriod();
+
+  const [op, meetings, decisions, attachments, incidents, report] =
     await Promise.all([
       getOperationPublicView(link.operationId),
       listPublicMeetings(link.operationId),
       listPublicDecisions(link.operationId),
       listPublicAttachments(link.operationId),
       listPublicIncidents(link.operationId),
-      listPublicVillains(link.operationId),
-      listPublicQuickWins(link.operationId),
+      getReportContext(link.operationId, period),
     ]);
-  if (!op) notFound();
+  if (!op || !report) notFound();
 
   const { tab: tabRaw } = await searchParams;
   const tab = normalizePublicTab(tabRaw);
@@ -83,9 +88,16 @@ export default async function Page({
     { key: "sla", label: "SLA", count: incidents.length },
   ];
 
+  const periodLabel = `${period.monthLabel} ${period.year}`;
+
   return (
     <>
-      <PublicHero op={op} />
+      <PublicReportBanner
+        clientName={op.clientName}
+        periodLabel={periodLabel}
+      />
+
+      {tab !== "visao" && <PublicHero op={op} />}
 
       <TabsNav<PublicTabKey>
         tabs={tabs}
@@ -95,8 +107,19 @@ export default async function Page({
 
       {tab === "visao" && (
         <>
-          <PublicVillainsList items={villains} />
-          <PublicAchievementsList items={quickWins} />
+          <PublicReportHero data={report.heroData} />
+          <PublicVillainsList
+            items={report.villains}
+            narrativesByVillainId={report.narrativesByVillainId}
+          />
+          <PublicAchievementsList
+            items={report.quickWins}
+            headerLabel="Conquistas do mês"
+            headerMeta={report.quickWinsHeaderMeta}
+            emptyStateText={`Nenhuma conquista registrada em ${period.monthLabel}. As próximas chegam logo.`}
+          />
+          <PublicNextMovesList items={report.nextMoves} />
+          <PublicTeamGrid people={report.team} />
         </>
       )}
 

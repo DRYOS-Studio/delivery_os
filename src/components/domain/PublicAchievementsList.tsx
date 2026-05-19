@@ -8,18 +8,47 @@ import { formatDateBR } from "@/lib/utils/date";
 
 export function PublicAchievementsList({
   items,
+  headerLabel = "Conquistas recentes",
+  headerMeta,
+  emptyStateText,
 }: {
   items: QuickWinListItem[];
+  headerLabel?: string;
+  headerMeta?: string;
+  emptyStateText?: string;
 }): React.JSX.Element {
-  if (items.length === 0) return <></>;
+  if (items.length === 0) {
+    if (!emptyStateText) return <></>;
+    return (
+      <section className="mb-10">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <h2 className="font-display text-lg text-ink font-semibold">
+            {headerLabel}
+          </h2>
+          {headerMeta && (
+            <span className="font-mono text-[10px] uppercase tracking-wide text-mute">
+              {headerMeta}
+            </span>
+          )}
+        </div>
+        <p className="text-sm text-mute py-4 italic">{emptyStateText}</p>
+      </section>
+    );
+  }
 
   return (
-    <section className="mb-9">
-      <div className="flex items-center gap-2 mb-4">
+    <section className="mb-10">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <h2 className="font-display text-lg text-ink font-semibold">
-          Conquistas recentes
+          {headerLabel}
         </h2>
-        <Pill variant="neutral">{items.length}</Pill>
+        {headerMeta ? (
+          <span className="font-mono text-[10px] uppercase tracking-wide text-mute">
+            {headerMeta}
+          </span>
+        ) : (
+          <Pill variant="neutral">{items.length}</Pill>
+        )}
       </div>
 
       <ul className="space-y-3">

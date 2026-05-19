@@ -12,11 +12,17 @@ export function OperationVillainsSection({
   availableVillains,
   operationId,
   isAdmin = false,
+  currentPeriodYyyymm,
+  currentPeriodLabel,
+  narrativesByVillainId,
 }: {
   items: OperationVillainListItem[];
   availableVillains: AvailableVillain[];
   operationId: string;
   isAdmin?: boolean;
+  currentPeriodYyyymm: string;
+  currentPeriodLabel: string;
+  narrativesByVillainId: Record<string, string>;
 }): React.JSX.Element {
   return (
     <section className="mb-9">
@@ -43,7 +49,14 @@ export function OperationVillainsSection({
       ) : (
         <ul className="space-y-3">
           {items.map((item) => (
-            <OperationVillainRow key={item.id} item={item} isAdmin={isAdmin} />
+            <OperationVillainRow
+              key={item.id}
+              item={item}
+              isAdmin={isAdmin}
+              currentPeriodYyyymm={currentPeriodYyyymm}
+              currentPeriodLabel={currentPeriodLabel}
+              existingNarrative={narrativesByVillainId[item.villainId] ?? ""}
+            />
           ))}
         </ul>
       )}

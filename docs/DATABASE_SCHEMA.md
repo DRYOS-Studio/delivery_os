@@ -1,6 +1,6 @@
 # Database Schema
 
-**Última análise**: 2026-05-18 (salary-based-costs)
+**Última análise**: 2026-05-19 (link-publico-narrativa)
 **Projeto Supabase**: `Delivery OS` (`tmsaucxoeqpfluzwrwkc`)
 **Schema**: `public`
 
@@ -22,12 +22,12 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 | **Acesso público** | `public_links` | 1 |
 | **SLA** | `sla_incidents` | 1 |
 | **Vilões (catálogo)** | `villains` | 1 |
-| **Operação × Vilão** | `operation_villains` | 1 |
+| **Operação × Vilão** | `operation_villains`, `operation_villain_narratives` | 2 |
 | **Diagnóstico** | `diagnostics` | 1 |
 | **Quick Wins** | `quick_wins`, `quick_win_impacts` | 2 |
 | **Profiles** | `profiles` | 1 |
 | **Operação · Custos** | `operation_costs` | 1 |
-| **Total atual** | | **21** |
+| **Total atual** | | **22** |
 
 ---
 
@@ -392,6 +392,27 @@ Index `idx_operation_villains_operation_created` (operation_id, created_at DESC)
 
 ---
 
+### `operation_villain_narratives` — narrativa mensal por vilão da Operação
+
+Texto narrativo do progresso de um vilão naquela Operação em um mês específico. Editável pelo time interno; lido no link público pra montar o "relatório premium" do mês. Versionado por mês — relatório de Maio pode ter narrativa diferente do de Junho pro mesmo vilão.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `operation_id` | uuid NOT NULL → operations (CASCADE) | |
+| `villain_id` | uuid NOT NULL → villains (RESTRICT) | |
+| `period_yyyymm` | text NOT NULL | CHECK regex `^\d{4}-(0[1-9]\|1[0-2])$` |
+| `narrative_text` | text NOT NULL | CHECK `length(trim()) >= 20` |
+| `created_at`, `updated_at` | timestamptz | trigger `trg_ovn_updated_at` |
+
+UNIQUE(operation_id, villain_id, period_yyyymm) — 1 narrativa por op×vilão×mês. Upsert via `ON CONFLICT`.
+
+Index `idx_ovn_op_period` (operation_id, period_yyyymm) — read do relatório por período.
+
+RLS `ovn_authenticated_full` (Inv. 12); leitura pública via `createAdmin` server-side em `listVillainNarratives`.
+
+---
+
 ### `diagnostics` — diagnóstico precede a Operação
 
 1 por cliente no MVP (UNIQUE). Notes em prosa + recommended_product opcional.
@@ -525,6 +546,7 @@ RLS:
 | 20260518020001 | operation_costs | 2026-05-18 (via MCP) |
 | 20260518030001 | salary_based_costs | 2026-05-18 (via MCP) |
 | 20260518030002 | allocation_monthly_cost | 2026-05-18 (via MCP) |
+| 20260518040001 | operation_villain_narratives | 2026-05-19 (via MCP) |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações

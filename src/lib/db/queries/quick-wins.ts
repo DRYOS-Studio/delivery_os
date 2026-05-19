@@ -178,3 +178,51 @@ export async function listPublicQuickWins(
   if (!data) return [];
   return (data as RawQW[]).map((r) => mapRow(r, new Map()));
 }
+
+function periodRange(yyyymm: string): { gte: string; lt: string } | null {
+  const m = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(yyyymm);
+  if (!m) return null;
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  const nextYear = month === 12 ? year + 1 : year;
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const gte = `${year}-${String(month).padStart(2, "0")}-01`;
+  const lt = `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`;
+  return { gte, lt };
+}
+
+export async function listPublicQuickWinsByPeriod(
+  operationId: string,
+  yyyymm: string,
+): Promise<QuickWinListItem[]> {
+  const range = periodRange(yyyymm);
+  if (!range) return [];
+  const admin = createAdmin();
+  const { data, error } = await admin
+    .from("quick_wins")
+    .select(SELECT_FIELDS)
+    .eq("operation_id", operationId)
+    .gte("happened_at", range.gte)
+    .lt("happened_at", range.lt)
+    .order("happened_at", { ascending: false });
+  if (error) throw new Error(`listPublicQuickWinsByPeriod: ${error.message}`);
+  if (!data) return [];
+  return (data as RawQW[]).map((r) => mapRow(r, new Map()));
+}
+
+export async function countQuickWinsByPeriod(
+  operationId: string,
+  yyyymm: string,
+): Promise<number> {
+  const range = periodRange(yyyymm);
+  if (!range) return 0;
+  const admin = createAdmin();
+  const { count, error } = await admin
+    .from("quick_wins")
+    .select("id", { count: "exact", head: true })
+    .eq("operation_id", operationId)
+    .gte("happened_at", range.gte)
+    .lt("happened_at", range.lt);
+  if (error) throw new Error(`countQuickWinsByPeriod: ${error.message}`);
+  return count ?? 0;
+}

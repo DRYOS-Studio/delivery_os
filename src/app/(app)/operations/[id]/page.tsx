@@ -32,7 +32,9 @@ import {
 import { getOperation } from "@/lib/db/queries/operations";
 import { listPublicLinksByOperation } from "@/lib/db/queries/publicLinks";
 import { listQuickWinsByOperation } from "@/lib/db/queries/quick-wins";
+import { listVillainNarratives } from "@/lib/db/queries/villain-narratives";
 import { relativeFromNow } from "@/lib/utils/date";
+import { getCurrentPeriod } from "@/lib/utils/period";
 import { getBaseUrl } from "@/lib/utils/url";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -82,6 +84,7 @@ export default async function Page({
   const profile = await getProfile();
   const isAdmin = profile?.role === "admin";
 
+  const currentPeriod = getCurrentPeriod();
   const [
     op,
     briefingFreshness,
@@ -97,6 +100,7 @@ export default async function Page({
     availableVillains,
     quickWins,
     costsBreakdown,
+    villainNarratives,
   ] = await Promise.all([
     getOperation(id),
     getBriefingFreshness(id),
@@ -112,6 +116,7 @@ export default async function Page({
     listAvailableVillains(id),
     listQuickWinsByOperation(id),
     getOperationMonthlyCosts(id),
+    listVillainNarratives(id, currentPeriod.yyyymm),
   ]);
   if (!op) notFound();
 
@@ -166,6 +171,9 @@ export default async function Page({
             availableVillains={availableVillains}
             operationId={op.id}
             isAdmin={isAdmin}
+            currentPeriodYyyymm={currentPeriod.yyyymm}
+            currentPeriodLabel={`${currentPeriod.monthLabel} ${currentPeriod.year}`}
+            narrativesByVillainId={villainNarratives}
           />
           <QuickWinsSection
             quickWins={quickWins}
