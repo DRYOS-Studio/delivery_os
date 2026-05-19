@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { VillainCard } from "@/components/domain/VillainCard";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { getProfile } from "@/lib/auth/server";
@@ -12,8 +13,16 @@ export default async function Page() {
   return (
     <>
       <PageHeader
-        title="Catálogo"
+        title="Catálogo · Vilões"
         subtitle={`Universo de marca: os ${activeCount} vilões da ineficiência operacional.`}
+        actions={
+          <Link
+            href="/catalog/products"
+            className="font-mono text-xs text-oak hover:underline"
+          >
+            Ver produtos →
+          </Link>
+        }
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

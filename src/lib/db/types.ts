@@ -400,6 +400,7 @@ export type Database = {
           name: string
           operation_id: string
           phase: Database["public"]["Enums"]["frente_phase"]
+          product_id: string | null
           responsible_person_id: string | null
           start_date: string | null
           updated_at: string
@@ -416,6 +417,7 @@ export type Database = {
           name: string
           operation_id: string
           phase?: Database["public"]["Enums"]["frente_phase"]
+          product_id?: string | null
           responsible_person_id?: string | null
           start_date?: string | null
           updated_at?: string
@@ -432,6 +434,7 @@ export type Database = {
           name?: string
           operation_id?: string
           phase?: Database["public"]["Enums"]["frente_phase"]
+          product_id?: string | null
           responsible_person_id?: string | null
           start_date?: string | null
           updated_at?: string
@@ -442,6 +445,13 @@ export type Database = {
             columns: ["operation_id"]
             isOneToOne: false
             referencedRelation: "operations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_frentes_product_id"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "service_products"
             referencedColumns: ["id"]
           },
           {
@@ -952,6 +962,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      service_products: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          default_cycle_type:
+            | Database["public"]["Enums"]["frente_cycle_type"]
+            | null
+          description: string | null
+          id: string
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          default_cycle_type?:
+            | Database["public"]["Enums"]["frente_cycle_type"]
+            | null
+          description?: string | null
+          id?: string
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          default_cycle_type?:
+            | Database["public"]["Enums"]["frente_cycle_type"]
+            | null
+          description?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       sla_incidents: {
         Row: {

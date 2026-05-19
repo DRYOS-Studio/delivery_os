@@ -23,6 +23,7 @@ function parseFormData(formData: FormData) {
     responsible_person_id: (
       (formData.get("responsible_person_id") as string | null) ?? ""
     ).trim(),
+    product_id: ((formData.get("product_id") as string | null) ?? "").trim(),
     start_date: ((formData.get("start_date") as string | null) ?? "").trim(),
     end_date: ((formData.get("end_date") as string | null) ?? "").trim(),
   };
@@ -42,6 +43,9 @@ function validate(formData: FormData) {
 
 function mapDbError(error: PostgresError) {
   if (error.code === "23503") {
+    if (error.message.includes("product_id")) {
+      return err("Produto inválido.", "validation_product_id");
+    }
     return err("Operação ou Responsável inválido.", "invalid_fk");
   }
   if (error.code === "23514") {
@@ -76,6 +80,7 @@ export async function createFrenteAction(
       actionable_status: data.actionable_status,
       actionable_status_since: new Date().toISOString(),
       responsible_person_id: data.responsible_person_id ?? null,
+      product_id: data.product_id ?? null,
       start_date: data.start_date ?? null,
       end_date: data.end_date ?? null,
     })
@@ -117,6 +122,7 @@ export async function updateFrenteAction(
     phase: data.phase,
     actionable_status: data.actionable_status,
     responsible_person_id: data.responsible_person_id ?? null,
+    product_id: data.product_id ?? null,
     start_date: data.start_date ?? null,
     end_date: data.end_date ?? null,
     ...(statusChanged && {
