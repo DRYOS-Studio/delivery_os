@@ -24,7 +24,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DRYOS Delivery",
+  title: "DRYOS Studio",
   description: "Sistema operacional interno da DRYOS.",
 };
 
