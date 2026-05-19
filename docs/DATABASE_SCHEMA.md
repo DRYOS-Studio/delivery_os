@@ -1,6 +1,6 @@
 # Database Schema
 
-**Última análise**: 2026-05-19 (link-publico-narrativa)
+**Última análise**: 2026-05-19 (service-products-catalog)
 **Projeto Supabase**: `Delivery OS` (`tmsaucxoeqpfluzwrwkc`)
 **Schema**: `public`
 
@@ -27,7 +27,8 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 | **Quick Wins** | `quick_wins`, `quick_win_impacts` | 2 |
 | **Profiles** | `profiles` | 1 |
 | **Operação · Custos** | `operation_costs` | 1 |
-| **Total atual** | | **22** |
+| **Catálogo · Produtos** | `service_products` | 1 |
+| **Total atual** | | **23** |
 
 ---
 
@@ -115,6 +116,7 @@ Status acionável validado no banco (CHECK).
 | `actionable_status` | text NOT NULL | CHECK `char_length >= 15` + NOT IN lista de genéricos |
 | `actionable_status_since` | timestamptz default now() | |
 | `responsible_person_id` | uuid → persons (SET NULL) | |
+| `product_id` | uuid → service_products (SET NULL) | opcional; produto comercial DRYOS associado |
 | `start_date`, `end_date` | date | |
 | `created_at`, `updated_at`, `archived_at` | timestamptz | |
 
@@ -413,6 +415,28 @@ RLS `ovn_authenticated_full` (Inv. 12); leitura pública via `createAdmin` serve
 
 ---
 
+### `service_products` — catálogo de produtos comerciais DRYOS
+
+12 produtos canônicos (Core, 5 Sparks, 5 Studios, Evergreen) seedados na migration. Referenciado opcionalmente por Frentes via `frentes.product_id`. Archive-only via `archived_at` (Frente que aponta pra produto arquivado continua válida; pill no select filtra ativos).
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `name` | text NOT NULL | CHECK `length(trim()) >= 2` |
+| `slug` | text NOT NULL UNIQUE | CHECK regex `^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$` (URL-safe kebab-case) |
+| `description` | text | opcional, livre |
+| `default_cycle_type` | enum `frente_cycle_type` | nullable; sugestão de ciclo ao usar este produto na Frente |
+| `archived_at` | timestamptz | soft delete |
+| `created_at`, `updated_at` | timestamptz | trigger updated_at |
+
+Index `idx_service_products_slug` (UNIQUE) + `idx_service_products_archived_active` parcial em `(name)` WHERE archived_at IS NULL.
+
+RLS `service_products_authenticated_full` (Inv. 12); mutações via Server Actions admin-only.
+
+**FK relacionada**: `frentes.product_id uuid` nullable → `service_products(id)` ON DELETE SET NULL.
+
+---
+
 ### `diagnostics` — diagnóstico precede a Operação
 
 1 por cliente no MVP (UNIQUE). Notes em prosa + recommended_product opcional.
@@ -547,6 +571,7 @@ RLS:
 | 20260518030001 | salary_based_costs | 2026-05-18 (via MCP) |
 | 20260518030002 | allocation_monthly_cost | 2026-05-18 (via MCP) |
 | 20260518040001 | operation_villain_narratives | 2026-05-19 (via MCP) |
+| 20260519160001 | service_products | 2026-05-19 (via MCP) |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações

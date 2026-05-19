@@ -10,6 +10,7 @@ import {
 } from "@/lib/db/queries/frentes";
 import { getOperation } from "@/lib/db/queries/operations";
 import { listInternalPersons } from "@/lib/db/queries/persons";
+import { listActiveServiceProducts } from "@/lib/db/queries/service-products";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -21,13 +22,15 @@ export default async function Page({
   const { id, fid } = await params;
   if (!UUID_RE.test(id) || !UUID_RE.test(fid)) redirect("/operations");
 
-  const [op, frente, hasAllocs, persons, allocations] = await Promise.all([
-    getOperation(id),
-    getFrente(fid),
-    frenteHasActiveAllocations(fid),
-    listInternalPersons(),
-    listAllocationsByFrente(fid),
-  ]);
+  const [op, frente, hasAllocs, persons, allocations, products] =
+    await Promise.all([
+      getOperation(id),
+      getFrente(fid),
+      frenteHasActiveAllocations(fid),
+      listInternalPersons(),
+      listAllocationsByFrente(fid),
+      listActiveServiceProducts(),
+    ]);
   if (!op) redirect("/operations");
   if (!frente) redirect(`/operations/${id}`);
   if (frente.operation_id !== id) redirect(`/operations/${id}`);
@@ -46,6 +49,7 @@ export default async function Page({
         initialData={frente}
         operationId={id}
         internalPersons={persons}
+        products={products}
         canArchive={!hasAllocs}
         isAdmin={isAdmin}
       />

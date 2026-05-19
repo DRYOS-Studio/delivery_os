@@ -24,6 +24,11 @@ const optionalUuid = z.preprocess(
   z.string().uuid("Responsável inválido.").optional(),
 );
 
+const optionalProductUuid = z.preprocess(
+  emptyToUndefined,
+  z.string().uuid("Produto inválido.").optional(),
+);
+
 export const frenteSchema = z
   .object({
     name: z
@@ -49,6 +54,7 @@ export const frenteSchema = z
         'Status muito genérico. Use o formato "aguardando X de Y desde Z".',
       ),
     responsible_person_id: optionalUuid,
+    product_id: optionalProductUuid,
     start_date: dateString,
     end_date: dateString,
   })

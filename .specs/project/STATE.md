@@ -1,7 +1,7 @@
 # State
 
 **Last Updated:** 2026-05-19
-**Current Work:** `link-publico-narrativa` — COMPLETE (issue #67). 6 seções do mockup renderizadas no `/public/[token]` aba Visão; narrativa por vilão versionada por mês via `operation_villain_narratives`. Próximos: fila do `catalog-admin` (issues #64, #65, #66) + integrações n8n + dark-mode + polish-migration.
+**Current Work:** `service-products-catalog` — COMPLETE (issue #66). Tabela `service_products` (12 produtos seed: Core, 5 Sparks, 5 Studios, Evergreen); FK opcional `frentes.product_id` ON DELETE SET NULL; CRUD admin em `/catalog/products`; FrenteForm com select de produto + auto-fill de cycle_type. Anteriormente na sessão: #65 Frente labels (PR #71 merged), #69 polish/rebrand DRYOS Studio (PR #70 merged), #67 link público narrativo (PR #68 merged). Próximos: #64 Quick Wins CRUD, integrações n8n, dark-mode, polish-migration.
 
 ---
 

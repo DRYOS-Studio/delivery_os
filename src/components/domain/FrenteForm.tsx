@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/Button";
 import { StalenessPill } from "@/components/ui/StalenessPill";
@@ -14,6 +14,7 @@ import {
 } from "@/lib/actions/frentes";
 import type { FrenteRow } from "@/lib/db/queries/frentes";
 import type { InternalPersonItem } from "@/lib/db/queries/persons";
+import type { ServiceProductListItem } from "@/lib/db/queries/service-products";
 import {
   CYCLE_TYPE_VALUES,
   formatCycleTypeLong,
@@ -31,12 +32,14 @@ type Props = (
       mode: "create";
       operationId: string;
       internalPersons: InternalPersonItem[];
+      products: ServiceProductListItem[];
     }
   | {
       mode: "edit";
       initialData: FrenteRow;
       operationId: string;
       internalPersons: InternalPersonItem[];
+      products: ServiceProductListItem[];
       canArchive: boolean;
     }
 ) & { isAdmin?: boolean };
@@ -89,6 +92,7 @@ export function FrenteForm(props: Props): React.JSX.Element {
         actionable_status: props.initialData.actionable_status,
         responsible_person_id:
           props.initialData.responsible_person_id ?? undefined,
+        product_id: props.initialData.product_id ?? undefined,
         start_date: props.initialData.start_date ?? undefined,
         end_date: props.initialData.end_date ?? undefined,
       }
@@ -99,6 +103,7 @@ export function FrenteForm(props: Props): React.JSX.Element {
         phase: "descoberta",
         actionable_status: "",
         responsible_person_id: undefined,
+        product_id: undefined,
         start_date: undefined,
         end_date: undefined,
       };
@@ -117,6 +122,7 @@ export function FrenteForm(props: Props): React.JSX.Element {
 
   const busy = isSubmitting || isArchiving;
   const watchedCycle = watch("cycle_type");
+  const watchedProductId = watch("product_id");
   const endDateDisabled =
     watchedCycle === "c" || watchedCycle === "e" || busy;
   const endDateHint =
@@ -131,6 +137,23 @@ export function FrenteForm(props: Props): React.JSX.Element {
     }
   }, [watchedCycle, setValue]);
 
+  // Auto-preenche cycle_type quando admin escolhe produto com default_cycle_type.
+  // Skip do primeiro render pra não sobrescrever cycle_type em edit pré-carregado.
+  const initialMountRef = useRef(true);
+  useEffect(() => {
+    if (initialMountRef.current) {
+      initialMountRef.current = false;
+      return;
+    }
+    if (!watchedProductId) return;
+    const product = props.products.find((p) => p.id === watchedProductId);
+    if (product?.defaultCycleType) {
+      setValue("cycle_type", product.defaultCycleType, {
+        shouldValidate: false,
+      });
+    }
+  }, [watchedProductId, props.products, setValue]);
+
   async function onSubmit(data: FrenteOutput) {
     setGeneralError(null);
     const fd = new FormData();
@@ -140,6 +163,7 @@ export function FrenteForm(props: Props): React.JSX.Element {
     fd.set("phase", data.phase);
     fd.set("actionable_status", data.actionable_status);
     fd.set("responsible_person_id", data.responsible_person_id ?? "");
+    fd.set("product_id", data.product_id ?? "");
     fd.set("start_date", data.start_date ?? "");
     fd.set("end_date", data.end_date ?? "");
 
@@ -190,6 +214,31 @@ export function FrenteForm(props: Props): React.JSX.Element {
           autoFocus={!isEdit}
           className={inputCn}
         />
+      </Field>
+
+      <Field
+        label="Produto / Serviço"
+        htmlFor="product_id"
+        error={errors.product_id?.message}
+        hint={
+          props.products.length === 0
+            ? "Nenhum produto disponível — cadastre em /catalog/products."
+            : "Opcional. Escolher um produto pré-preenche o tipo de ciclo."
+        }
+      >
+        <select
+          id="product_id"
+          {...register("product_id")}
+          disabled={busy || props.products.length === 0}
+          className={inputCn}
+        >
+          <option value="">— sem produto —</option>
+          {props.products.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
       </Field>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
