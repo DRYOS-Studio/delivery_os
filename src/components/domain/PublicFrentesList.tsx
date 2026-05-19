@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import type { PublicOperationView } from "@/lib/db/queries/public";
+import { formatCycleTypeShort } from "@/lib/utils/cycle-type";
 import { relativeFromNow } from "@/lib/utils/date";
 
 const DOMAIN_LABEL = {
@@ -52,7 +53,7 @@ export function PublicFrentesList({
                       {f.name}
                     </span>
                     <Pill variant="oak">
-                      Tipo {f.cycleType.toUpperCase()}
+                      {formatCycleTypeShort(f.cycleType)}
                     </Pill>
                     <Pill variant="neutral">{DOMAIN_LABEL[f.domain]}</Pill>
                     <Pill variant={PHASE_VARIANT[f.phase]}>

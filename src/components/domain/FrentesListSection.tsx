@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Pill, type PillVariant } from "@/components/ui/Pill";
 import { StalenessPill } from "@/components/ui/StalenessPill";
 import type { FrenteListItem } from "@/lib/db/queries/operations";
+import { formatCycleTypeShort } from "@/lib/utils/cycle-type";
 import { getInitials } from "@/lib/utils/initials";
 
 const DOMAIN_LABEL: Record<FrenteListItem["domain"], string> = {
@@ -86,7 +87,7 @@ export function FrentesListSection({
                   </Pill>
                 </div>
                 <div className="col-span-1">
-                  <Pill variant="oak">Tipo {f.cycleType.toUpperCase()}</Pill>
+                  <Pill variant="oak">{formatCycleTypeShort(f.cycleType)}</Pill>
                 </div>
                 <div className="col-span-2">
                   <Pill variant="neutral">{DOMAIN_LABEL[f.domain]}</Pill>

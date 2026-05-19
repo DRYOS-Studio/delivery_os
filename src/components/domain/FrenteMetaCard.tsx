@@ -3,6 +3,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Pill, type PillVariant } from "@/components/ui/Pill";
 import { StalenessPill } from "@/components/ui/StalenessPill";
 import type { FrenteDetail } from "@/lib/db/queries/frentes";
+import { formatCycleTypeShort } from "@/lib/utils/cycle-type";
 import { getInitials } from "@/lib/utils/initials";
 
 const DOMAIN_LABEL: Record<FrenteDetail["domain"], string> = {
@@ -33,7 +34,7 @@ export function FrenteMetaCard({
   return (
     <section className="mb-7 bg-card border border-line rounded p-5">
       <div className="flex flex-wrap items-center gap-2 mb-3">
-        <Pill variant="oak">Tipo {frente.cycleType.toUpperCase()}</Pill>
+        <Pill variant="oak">{formatCycleTypeShort(frente.cycleType)}</Pill>
         <Pill variant="neutral">{DOMAIN_LABEL[frente.domain]}</Pill>
         <Pill variant={PHASE_VARIANT[frente.phase]}>
           {PHASE_LABEL[frente.phase]}

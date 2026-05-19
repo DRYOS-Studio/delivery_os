@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { StalenessPill } from "@/components/ui/StalenessPill";
 import type { FrenteAttentionItem } from "@/lib/db/queries/frentes";
+import { formatCycleTypeShort } from "@/lib/utils/cycle-type";
 import { getInitials } from "@/lib/utils/initials";
 
 function truncate(s: string, n = 80): string {
@@ -57,7 +58,7 @@ export function FrentesAttentionSection({
                         {f.name}
                       </Link>
                       <Pill variant="oak">
-                        Tipo {f.cycleType.toUpperCase()}
+                        {formatCycleTypeShort(f.cycleType)}
                       </Pill>
                       <StalenessPill since={f.actionableStatusSince} />
                     </div>
