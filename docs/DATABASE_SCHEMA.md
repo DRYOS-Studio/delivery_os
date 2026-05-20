@@ -1,6 +1,6 @@
 # Database Schema
 
-**Última análise**: 2026-05-19 (service-products-catalog)
+**Última análise**: 2026-05-20 (quick-wins-catalog)
 **Projeto Supabase**: `Delivery OS` (`tmsaucxoeqpfluzwrwkc`)
 **Schema**: `public`
 
@@ -28,7 +28,8 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 | **Profiles** | `profiles` | 1 |
 | **Operação · Custos** | `operation_costs` | 1 |
 | **Catálogo · Produtos** | `service_products` | 1 |
-| **Total atual** | | **23** |
+| **Catálogo · Quick Wins** | `quick_win_catalog` | 1 |
+| **Total atual** | | **24** |
 
 ---
 
@@ -437,6 +438,28 @@ RLS `service_products_authenticated_full` (Inv. 12); mutações via Server Actio
 
 ---
 
+### `quick_win_catalog` — catálogo de tipos de Quick Win
+
+21 tipos canônicos cobrindo 7 vilões (3 cada) seedados na migration. Cada tipo tem vilão sugerido (opcional) e impacto sugerido (1-100, opcional). Admin gerencia em `/catalog/quick-wins`. Quando QW é criada numa Operação, usuário pode escolher tipo do catálogo que pré-preenche título/descrição e adiciona impacto sugerido (se vilão está na Op). Sem rastreabilidade de origem na QW criada (v2).
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `title` | text NOT NULL | CHECK `length(trim()) BETWEEN 3 AND 120` |
+| `description` | text | opcional, livre |
+| `suggested_villain_id` | uuid → villains (SET NULL) | nullable; vilão tipicamente atacado |
+| `default_impact_pct` | smallint | nullable; CHECK 1-100 quando preenchido |
+| `archived_at` | timestamptz | soft delete |
+| `created_at`, `updated_at` | timestamptz | trigger updated_at |
+
+UNIQUE expression index `idx_qwc_title_unique_ci` em `lower(trim(title))` evita duplicatas case-insensitive.
+
+Index `idx_qwc_archived_active` parcial em `(title)` WHERE archived_at IS NULL.
+
+RLS `qwc_authenticated_full` (Inv. 12); mutações via Server Actions admin-only.
+
+---
+
 ### `diagnostics` — diagnóstico precede a Operação
 
 1 por cliente no MVP (UNIQUE). Notes em prosa + recommended_product opcional.
@@ -572,6 +595,7 @@ RLS:
 | 20260518030002 | allocation_monthly_cost | 2026-05-18 (via MCP) |
 | 20260518040001 | operation_villain_narratives | 2026-05-19 (via MCP) |
 | 20260519160001 | service_products | 2026-05-19 (via MCP) |
+| 20260520170001 | quick_win_catalog | 2026-05-20 (via MCP) |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações

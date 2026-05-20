@@ -31,6 +31,7 @@ import {
 } from "@/lib/db/queries/operation-villains";
 import { getOperation } from "@/lib/db/queries/operations";
 import { listPublicLinksByOperation } from "@/lib/db/queries/publicLinks";
+import { listActiveQuickWinCatalog } from "@/lib/db/queries/quick-win-catalog";
 import { listQuickWinsByOperation } from "@/lib/db/queries/quick-wins";
 import { listVillainNarratives } from "@/lib/db/queries/villain-narratives";
 import { relativeFromNow } from "@/lib/utils/date";
@@ -101,6 +102,7 @@ export default async function Page({
     quickWins,
     costsBreakdown,
     villainNarratives,
+    quickWinCatalogItems,
   ] = await Promise.all([
     getOperation(id),
     getBriefingFreshness(id),
@@ -117,6 +119,7 @@ export default async function Page({
     listQuickWinsByOperation(id),
     getOperationMonthlyCosts(id),
     listVillainNarratives(id, currentPeriod.yyyymm),
+    listActiveQuickWinCatalog(),
   ]);
   if (!op) notFound();
 
@@ -183,6 +186,7 @@ export default async function Page({
               id: f.id,
               name: f.name,
             }))}
+            catalogItems={quickWinCatalogItems}
             isAdmin={isAdmin}
           />
           <FinanceCards op={op} isAdmin={isAdmin} />

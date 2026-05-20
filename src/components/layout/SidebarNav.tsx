@@ -11,6 +11,7 @@ import {
   Package,
   Settings,
   Skull,
+  Trophy,
   Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -103,6 +104,7 @@ export function SidebarNav({
         children: [
           { href: "/catalog", label: "Vilões", icon: Skull, exactMatch: true },
           { href: "/catalog/products", label: "Produtos", icon: Package },
+          { href: "/catalog/quick-wins", label: "Quick Wins", icon: Trophy },
         ],
       },
       { href: "/admin", label: "Admin", icon: Settings, exactMatch: true },
