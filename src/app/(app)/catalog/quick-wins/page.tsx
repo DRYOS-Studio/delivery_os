@@ -1,17 +1,28 @@
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { QuickWinCatalogCard } from "@/components/domain/QuickWinCatalogCard";
+import { QuickWinCatalogRow } from "@/components/domain/QuickWinCatalogRow";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import {
+  CatalogViewToggle,
+  normalizeCatalogView,
+} from "@/components/ui/CatalogViewToggle";
 import { getProfile } from "@/lib/auth/server";
 import { listQuickWinCatalog } from "@/lib/db/queries/quick-win-catalog";
 
-export default async function Page() {
-  const [items, profile] = await Promise.all([
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string }>;
+}) {
+  const [items, profile, { view: viewRaw }] = await Promise.all([
     listQuickWinCatalog(),
     getProfile(),
+    searchParams,
   ]);
   const isAdmin = profile?.role === "admin";
+  const view = normalizeCatalogView(viewRaw);
   const active = items.filter((i) => i.archivedAt === null);
   const archived = items.filter((i) => i.archivedAt !== null);
 
@@ -22,6 +33,7 @@ export default async function Page() {
         subtitle={`${active.length} tipos ativos. Pré-fill no form de QW da Operação.`}
         actions={
           <>
+            <CatalogViewToggle basePath="/catalog/quick-wins" current={view} />
             <Link
               href="/catalog"
               className="font-mono text-xs text-oak hover:underline"
@@ -52,6 +64,12 @@ export default async function Page() {
             Nenhum tipo ativo. Cadastre o primeiro.
           </p>
         </div>
+      ) : view === "list" ? (
+        <div className="bg-card border border-line rounded divide-y divide-line">
+          {active.map((i) => (
+            <QuickWinCatalogRow key={i.id} item={i} isAdmin={isAdmin} />
+          ))}
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {active.map((i) => (
@@ -68,11 +86,19 @@ export default async function Page() {
               {archived.length}
             </span>
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {archived.map((i) => (
-              <QuickWinCatalogCard key={i.id} item={i} isAdmin={isAdmin} />
-            ))}
-          </div>
+          {view === "list" ? (
+            <div className="bg-card border border-line rounded divide-y divide-line">
+              {archived.map((i) => (
+                <QuickWinCatalogRow key={i.id} item={i} isAdmin={isAdmin} />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {archived.map((i) => (
+                <QuickWinCatalogCard key={i.id} item={i} isAdmin={isAdmin} />
+              ))}
+            </div>
+          )}
         </section>
       )}
     </>
