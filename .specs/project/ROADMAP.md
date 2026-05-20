@@ -1,7 +1,7 @@
 # Roadmap
 
 **Current Milestone:** Semana 05 — Painel Admin + integrações + polimento
-**Status:** Semanas 01–04 majoritariamente COMPLETE. Pendente: catálogo administrativo (parcial), integrações (Tally/Discord via n8n), dark-mode, polish-migration.
+**Status:** Semanas 01–04 COMPLETE (catalog-admin fechado, demais entregas + bônus). Pendente: integrações (Tally/Discord/SLA incidents via n8n), dark-mode, polish-migration.
 
 ---
 
@@ -76,13 +76,14 @@ Removida do MVP: custo de Bitwarden Teams (US$ 4/usuário/mês) evitável agora.
 **diagnostico-quickwins** - COMPLETE (vilões detectados + severidade inicial congelada + Quick Wins com impacto capped 100% por vilão)
 **operation-villains** - COMPLETE (progresso % derrotado, capped 0-100)
 
-**catalog-admin** - PARTIAL
+**catalog-admin** - COMPLETE (núcleo) · pendências adiadas
 
-- ✅ Vilões (CRUD admin completo)
-- ❌ Quick Wins catálogo editável (UI admin)
-- ❌ Tipos de Frente (catálogo administrativo — hoje hard-coded)
-- ❌ Templates Tally (entra junto com `tally-webhook` da semana 5)
-- ❌ Especialidades (catálogo de specialties pra pessoas internas)
+- ✅ Vilões (CRUD admin em `/catalog/villains` — entregue antes)
+- ✅ Produtos/Serviços DRYOS (`/catalog/products`, 12 seeds, FK opcional em Frente — #66 / PR #72)
+- ✅ Quick Wins catálogo (`/catalog/quick-wins`, 21 seeds, pré-fill no form de QW da Operação — #64 / PR #75)
+- ↩ Tipos de Frente — **descartado como catálogo**. Decisão: enum A-E permanece fixo no banco; labels polidos para legibilidade via #65 / PR #71 (`Tipo C · Contínuo`).
+- ⏳ Templates Tally — entra junto com `tally-webhook` da semana 5
+- ⏳ Especialidades — adiado pra v2 (texto livre em `persons.specialty` segue suficiente)
 
 ---
 
@@ -123,6 +124,13 @@ Features que entraram durante a execução do MVP e não estavam previstas:
 - **operation-tabs** — organização de `/operations/[id]` em abas (Visão, Vilões, Quick Wins, Frentes, Briefing, Reuniões, Decisões, Custos)
 - **operation-costs** — custo fixo mensal + ad-hoc (mensal/única) + alocações com cálculo automático
 - **salary-based-costs** — derivação de taxa horária a partir de salário + horas contratadas + valor mensal fechado por alocação
+- **link-publico-narrativa** (#67 / PR #68) — 6 seções do relatório premium em `/public/[token]` aba Visão; narrativa por vilão versionada por mês via `operation_villain_narratives`
+- **public-report-polish + DRYOS Studio rebrand** (#69 / PR #70) — hero gradient verde, vilões 3-col, conquistas grid, time alocado; sistema renomeado de "DRYOS Delivery" para "DRYOS Studio"
+- **frente-cycle-labels** (#65 / PR #71) — helper `formatCycleType{Short,Long}` substitui "TIPO C" sozinho por "Tipo C · Contínuo" em todas as pills/badges
+- **service-products-catalog** (#66 / PR #72) — novo catálogo de produtos DRYOS com FK opcional em Frente + auto-fill de cycle_type
+- **sidebar-catalog-submenu** (#73 / PR #74) — "Catálogos" vira nav expandível com Vilões/Produtos/Quick Wins como sub-items
+- **quick-wins-catalog** (#64 / PR #75) — entregue dentro do catalog-admin acima, listado aqui pra cross-reference
+- **catalog-view-toggle** (#76 / PR #77) — toggle Cards/Lista nas 3 páginas de catálogo via searchParam `?view=`
 
 ---
 
