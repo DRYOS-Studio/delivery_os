@@ -1,7 +1,7 @@
 # State
 
-**Last Updated:** 2026-05-19
-**Current Work:** `service-products-catalog` — COMPLETE (issue #66). Tabela `service_products` (12 produtos seed: Core, 5 Sparks, 5 Studios, Evergreen); FK opcional `frentes.product_id` ON DELETE SET NULL; CRUD admin em `/catalog/products`; FrenteForm com select de produto + auto-fill de cycle_type. Anteriormente na sessão: #65 Frente labels (PR #71 merged), #69 polish/rebrand DRYOS Studio (PR #70 merged), #67 link público narrativo (PR #68 merged). Próximos: #64 Quick Wins CRUD, integrações n8n, dark-mode, polish-migration.
+**Last Updated:** 2026-05-20
+**Current Work:** `quick-wins-catalog` — COMPLETE (issue #64). Tabela `quick_win_catalog` (21 tipos seed: 3 por vilão); admin CRUD em `/catalog/quick-wins`; QuickWinForm com select "Tipo do catálogo" que pré-preenche título/descrição/impacto sugerido. Sidebar "Catálogos" agora com 3 sub-items. Anteriormente: #73 sidebar expandable (PR #74), #66 service-products-catalog (PR #72), #65 Frente labels (PR #71), #69 polish/rebrand DRYOS Studio (PR #70), #67 link público narrativo (PR #68). **Catalog-admin (Semana 04) COMPLETE.** Próximos: integrações n8n (`tally-webhook`, `discord-notifications`, `sla-incidents-ingest`), `dark-mode`, `polish-migration`.
 
 ---
 

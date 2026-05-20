@@ -11,6 +11,7 @@ import {
   updateQuickWinAction,
 } from "@/lib/actions/quick-wins";
 import type { OperationVillainListItem } from "@/lib/db/queries/operation-villains";
+import type { QuickWinCatalogListItem } from "@/lib/db/queries/quick-win-catalog";
 import type { QuickWinListItem } from "@/lib/db/queries/quick-wins";
 import {
   quickWinSchema,
@@ -24,6 +25,7 @@ type Props =
       operationId: string;
       operationVillains: OperationVillainListItem[];
       operationFrentes: Array<{ id: string; name: string }>;
+      catalogItems: QuickWinCatalogListItem[];
       onClose: () => void;
     }
   | {
@@ -32,6 +34,7 @@ type Props =
       initialData: QuickWinListItem;
       operationVillains: OperationVillainListItem[];
       operationFrentes: Array<{ id: string; name: string }>;
+      catalogItems: QuickWinCatalogListItem[];
       onClose: () => void;
     };
 
@@ -69,6 +72,7 @@ export function QuickWinForm(props: Props): React.JSX.Element {
     control,
     handleSubmit,
     setError,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<QuickWinInput, undefined, QuickWinOutput>({
     resolver: zodResolver(quickWinSchema),
@@ -79,6 +83,24 @@ export function QuickWinForm(props: Props): React.JSX.Element {
     control,
     name: "impacts",
   });
+
+  function applyCatalogItem(catalogId: string) {
+    if (!catalogId) return;
+    const item = props.catalogItems.find((c) => c.id === catalogId);
+    if (!item) return;
+    setValue("title", item.title, { shouldValidate: true });
+    setValue("description", item.description ?? "", { shouldValidate: false });
+    if (item.suggestedVillainId == null || item.defaultImpactPct == null) return;
+    const ov = props.operationVillains.find(
+      (v) => v.villainId === item.suggestedVillainId,
+    );
+    if (!ov) return;
+    const alreadyHasImpact = fields.some(
+      (f) => f.operation_villain_id === ov.id,
+    );
+    if (alreadyHasImpact) return;
+    append({ operation_villain_id: ov.id, impact_pct: item.defaultImpactPct });
+  }
 
   async function onSubmit(data: QuickWinOutput) {
     setGeneralError(null);
@@ -118,6 +140,31 @@ export function QuickWinForm(props: Props): React.JSX.Element {
         <div className="bg-critical-bg border border-critical text-critical text-xs rounded px-3 py-2">
           {generalError}
         </div>
+      )}
+
+      {!isEdit && props.catalogItems.length > 0 && (
+        <Field
+          label="Tipo do catálogo"
+          htmlFor="catalog_item_id"
+          hint="Opcional. Escolher pré-preenche título, descrição e impacto sugerido."
+        >
+          <select
+            id="catalog_item_id"
+            disabled={isSubmitting}
+            onChange={(e) => applyCatalogItem(e.target.value)}
+            defaultValue=""
+            className={inputCn}
+          >
+            <option value="">— sem tipo —</option>
+            {props.catalogItems.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.title}
+                {c.suggestedVillain ? ` · ${c.suggestedVillain.name}` : ""}
+                {c.defaultImpactPct != null ? ` (+${c.defaultImpactPct}%)` : ""}
+              </option>
+            ))}
+          </select>
+        </Field>
       )}
 
       <Field label="Título" htmlFor="title" required error={errors.title?.message}>

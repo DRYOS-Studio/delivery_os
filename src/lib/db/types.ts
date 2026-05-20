@@ -873,6 +873,47 @@ export type Database = {
           },
         ]
       }
+      quick_win_catalog: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          default_impact_pct: number | null
+          description: string | null
+          id: string
+          suggested_villain_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          default_impact_pct?: number | null
+          description?: string | null
+          id?: string
+          suggested_villain_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          default_impact_pct?: number | null
+          description?: string | null
+          id?: string
+          suggested_villain_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_qwc_villain"
+            columns: ["suggested_villain_id"]
+            isOneToOne: false
+            referencedRelation: "villains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quick_win_impacts: {
         Row: {
           created_at: string

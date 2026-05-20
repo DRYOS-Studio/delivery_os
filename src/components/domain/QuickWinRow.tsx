@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { resolveVillainIcon } from "@/lib/constants/villain-icons";
 import type { OperationVillainListItem } from "@/lib/db/queries/operation-villains";
+import type { QuickWinCatalogListItem } from "@/lib/db/queries/quick-win-catalog";
 import type { QuickWinListItem } from "@/lib/db/queries/quick-wins";
 import { formatDateBR } from "@/lib/utils/date";
 
@@ -17,12 +18,14 @@ export function QuickWinRow({
   operationId,
   operationVillains,
   operationFrentes,
+  catalogItems,
   isAdmin = false,
 }: {
   qw: QuickWinListItem;
   operationId: string;
   operationVillains: OperationVillainListItem[];
   operationFrentes: Array<{ id: string; name: string }>;
+  catalogItems: QuickWinCatalogListItem[];
   isAdmin?: boolean;
 }): React.JSX.Element {
   const [editing, setEditing] = useState(false);
@@ -88,6 +91,7 @@ export function QuickWinRow({
                 initialData={qw}
                 operationVillains={operationVillains}
                 operationFrentes={operationFrentes}
+                catalogItems={catalogItems}
                 onClose={() => setEditing(false)}
               />
             )}

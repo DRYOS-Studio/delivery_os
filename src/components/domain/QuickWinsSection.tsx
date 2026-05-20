@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import type { OperationVillainListItem } from "@/lib/db/queries/operation-villains";
+import type { QuickWinCatalogListItem } from "@/lib/db/queries/quick-win-catalog";
 import type { QuickWinListItem } from "@/lib/db/queries/quick-wins";
 
 type Props = {
@@ -15,6 +16,7 @@ type Props = {
   operationId: string;
   operationVillains: OperationVillainListItem[];
   operationFrentes: Array<{ id: string; name: string }>;
+  catalogItems: QuickWinCatalogListItem[];
   isAdmin?: boolean;
 };
 
@@ -23,6 +25,7 @@ export function QuickWinsSection({
   operationId,
   operationVillains,
   operationFrentes,
+  catalogItems,
   isAdmin = false,
 }: Props): React.JSX.Element {
   const [creating, setCreating] = useState(false);
@@ -57,6 +60,7 @@ export function QuickWinsSection({
             operationId={operationId}
             operationVillains={operationVillains}
             operationFrentes={operationFrentes}
+            catalogItems={catalogItems}
             onClose={() => setCreating(false)}
           />
         </div>
@@ -78,6 +82,7 @@ export function QuickWinsSection({
               operationId={operationId}
               operationVillains={operationVillains}
               operationFrentes={operationFrentes}
+              catalogItems={catalogItems}
               isAdmin={isAdmin}
             />
           ))}
