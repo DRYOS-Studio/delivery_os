@@ -407,6 +407,46 @@ Card de vilão. Estrutura:
 3. Barra com gradiente `from-oak to-sage`
 4. Footer: pill de severidade inicial
 
+### CatalogViewToggle
+
+Toggle segmented-control "Cards / Lista" usado nas páginas de catálogo (`/catalog`, `/catalog/products`, `/catalog/quick-wins`). Server component; persiste seleção via searchParam `?view=list` (sem param = cards, default).
+
+```typescript
+// src/components/ui/CatalogViewToggle.tsx
+type CatalogView = 'cards' | 'list';
+
+function normalizeCatalogView(raw: string | undefined): CatalogView;
+
+type CatalogViewToggleProps = {
+  basePath: string;   // ex: '/catalog/products'
+  current: CatalogView;
+};
+```
+
+Estrutura visual: dois `<Link>` envoltos por wrapper `bg-surface rounded-pill p-0.5`. Pill ativa fica `bg-card text-ink shadow-sm`; inativa fica `text-mute hover:text-ink`. Cada link tem ícone Lucide (`LayoutGrid` / `List`) 12px + label em font-mono 10px uppercase. `aria-current="page"` no ativo. Links com `prefetch={false}` e `scroll={false}` pra evitar saltos de viewport ao trocar modo.
+
+Padrão de uso na página:
+
+```tsx
+const { view: viewRaw } = await searchParams;
+const view = normalizeCatalogView(viewRaw);
+
+<PageHeader actions={<CatalogViewToggle basePath="/catalog/products" current={view} />} />
+{view === 'list' ? (
+  <div className="bg-card border border-line rounded divide-y divide-line">
+    {items.map((p) => <ProductRow key={p.id} product={p} />)}
+  </div>
+) : (
+  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+    {items.map((p) => <ProductCard key={p.id} product={p} />)}
+  </div>
+)}
+```
+
+**Quando aplicar:** páginas de catálogo administrativo (lista pode crescer >15 entradas). Listagens curtas de domínio (Frentes da Op, Quick Wins recentes) não precisam — usam só Card ou Row dedicado por contexto.
+
+**Convenção dos Rows companheiros:** cada Card de catálogo tem um sibling `*Row` (ex: `VillainCard` / `VillainRow`, `ProductCard` / `ProductRow`, `QuickWinCatalogCard` / `QuickWinCatalogRow`). O Row usa grid `[2rem_1fr_auto]`: ícone 32px à esquerda, nome + metadados (pills/mono) wrap no meio, ações admin à direita. Wrapper externo `divide-y divide-line` sobre `Card` faz as bordas entre rows. Admin actions usam o mesmo `Archive*Button` do Card pra manter UX consistente.
+
 ---
 
 ## Padrões de layout
