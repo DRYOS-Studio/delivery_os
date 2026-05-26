@@ -1,4 +1,4 @@
-import { Edit2, FileText } from "lucide-react";
+import { Edit2, FileText, Users } from "lucide-react";
 import Link from "next/link";
 import type { OperationDetail } from "@/lib/db/queries/operations";
 import { formatDateBR, relativeFromNow } from "@/lib/utils/date";
@@ -100,6 +100,17 @@ export function OperationHero({
                 Editar
               </button>
             </Link>
+            {isAdmin && (
+              <Link href={`/operations/${op.id}/settings/members`}>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 rounded font-medium transition-colors px-3.5 py-2 text-[13px] bg-white/10 hover:bg-white/20 text-bg border border-white/20"
+                >
+                  <Users className="w-4 h-4" strokeWidth={1.75} />
+                  Membros
+                </button>
+              </Link>
+            )}
           </div>
         </div>
 
