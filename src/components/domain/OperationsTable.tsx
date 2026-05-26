@@ -79,7 +79,7 @@ export function OperationsTable({
             <Th>Operação</Th>
             <Th>Linha</Th>
             <Th>Status</Th>
-            <Th>MRR</Th>
+            {isAdmin && <Th>MRR</Th>}
             <Th>Frentes</Th>
             <Th>Criado em</Th>
             <Th className="text-right">Ações</Th>
@@ -108,9 +108,11 @@ export function OperationsTable({
                   {STATUS_LABEL[op.status]}
                 </Pill>
               </Td>
-              <Td className="font-mono text-xs text-mute">
-                {formatMoneyBR(op.monthlyRecurringRevenue)}
-              </Td>
+              {isAdmin && (
+                <Td className="font-mono text-xs text-mute">
+                  {formatMoneyBR(op.monthlyRecurringRevenue)}
+                </Td>
+              )}
               <Td>
                 <Pill variant="neutral">{op.activeFrentes}</Pill>
               </Td>
