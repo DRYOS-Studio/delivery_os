@@ -1,7 +1,7 @@
 # State
 
-**Last Updated:** 2026-05-20
-**Current Work:** `quick-wins-catalog` — COMPLETE (issue #64). Tabela `quick_win_catalog` (21 tipos seed: 3 por vilão); admin CRUD em `/catalog/quick-wins`; QuickWinForm com select "Tipo do catálogo" que pré-preenche título/descrição/impacto sugerido. Sidebar "Catálogos" agora com 3 sub-items. Anteriormente: #73 sidebar expandable (PR #74), #66 service-products-catalog (PR #72), #65 Frente labels (PR #71), #69 polish/rebrand DRYOS Studio (PR #70), #67 link público narrativo (PR #68). **Catalog-admin (Semana 04) COMPLETE.** Próximos: integrações n8n (`tally-webhook`, `discord-notifications`, `sla-incidents-ingest`), `dark-mode`, `polish-migration`.
+**Last Updated:** 2026-05-26
+**Current Work:** `operation-members` — COMPLETE (issue #80, PRs #81 + #82 + #83). Gating de visibilidade por Operação: tabela `operation_members(profile_id, operation_id)` + helpers `is_admin()`/`can_see_operation()`; member só vê Operações atribuídas, admin vê tudo. RLS reescrita em ~20 tabelas (diretas via `operation_id`, allocations/tasks via frente, clients/persons/profiles cascateadas). UI admin em `/operations/[id]/settings/members` (add/remove). Estados vazios diferenciados admin vs member. Catálogos (villains/service_products/quick_win_catalog) ficam globais. Também: provisionados 2 users via SQL (Gabriel=member, Gabriela=admin) — vide memory `dryos-dev-workflow-quirks` pro gotcha de `auth.identities` + tokens NULL. Anteriormente: #76 catalog-view-toggle (PR #77), #64 quick-wins-catalog (PR #75). **Catalog-admin (Semana 04) COMPLETE.** Próximos: integrações n8n (`tally-webhook`, `discord-notifications`, `sla-incidents-ingest`), `dark-mode`, `polish-migration`.
 
 ---
 

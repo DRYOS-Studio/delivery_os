@@ -1,6 +1,6 @@
 # Database Schema
 
-**Última análise**: 2026-05-20 (quick-wins-catalog)
+**Última análise**: 2026-05-26 (operation-members)
 **Projeto Supabase**: `Delivery OS` (`tmsaucxoeqpfluzwrwkc`)
 **Schema**: `public`
 
@@ -26,14 +26,17 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 | **Diagnóstico** | `diagnostics` | 1 |
 | **Quick Wins** | `quick_wins`, `quick_win_impacts` | 2 |
 | **Profiles** | `profiles` | 1 |
+| **Auth · Scope** | `operation_members` | 1 |
 | **Operação · Custos** | `operation_costs` | 1 |
 | **Catálogo · Produtos** | `service_products` | 1 |
 | **Catálogo · Quick Wins** | `quick_win_catalog` | 1 |
-| **Total atual** | | **24** |
+| **Total atual** | | **25** |
 
 ---
 
 ## Tabelas
+
+> **⚠️ Nota de RLS (pós `operation-members` #80):** as policies `*_authenticated_full` / `authenticated_full_access` citadas nas seções abaixo foram **substituídas** por policies `*_scoped_*` que filtram via `can_see_operation()`. Member só vê dados de Operações em que foi atribuído (`operation_members`); admin vê tudo. Exceções globais: `villains`, `service_products`, `quick_win_catalog` (catálogos, abertos a `authenticated`). Detalhe completo na seção `operation_members`.
 
 ### `clients` — empresa atendida pela DRYOS
 
@@ -529,13 +532,39 @@ Trigger `sync_operation_villain_progress` (AFTER INSERT/UPDATE/DELETE) recalcula
 
 Trigger `create_profile_for_new_user` (AFTER INSERT em auth.users, SECURITY DEFINER) cria profile automático com role='member' em cada signup. Backfill na migration cobriu users existentes; seed `rafaelemeth@gmail.com` virou admin.
 
-RLS:
-- SELECT pra authenticated (todos veem todos — necessário pra section "Usuários" em /admin)
+RLS (refinado por `operation-members`, #80):
+- SELECT (`profiles_scoped_select`): admin vê todos; member vê **si mesmo + colegas que compartilham uma Operação** (via `operation_members`). Não é mais "todos veem todos".
 - UPDATE só admin (policy WITH CHECK `(SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'`)
 - INSERT bloqueado pra authenticated (só via trigger SECURITY DEFINER)
 - DELETE bloqueado (sem policy)
 
 **Gate na aplicação:** helpers `requireAdmin` (server redirect) e `requireAdminAction` (ActionResult). Actions destrutivas (archive×4, delete×7, villain catalog×3, revokePublicLink, setUserRole) chamam `requireAdminAction`. UI esconde botões destrutivos e info comercial (MRR/recorrência) pra member.
+
+---
+
+### `operation_members` — vínculo member × Operação (Inv. scope, #80)
+
+Define **quem (member) vê qual Operação**. Admin vê tudo sem precisar de row aqui. Base do gating de visibilidade por Operação que cascateia pra todas as tabelas-filhas.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `profile_id` | uuid → profiles (CASCADE) | parte da PK composta |
+| `operation_id` | uuid → operations (CASCADE) | parte da PK composta |
+| `created_at` | timestamptz default now() | |
+| `created_by` | uuid → profiles (SET NULL) | admin que atribuiu |
+
+PK composta `(profile_id, operation_id)`. Index reverso `idx_operation_members_operation_id`.
+
+**Helpers SQL (SECURITY DEFINER, STABLE):**
+- `is_admin()` → `profiles.role='admin'` do `auth.uid()`.
+- `can_see_operation(op_id uuid)` → `is_admin() OR EXISTS(operation_members WHERE profile_id=auth.uid() AND operation_id=op_id)`. **Base de toda RLS de visibilidade.**
+
+RLS:
+- `om_admin_all` (ALL): admin lê/escreve tudo.
+- `om_member_select_self` (SELECT): member vê só rows que mencionam ele.
+- INSERT/DELETE de vínculo só por admin (via `addOperationMemberAction`/`removeOperationMemberAction`, gated por `requireAdminAction`).
+
+**Cascata:** tabelas com `operation_id` usam `can_see_operation(operation_id)`; `allocations`/`tasks` via JOIN com `frentes`; `clients`/`persons`/`diagnostics` via EXISTS em operações visíveis. Catálogos globais (`villains`, `service_products`, `quick_win_catalog`) ficam abertos a `authenticated`. UI admin em `/operations/[id]/settings/members`.
 
 ---
 
