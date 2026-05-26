@@ -243,8 +243,23 @@ export async function getOperationsByStatus(
 - **RLS habilitado em todas as tabelas. Sem exceção.**
 - Policies versionadas em migrations SQL
 - Admin: pode tudo
-- Membro: pode editar onde está alocado, ler tudo do próprio espaço
-- Visualizador público: lê apenas via função RPC que valida token
+- Membro: vê apenas Operações em que foi atribuído (`operation_members`) — vide "RLS scoped por Operação" abaixo
+- Visualizador público: lê apenas via função RPC / `createAdmin` (service-role) que valida token
+
+### RLS scoped por Operação (pattern canônico, #80)
+
+A visibilidade do app é gated por Operação. **Toda tabela com `operation_id` (ou alcançável via FK) filtra por `can_see_operation()`.**
+
+- **Helpers SQL** (SECURITY DEFINER, STABLE, `SET search_path = public`):
+  - `is_admin()` → `profiles.role='admin'` do `auth.uid()`.
+  - `can_see_operation(op_id uuid)` → `is_admin() OR EXISTS(operation_members WHERE profile_id=auth.uid() AND operation_id=op_id)`.
+- **Tabela com `operation_id` direto:** `USING (public.can_see_operation(operation_id))`.
+- **Tabela-neta (via frente):** `USING (EXISTS (SELECT 1 FROM frentes f WHERE f.id = <tabela>.frente_id AND public.can_see_operation(f.operation_id)))`.
+- **Tabela indireta (clients/persons):** `USING (public.is_admin() OR EXISTS(...))` via operações visíveis.
+- **Catálogos globais** (`villains`, `service_products`, `quick_win_catalog`): **NÃO scoped** — abertos a `authenticated`. São universo de marca, não dado de cliente.
+- **Mutação:** policies `*_scoped_<cmd>` separadas por comando (select/insert/update/delete). Tabelas só-admin (clients/persons/diagnostics) usam `is_admin()` no insert/update/delete.
+- **Gotcha:** RLS é PERMISSIVE por padrão → múltiplas policies pro mesmo comando são **OR'd**. Ao reescrever, **DROP todas as policies antigas** (`authenticated_full_access`, `<tabela>_authenticated_*`) senão a aberta anula o scoping.
+- **Naming:** `<tabela>_scoped_select|insert|update|delete`. UI admin de atribuição em `/operations/[id]/settings/members`.
 
 ### Migrations
 
