@@ -5,7 +5,7 @@ import { OperationCard } from "@/components/domain/OperationCard";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
-import { getUser } from "@/lib/auth/server";
+import { getProfile } from "@/lib/auth/server";
 import {
   countHotCriticalFrentes,
   listFrentesNeedingAttention,
@@ -50,13 +50,15 @@ type Tab = {
 };
 
 export default async function Page() {
-  const [user, operations, attentionFrentes, hotCriticalCount] =
+  const [profile, operations, attentionFrentes, hotCriticalCount] =
     await Promise.all([
-      getUser(),
+      getProfile(),
       getActiveOperations(),
       listFrentesNeedingAttention(),
       countHotCriticalFrentes(),
     ]);
+  const user = profile?.user ?? null;
+  const isAdmin = profile?.role === "admin";
 
   const name = nameFromEmail(user?.email);
   const hour = new Date().getHours();
@@ -83,12 +85,14 @@ export default async function Page() {
         title={title}
         subtitle={subtitle}
         actions={
-          <Link href="/operations/new">
-            <Button variant="sage">
-              <Plus className="w-4 h-4" strokeWidth={1.75} />
-              Nova operação
-            </Button>
-          </Link>
+          isAdmin ? (
+            <Link href="/operations/new">
+              <Button variant="sage">
+                <Plus className="w-4 h-4" strokeWidth={1.75} />
+                Nova operação
+              </Button>
+            </Link>
+          ) : null
         }
       />
 
@@ -117,10 +121,14 @@ export default async function Page() {
       {operations.length === 0 ? (
         <div className="text-center py-14">
           <p className="font-display text-xl text-mute">
-            Nenhuma Operação ativa.
+            {isAdmin
+              ? "Nenhuma Operação ativa."
+              : "Você ainda não foi atribuído a nenhuma Operação."}
           </p>
           <p className="font-body text-sm text-mute mt-2">
-            Aguarde o convite do admin ou abra uma nova.
+            {isAdmin
+              ? "Abra uma nova quando estiver pronto."
+              : "Peça pra um admin te adicionar."}
           </p>
         </div>
       ) : (

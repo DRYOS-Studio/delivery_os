@@ -8,9 +8,11 @@ import { getInitials } from "@/lib/utils/initials";
 export function PersonsTable({
   persons,
   hasFilter,
+  isAdmin = true,
 }: {
   persons: PersonListItem[];
   hasFilter: boolean;
+  isAdmin?: boolean;
 }) {
   if (persons.length === 0) {
     return (
@@ -27,7 +29,7 @@ export function PersonsTable({
               limpar filtro
             </Link>
           </>
-        ) : (
+        ) : isAdmin ? (
           <>
             <p className="font-display text-lg text-mute">
               Nenhuma pessoa cadastrada.
@@ -35,6 +37,16 @@ export function PersonsTable({
             <Link href="/persons/new" className="inline-block mt-4">
               <Button variant="sage">Nova pessoa</Button>
             </Link>
+          </>
+        ) : (
+          <>
+            <p className="font-display text-lg text-mute">
+              Você ainda não vê nenhuma Pessoa.
+            </p>
+            <p className="font-mono text-xs text-mute mt-2">
+              Pessoas aparecem aqui quando você é atribuído a uma Operação que
+              elas trabalham.
+            </p>
           </>
         )}
       </div>

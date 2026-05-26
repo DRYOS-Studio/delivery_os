@@ -26,9 +26,11 @@ const STATUS_VARIANT: Record<OperationListItem["status"], PillVariant> = {
 export function OperationsTable({
   operations,
   hasSearch,
+  isAdmin = true,
 }: {
   operations: OperationListItem[];
   hasSearch: boolean;
+  isAdmin?: boolean;
 }) {
   if (operations.length === 0) {
     return (
@@ -45,7 +47,7 @@ export function OperationsTable({
               limpar busca
             </Link>
           </>
-        ) : (
+        ) : isAdmin ? (
           <>
             <p className="font-display text-lg text-mute">
               Nenhuma Operação cadastrada.
@@ -53,6 +55,15 @@ export function OperationsTable({
             <Link href="/operations/new" className="inline-block mt-4">
               <Button variant="sage">Nova operação</Button>
             </Link>
+          </>
+        ) : (
+          <>
+            <p className="font-display text-lg text-mute">
+              Você ainda não foi atribuído a nenhuma Operação.
+            </p>
+            <p className="font-mono text-xs text-mute mt-2">
+              Peça pra um admin te adicionar.
+            </p>
           </>
         )}
       </div>
