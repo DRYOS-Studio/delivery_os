@@ -5,6 +5,7 @@ import { PersonsTable } from "@/components/domain/PersonsTable";
 import { PersonsTabs } from "@/components/domain/PersonsTabs";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { getProfile } from "@/lib/auth/server";
 import {
   countActivePersons,
   listPersons,
@@ -27,13 +28,15 @@ export default async function Page({
       : "all";
   const q = params.q;
 
-  const [persons, counts] = await Promise.all([
+  const [persons, counts, profile] = await Promise.all([
     listPersons({
       kind: activeKind === "all" ? undefined : activeKind,
       search: q,
     }),
     countActivePersons(),
+    getProfile(),
   ]);
+  const isAdmin = profile?.role === "admin";
 
   const hasFilter = activeKind !== "all" || !!q;
   const subtitle = `${counts.total} ${counts.total === 1 ? "pessoa ativa" : "pessoas ativas"}`;
@@ -44,17 +47,23 @@ export default async function Page({
         title="Pessoas"
         subtitle={subtitle}
         actions={
-          <Link href="/persons/new">
-            <Button variant="sage">
-              <Plus className="w-4 h-4" strokeWidth={1.75} />
-              Nova pessoa
-            </Button>
-          </Link>
+          isAdmin ? (
+            <Link href="/persons/new">
+              <Button variant="sage">
+                <Plus className="w-4 h-4" strokeWidth={1.75} />
+                Nova pessoa
+              </Button>
+            </Link>
+          ) : null
         }
       />
       <PersonsTabs counts={counts} activeKind={activeKind} />
       <PersonsSearch initialQuery={q ?? ""} />
-      <PersonsTable persons={persons} hasFilter={hasFilter} />
+      <PersonsTable
+        persons={persons}
+        hasFilter={hasFilter}
+        isAdmin={isAdmin}
+      />
     </>
   );
 }

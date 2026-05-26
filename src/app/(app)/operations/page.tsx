@@ -4,6 +4,7 @@ import { OperationsSearch } from "@/components/domain/OperationsSearch";
 import { OperationsTable } from "@/components/domain/OperationsTable";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { getProfile } from "@/lib/auth/server";
 import {
   countActiveOperations,
   listOperations,
@@ -17,10 +18,12 @@ export default async function Page({
   searchParams: SearchParams;
 }) {
   const { q } = await searchParams;
-  const [operations, total] = await Promise.all([
+  const [operations, total, profile] = await Promise.all([
     listOperations({ search: q }),
     countActiveOperations(),
+    getProfile(),
   ]);
+  const isAdmin = profile?.role === "admin";
 
   const subtitle = `${total} ${total === 1 ? "Operação ativa" : "Operações ativas"}`;
 
@@ -30,16 +33,22 @@ export default async function Page({
         title="Operações"
         subtitle={subtitle}
         actions={
-          <Link href="/operations/new">
-            <Button variant="sage">
-              <Plus className="w-4 h-4" strokeWidth={1.75} />
-              Nova operação
-            </Button>
-          </Link>
+          isAdmin ? (
+            <Link href="/operations/new">
+              <Button variant="sage">
+                <Plus className="w-4 h-4" strokeWidth={1.75} />
+                Nova operação
+              </Button>
+            </Link>
+          ) : null
         }
       />
       <OperationsSearch initialQuery={q ?? ""} />
-      <OperationsTable operations={operations} hasSearch={!!q} />
+      <OperationsTable
+        operations={operations}
+        hasSearch={!!q}
+        isAdmin={isAdmin}
+      />
     </>
   );
 }

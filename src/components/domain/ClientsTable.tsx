@@ -4,9 +4,13 @@ import { Pill } from "@/components/ui/Pill";
 import type { ClientListItem } from "@/lib/db/queries/clients";
 import { formatDateBR } from "@/lib/utils/date";
 
-type Props = { clients: ClientListItem[]; hasSearch: boolean };
+type Props = {
+  clients: ClientListItem[];
+  hasSearch: boolean;
+  isAdmin?: boolean;
+};
 
-export function ClientsTable({ clients, hasSearch }: Props) {
+export function ClientsTable({ clients, hasSearch, isAdmin = true }: Props) {
   if (clients.length === 0) {
     return (
       <div className="text-center py-14 border border-line rounded bg-card">
@@ -22,7 +26,7 @@ export function ClientsTable({ clients, hasSearch }: Props) {
               limpar busca
             </Link>
           </>
-        ) : (
+        ) : isAdmin ? (
           <>
             <p className="font-display text-lg text-mute">
               Nenhum Cliente cadastrado.
@@ -30,6 +34,16 @@ export function ClientsTable({ clients, hasSearch }: Props) {
             <Link href="/clients/new" className="inline-block mt-4">
               <Button variant="sage">Novo cliente</Button>
             </Link>
+          </>
+        ) : (
+          <>
+            <p className="font-display text-lg text-mute">
+              Você ainda não vê nenhum Cliente.
+            </p>
+            <p className="font-mono text-xs text-mute mt-2">
+              Clientes aparecem aqui quando você é atribuído a uma Operação
+              deles.
+            </p>
           </>
         )}
       </div>

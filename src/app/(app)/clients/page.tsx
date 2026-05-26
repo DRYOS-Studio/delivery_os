@@ -4,6 +4,7 @@ import { ClientsSearch } from "@/components/domain/ClientsSearch";
 import { ClientsTable } from "@/components/domain/ClientsTable";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { getProfile } from "@/lib/auth/server";
 import {
   countActiveClients,
   listClients,
@@ -17,10 +18,12 @@ export default async function Page({
   searchParams: SearchParams;
 }) {
   const { q } = await searchParams;
-  const [clients, total] = await Promise.all([
+  const [clients, total, profile] = await Promise.all([
     listClients({ search: q }),
     countActiveClients(),
+    getProfile(),
   ]);
+  const isAdmin = profile?.role === "admin";
 
   const subtitle = `${total} ${total === 1 ? "Cliente ativo" : "Clientes ativos"}`;
 
@@ -30,16 +33,18 @@ export default async function Page({
         title="Clientes"
         subtitle={subtitle}
         actions={
-          <Link href="/clients/new">
-            <Button variant="sage">
-              <Plus className="w-4 h-4" strokeWidth={1.75} />
-              Novo cliente
-            </Button>
-          </Link>
+          isAdmin ? (
+            <Link href="/clients/new">
+              <Button variant="sage">
+                <Plus className="w-4 h-4" strokeWidth={1.75} />
+                Novo cliente
+              </Button>
+            </Link>
+          ) : null
         }
       />
       <ClientsSearch initialQuery={q ?? ""} />
-      <ClientsTable clients={clients} hasSearch={!!q} />
+      <ClientsTable clients={clients} hasSearch={!!q} isAdmin={isAdmin} />
     </>
   );
 }
