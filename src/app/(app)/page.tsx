@@ -1,11 +1,17 @@
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { FrentesAttentionSection } from "@/components/domain/FrentesAttentionSection";
-import { OperationCard } from "@/components/domain/OperationCard";
+import { HomeKpiStrip } from "@/components/domain/HomeKpiStrip";
+import { HomeSidebar } from "@/components/domain/HomeSidebar";
+import { HomeStatusTabs } from "@/components/domain/HomeStatusTabs";
+import { OperationsGrid } from "@/components/domain/OperationsGrid";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
-import { Pill } from "@/components/ui/Pill";
 import { getProfile } from "@/lib/auth/server";
+import {
+  getDashboardSummary,
+  getTopVillainsByFrequency,
+} from "@/lib/db/queries/dashboard";
 import {
   countHotCriticalFrentes,
   listFrentesNeedingAttention,
@@ -14,7 +20,7 @@ import {
   getActiveOperations,
   type OperationCardData,
 } from "@/lib/db/queries/operations";
-import { cn } from "@/lib/utils/cn";
+import { normalizeStatusFilter } from "@/lib/utils/status-filter";
 
 const NAME_OVERRIDES: Record<string, string> = {
   "rafaelemeth@gmail.com": "Rafael",
@@ -29,8 +35,7 @@ function nameFromEmail(email: string | null | undefined): string {
 }
 
 function greeting(hour: number, name: string): string {
-  const period =
-    hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
+  const period = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
   return name ? `${period}, ${name}.` : `${period}.`;
 }
 
@@ -43,46 +48,50 @@ function countByStatus(ops: OperationCardData[]) {
   };
 }
 
-type Tab = {
-  key: keyof ReturnType<typeof countByStatus>;
-  label: string;
-  active: boolean;
-};
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>;
+}) {
+  const { status: statusRaw } = await searchParams;
+  const status = normalizeStatusFilter(statusRaw);
 
-export default async function Page() {
-  const [profile, operations, attentionFrentes, hotCriticalCount] =
-    await Promise.all([
-      getProfile(),
-      getActiveOperations(),
-      listFrentesNeedingAttention(),
-      countHotCriticalFrentes(),
-    ]);
-  const user = profile?.user ?? null;
+  const [
+    profile,
+    summary,
+    operations,
+    attentionFrentes,
+    hotCriticalCount,
+    topVillains,
+  ] = await Promise.all([
+    getProfile(),
+    getDashboardSummary(),
+    getActiveOperations(),
+    listFrentesNeedingAttention(),
+    countHotCriticalFrentes(),
+    getTopVillainsByFrequency(5),
+  ]);
+
   const isAdmin = profile?.role === "admin";
-
-  const name = nameFromEmail(user?.email);
+  const name = nameFromEmail(profile?.user.email);
   const hour = new Date().getHours();
-  const greetingLine = greeting(hour, name);
   const counts = countByStatus(operations);
   const activeWord = counts.todas === 1 ? "Operação ativa" : "Operações ativas";
   const criticaSuffix =
     counts.janela_critica > 0
       ? ` e ${counts.janela_critica} em janela crítica`
       : "";
-  const title = "Operações";
-  const subtitle = `${greetingLine} Você tem ${counts.todas} ${activeWord}${criticaSuffix} essa semana.`;
+  const subtitle = `${greeting(hour, name)} Você tem ${counts.todas} ${activeWord}${criticaSuffix} essa semana.`;
 
-  const tabs: readonly Tab[] = [
-    { key: "em_construcao", label: "Em construção", active: false },
-    { key: "em_operacao", label: "Em operação", active: true },
-    { key: "janela_critica", label: "Janela crítica", active: false },
-    { key: "todas", label: "Todas", active: false },
-  ];
+  const filteredOps =
+    status === "todas"
+      ? operations
+      : operations.filter((o) => o.status === status);
 
   return (
     <>
       <PageHeader
-        title={title}
+        title="Painel"
         subtitle={subtitle}
         actions={
           isAdmin ? (
@@ -96,48 +105,29 @@ export default async function Page() {
         }
       />
 
-      <div className="flex gap-2 mb-7">
-        {tabs.map((tab) => (
-          <div
-            key={tab.key}
-            className={cn(
-              "inline-flex items-center gap-2 px-3 py-1.5 rounded-pill text-sm font-medium transition-colors",
-              tab.active
-                ? "bg-card text-ink border border-line-strong"
-                : "bg-transparent text-mute",
-            )}
-          >
-            <span>{tab.label}</span>
-            <Pill variant="neutral">{counts[tab.key]}</Pill>
-          </div>
-        ))}
+      <HomeKpiStrip summary={summary} isAdmin={isAdmin} />
+
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mt-8">
+        <div className="xl:col-span-2 flex flex-col gap-7">
+          <HomeStatusTabs counts={counts} active={status} />
+          <FrentesAttentionSection
+            frentes={attentionFrentes}
+            hotCriticalCount={hotCriticalCount}
+          />
+          <OperationsGrid
+            operations={filteredOps}
+            isAdmin={isAdmin}
+            hasFilter={status !== "todas"}
+          />
+        </div>
+        <aside className="xl:col-span-1">
+          <HomeSidebar
+            isAdmin={isAdmin}
+            topVillains={topVillains}
+            quickWinsLast30d={summary.quickWinsLast30d}
+          />
+        </aside>
       </div>
-
-      <FrentesAttentionSection
-        frentes={attentionFrentes}
-        hotCriticalCount={hotCriticalCount}
-      />
-
-      {operations.length === 0 ? (
-        <div className="text-center py-14">
-          <p className="font-display text-xl text-mute">
-            {isAdmin
-              ? "Nenhuma Operação ativa."
-              : "Você ainda não foi atribuído a nenhuma Operação."}
-          </p>
-          <p className="font-body text-sm text-mute mt-2">
-            {isAdmin
-              ? "Abra uma nova quando estiver pronto."
-              : "Peça pra um admin te adicionar."}
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {operations.map((op) => (
-            <OperationCard key={op.id} data={op} />
-          ))}
-        </div>
-      )}
     </>
   );
 }
