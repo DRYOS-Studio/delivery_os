@@ -131,7 +131,8 @@ Features que entraram durante a execução do MVP e não estavam previstas:
 - **sidebar-catalog-submenu** (#73 / PR #74) — "Catálogos" vira nav expandível com Vilões/Produtos/Quick Wins como sub-items
 - **quick-wins-catalog** (#64 / PR #75) — entregue dentro do catalog-admin acima, listado aqui pra cross-reference
 - **catalog-view-toggle** (#76 / PR #77) — toggle Cards/Lista nas 3 páginas de catálogo via searchParam `?view=`
-- **operation-members** (#80 / PRs #81 + #82) — gating de visibilidade por Operação: member só vê Operações atribuídas (tabela `operation_members` + helpers `is_admin()`/`can_see_operation()`), admin vê tudo; RLS reescrita em ~20 tabelas (diretas + cascata clients/persons/profiles); UI admin em `/operations/[id]/settings/members`; estados vazios diferenciados
+- **operation-members** (#80 / PRs #81 + #82 + #83) — gating de visibilidade por Operação: member só vê Operações atribuídas (tabela `operation_members` + helpers `is_admin()`/`can_see_operation()`), admin vê tudo; RLS reescrita em ~20 tabelas (diretas + cascata clients/persons/profiles); UI admin em `/operations/[id]/settings/members`; estados vazios diferenciados; MRR oculto pra member
+- **home-dashboard** (#84) — Home (`/`) reescrita como dashboard grid 2 colunas role-aware: faixa de KPIs (admin com MRR/margem, member enxuto), tabs de status funcionais (`?status=`), coluna principal com Atenção + cards, sidebar com vilões da carteira + Quick Wins. Reusa componentes do `/admin/dashboard` (que segue como deep-dive)
 
 ---
 
