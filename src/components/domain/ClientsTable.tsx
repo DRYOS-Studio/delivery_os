@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
+import { MobileListItem } from "@/components/ui/MobileListItem";
 import { Pill } from "@/components/ui/Pill";
 import type { ClientListItem } from "@/lib/db/queries/clients";
 import { formatDateBR } from "@/lib/utils/date";
@@ -51,7 +52,34 @@ export function ClientsTable({ clients, hasSearch, isAdmin = true }: Props) {
   }
 
   return (
-    <div className="bg-card border border-line rounded shadow-sm overflow-hidden">
+    <>
+      {/* Mobile: card list */}
+      <ul className="md:hidden bg-card border border-line rounded shadow-sm overflow-hidden">
+        {clients.map((c) => (
+          <MobileListItem
+            key={c.id}
+            href={`/clients/${c.id}`}
+            title={c.name}
+            subtitle={c.slug}
+            pills={
+              <>
+                <Pill variant="neutral">
+                  {c.operationsActive} {c.operationsActive === 1 ? "Op" : "Ops"}
+                </Pill>
+                {c.externalPersons > 0 && (
+                  <Pill variant="neutral">
+                    {c.externalPersons} pessoa{c.externalPersons === 1 ? "" : "s"}
+                  </Pill>
+                )}
+              </>
+            }
+            meta={formatDateBR(c.createdAt)}
+          />
+        ))}
+      </ul>
+
+      {/* Desktop: table */}
+      <div className="hidden md:block bg-card border border-line rounded shadow-sm overflow-hidden">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-line">
@@ -92,7 +120,8 @@ export function ClientsTable({ clients, hasSearch, isAdmin = true }: Props) {
           ))}
         </tbody>
       </table>
-    </div>
+      </div>
+    </>
   );
 }
 

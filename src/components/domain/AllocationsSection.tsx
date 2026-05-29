@@ -67,36 +67,42 @@ export function AllocationsSection({
             {allocations.map((a, idx) => (
               <li
                 key={a.id}
-                className={`grid grid-cols-12 gap-3 items-center px-4 py-3 ${idx !== allocations.length - 1 ? "border-b border-line" : ""}`}
+                className={`flex flex-col gap-2 px-4 py-3 md:grid md:grid-cols-12 md:gap-3 md:items-center ${idx !== allocations.length - 1 ? "border-b border-line" : ""}`}
               >
-                <div className="col-span-1 flex justify-center">
-                  <Avatar
-                    size="sm"
-                    initials={getInitials(a.person.name)}
-                    color="oak"
-                  />
+                <div className="flex items-center gap-2 md:contents">
+                  <div className="md:col-span-1 md:flex md:justify-center">
+                    <Avatar
+                      size="sm"
+                      initials={getInitials(a.person.name)}
+                      color="oak"
+                    />
+                  </div>
+                  <div className="md:col-span-3 flex-1 min-w-0">
+                    <Link
+                      href={`/persons/${a.person.id}`}
+                      className="font-medium text-ink hover:underline"
+                    >
+                      {a.person.name}
+                    </Link>
+                  </div>
                 </div>
-                <div className="col-span-3">
-                  <Link
-                    href={`/persons/${a.person.id}`}
-                    className="font-medium text-ink hover:underline"
-                  >
-                    {a.person.name}
-                  </Link>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 md:contents">
+                  <div className="md:col-span-2">
+                    <Pill variant={ROLE_VARIANT[a.role]}>
+                      {ROLE_LABEL[a.role]}
+                    </Pill>
+                  </div>
+                  <div className="md:col-span-2 font-mono text-xs text-mute">
+                    {a.capacityWeeklyPct.toFixed(0)}% / sem
+                  </div>
+                  <div className="md:col-span-3 font-mono text-xs text-mute">
+                    {formatDateShortBR(a.startDate)}
+                    {a.endDate
+                      ? ` → ${formatDateShortBR(a.endDate)}`
+                      : " → aberto"}
+                  </div>
                 </div>
-                <div className="col-span-2">
-                  <Pill variant={ROLE_VARIANT[a.role]}>
-                    {ROLE_LABEL[a.role]}
-                  </Pill>
-                </div>
-                <div className="col-span-2 font-mono text-xs text-mute">
-                  {a.capacityWeeklyPct.toFixed(0)}% / sem
-                </div>
-                <div className="col-span-3 font-mono text-xs text-mute">
-                  {formatDateShortBR(a.startDate)}
-                  {a.endDate ? ` → ${formatDateShortBR(a.endDate)}` : " → aberto"}
-                </div>
-                <div className="col-span-1 text-right">
+                <div className="md:col-span-1 md:text-right">
                   <Link
                     href={`/operations/${operationId}/frentes/${frenteId}/allocations/${a.id}/edit`}
                     className="text-oak hover:underline text-sm font-medium"

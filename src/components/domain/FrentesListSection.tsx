@@ -72,9 +72,9 @@ export function FrentesListSection({
             {frentes.map((f, idx) => (
               <li
                 key={f.id}
-                className={`grid grid-cols-12 gap-3 items-center px-4 py-3 ${idx !== frentes.length - 1 ? "border-b border-line" : ""}`}
+                className={`flex flex-col gap-2 px-4 py-3 md:grid md:grid-cols-12 md:gap-3 md:items-center ${idx !== frentes.length - 1 ? "border-b border-line" : ""}`}
               >
-                <div className="col-span-3 font-medium text-ink flex items-center gap-2">
+                <div className="md:col-span-3 font-medium text-ink flex flex-wrap items-center gap-2">
                   <Link
                     href={`/operations/${operationId}/frentes/${f.id}`}
                     className="text-oak hover:underline"
@@ -86,18 +86,22 @@ export function FrentesListSection({
                     {f.openTasksCount === 1 ? " tarefa" : " tarefas"}
                   </Pill>
                 </div>
-                <div className="col-span-1">
-                  <Pill variant="oak">{formatCycleTypeShort(f.cycleType)}</Pill>
+                <div className="flex flex-wrap items-center gap-2 md:contents">
+                  <div className="md:col-span-1">
+                    <Pill variant="oak">
+                      {formatCycleTypeShort(f.cycleType)}
+                    </Pill>
+                  </div>
+                  <div className="md:col-span-2">
+                    <Pill variant="neutral">{DOMAIN_LABEL[f.domain]}</Pill>
+                  </div>
+                  <div className="md:col-span-1">
+                    <Pill variant={PHASE_VARIANT[f.phase]}>
+                      {PHASE_LABEL[f.phase]}
+                    </Pill>
+                  </div>
                 </div>
-                <div className="col-span-2">
-                  <Pill variant="neutral">{DOMAIN_LABEL[f.domain]}</Pill>
-                </div>
-                <div className="col-span-1">
-                  <Pill variant={PHASE_VARIANT[f.phase]}>
-                    {PHASE_LABEL[f.phase]}
-                  </Pill>
-                </div>
-                <div className="col-span-1 flex justify-center">
+                <div className="md:col-span-1 flex md:justify-center">
                   {f.responsibleName ? (
                     <Avatar
                       size="sm"
@@ -106,18 +110,20 @@ export function FrentesListSection({
                       className="cursor-default"
                     />
                   ) : (
-                    <span className="font-mono text-[10px] text-mute-soft">—</span>
+                    <span className="hidden md:inline font-mono text-[10px] text-mute-soft">
+                      —
+                    </span>
                   )}
                 </div>
-                <div className="col-span-3 font-body text-sm text-ink-soft truncate">
-                  <div className="flex items-center gap-2">
-                    <span className="truncate">
+                <div className="md:col-span-3 font-body text-sm text-ink-soft min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="md:truncate">
                       {truncate(f.actionableStatus, 70)}
                     </span>
                     <StalenessPill since={f.actionableStatusSince} />
                   </div>
                 </div>
-                <div className="col-span-1 text-right">
+                <div className="md:col-span-1 md:text-right">
                   <Link
                     href={`/operations/${operationId}/frentes/${f.id}`}
                     className="text-oak hover:underline text-sm font-medium"

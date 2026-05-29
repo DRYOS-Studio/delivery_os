@@ -521,6 +521,70 @@ Composição:
 
 **Por que não `<dialog>` nativo?** Estilo conflita com tokens DS; controle de animação fica mais limpo com transform + state. Vale revisitar quando precisar de focus trap real (v2).
 
+### Listas responsivas — tabela ↔ card list
+
+**Padrão canônico:** abaixo de `md`, table some e cada linha vira card via `<MobileListItem>`.
+
+```tsx
+<>
+  {/* Mobile: card list */}
+  <ul className="md:hidden bg-card border border-line rounded shadow-sm overflow-hidden">
+    {items.map((i) => (
+      <MobileListItem
+        key={i.id}
+        href={`/.../${i.id}`}
+        title={i.name}
+        subtitle={`${i.client} · ${i.slug}`}
+        pills={<><Pill>...</Pill><Pill>...</Pill></>}
+        meta="X frentes · 16/05/2026"
+        trailingValue={isAdmin ? formatMoneyBR(i.mrr) : undefined}
+      />
+    ))}
+  </ul>
+
+  {/* Desktop: table */}
+  <div className="hidden md:block bg-card border border-line rounded shadow-sm overflow-hidden">
+    <table>...</table>
+  </div>
+</>
+```
+
+`MobileListItem` slots:
+- `href` (obrigatório) — vira `<Link>` na linha inteira
+- `title` — texto principal, `font-medium text-ink`
+- `subtitle?` — mono `text-[10px] text-mute`
+- `pills?` — slot pra `<Pill>`s inline (status, tipo, linha)
+- `meta?` — texto auxiliar mono pequeno
+- `trailingValue?` — valor à direita (MRR pra admin, contagem, etc.)
+
+Sempre renderiza `ChevronRight` à direita pra afford clique.
+
+### Grids responsivos — `flex-col` mobile ↔ `grid-cols-N` desktop
+
+Para listas com layout estruturado (ex: FrentesListSection com 12 colunas):
+
+```tsx
+<li className="flex flex-col gap-2 px-4 py-3 md:grid md:grid-cols-12 md:gap-3 md:items-center">
+  <div className="md:col-span-3">{title}</div>
+  <div className="flex flex-wrap items-center gap-2 md:contents">
+    <div className="md:col-span-1"><Pill>...</Pill></div>
+    <div className="md:col-span-2"><Pill>...</Pill></div>
+  </div>
+  ...
+</li>
+```
+
+**Regras:**
+- `md:contents` no wrapper agrupa pills num row visível no mobile, mas no `md:` os filhos viram direct grid children (ignora o wrapper).
+- `flex flex-wrap gap-2` no mobile evita overflow horizontal.
+- Headers de "tabela" (linha de títulos das colunas) ficam `hidden md:grid`.
+- `md:truncate` (não `truncate`) — no mobile prefira wrap natural.
+- Elementos vazios ("—") podem ficar `hidden md:inline` pra não criar espaço inútil no mobile.
+
+### PageHeader actions
+
+Padrão: `flex flex-wrap items-center gap-2`. Nunca `flex-nowrap` — botões adicionais (admin) devem quebrar linha sem cortar.
+
 ---
 
 ## Modo escuro
