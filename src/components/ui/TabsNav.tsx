@@ -24,8 +24,8 @@ export function TabsNav<K extends string>({
   searchParamName = "tab",
 }: Props<K>) {
   return (
-    <nav className="sticky top-0 z-10 bg-bg border-b border-line mb-7 -mx-4 px-4">
-      <div className="flex gap-1 overflow-x-auto -mb-px scrollbar-thin">
+    <nav className="sticky top-0 z-10 bg-bg border-b border-line mb-7 -mx-4 px-4 md:-mx-7 md:px-7">
+      <div className="flex gap-1 overflow-x-auto -mb-px scrollbar-thin snap-x snap-mandatory md:snap-none">
         {tabs.map((t) => {
           const isActive = t.key === activeTab;
           const href = `${basePath}?${searchParamName}=${t.key}`;
@@ -38,7 +38,7 @@ export function TabsNav<K extends string>({
               prefetch
               scroll={false}
               className={cn(
-                "inline-flex items-center gap-2 px-3 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors",
+                "inline-flex items-center gap-2 px-3 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors snap-start",
                 isActive
                   ? "border-ink text-ink"
                   : "border-transparent text-mute hover:text-ink",

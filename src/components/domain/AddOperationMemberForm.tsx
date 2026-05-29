@@ -35,8 +35,11 @@ export function AddOperationMemberForm({
   }
 
   return (
-    <form action={handleSubmit} className="flex flex-wrap items-end gap-3">
-      <div className="flex-1 min-w-[240px] space-y-1">
+    <form
+      action={handleSubmit}
+      className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end"
+    >
+      <div className="flex-1 md:min-w-[240px] space-y-1">
         <label
           htmlFor="profile_id"
           className="block font-mono text-[10px] text-mute uppercase tracking-wide"

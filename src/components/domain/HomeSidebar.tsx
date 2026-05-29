@@ -12,7 +12,7 @@ export function HomeSidebar({ isAdmin, topVillains, quickWinsLast30d }: Props) {
   const chartData = topVillains.map((v) => ({ label: v.name, value: v.count }));
 
   return (
-    <div className="flex flex-col gap-6 xl:sticky xl:top-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-6 xl:sticky xl:top-6">
       <div className="flex flex-col gap-2 p-5 bg-surface border border-line rounded-sm min-w-0">
         <p className="font-mono text-[10px] uppercase tracking-wide text-mute">
           {isAdmin ? "Vilões da carteira" : "Vilões nas suas Operações"}
