@@ -17,9 +17,9 @@ export function MetricCard({
   size = "default",
 }: Props) {
   return (
-    <div className="flex flex-col gap-1 p-5 bg-surface border border-line rounded-sm">
+    <div className="flex flex-col gap-1 p-4 md:p-5 bg-surface border border-line rounded-sm min-w-0">
       <div className="flex items-center justify-between gap-2">
-        <p className="font-mono text-[10px] uppercase tracking-wide text-mute">
+        <p className="font-mono text-[10px] uppercase tracking-wide text-mute truncate">
           {label}
         </p>
         {variant && (
@@ -36,8 +36,10 @@ export function MetricCard({
       </div>
       <p
         className={cn(
-          "font-display font-semibold text-ink",
-          size === "lg" ? "text-4xl" : "text-3xl",
+          "font-display font-semibold text-ink break-words",
+          size === "lg"
+            ? "text-3xl md:text-4xl"
+            : "text-2xl md:text-3xl",
         )}
       >
         {value}
