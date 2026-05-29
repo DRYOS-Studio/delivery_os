@@ -51,53 +51,61 @@ export function TaskListItem({ task, operationId, isAdmin }: Props) {
     task.status === "done" ? "line-through text-mute" : "text-ink";
 
   return (
-    <li className="grid grid-cols-12 gap-3 items-center px-4 py-3 border-b border-line last:border-b-0">
-      <div className="col-span-1 flex justify-center">
-        <StatusCycleButton taskId={task.id} currentStatus={task.status} />
+    <li className="flex flex-col gap-2 px-4 py-3 border-b border-line last:border-b-0 md:grid md:grid-cols-12 md:gap-3 md:items-center">
+      <div className="flex items-center gap-3 md:contents">
+        <div className="md:col-span-1 md:flex md:justify-center shrink-0">
+          <StatusCycleButton taskId={task.id} currentStatus={task.status} />
+        </div>
+        <div className="md:col-span-5 flex-1 min-w-0">
+          <Link
+            href={`/operations/${operationId}/frentes/${task.frenteId}/tasks/${task.id}/edit`}
+            className={`font-medium ${titleStyle} hover:underline md:truncate md:block`}
+          >
+            {task.title}
+          </Link>
+        </div>
       </div>
-      <div className="col-span-5 min-w-0">
-        <Link
-          href={`/operations/${operationId}/frentes/${task.frenteId}/tasks/${task.id}/edit`}
-          className={`font-medium ${titleStyle} hover:underline truncate block`}
-        >
-          {task.title}
-        </Link>
-      </div>
-      <div className="col-span-2 flex justify-center">
-        {task.assigneeName ? (
-          <div className="flex items-center gap-1.5">
-            <Avatar
-              size="sm"
-              initials={getInitials(task.assigneeName)}
-              color="oak"
-              className="cursor-default"
-            />
-            <span className="font-mono text-[10px] text-mute truncate">
-              {task.assigneeName}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 md:contents">
+        <div className="md:col-span-2 md:flex md:justify-center">
+          {task.assigneeName ? (
+            <div className="flex items-center gap-1.5">
+              <Avatar
+                size="sm"
+                initials={getInitials(task.assigneeName)}
+                color="oak"
+                className="cursor-default"
+              />
+              <span className="font-mono text-[10px] text-mute md:truncate">
+                {task.assigneeName}
+              </span>
+            </div>
+          ) : (
+            <span className="hidden md:inline font-mono text-[10px] text-mute-soft">
+              —
             </span>
-          </div>
-        ) : (
-          <span className="font-mono text-[10px] text-mute-soft">—</span>
-        )}
+          )}
+        </div>
+        <div className="md:col-span-2 md:flex md:justify-center">
+          {duePill ? (
+            <Pill variant={duePill.variant}>{duePill.text}</Pill>
+          ) : (
+            <span className="hidden md:inline font-mono text-[10px] text-mute-soft">
+              —
+            </span>
+          )}
+        </div>
+        <div className="md:col-span-1 flex flex-wrap gap-1 md:justify-end">
+          {displayedTags.map((t) => (
+            <Pill key={t} variant="neutral">
+              {t}
+            </Pill>
+          ))}
+          {extraTagCount > 0 && (
+            <Pill variant="neutral">+{extraTagCount}</Pill>
+          )}
+        </div>
       </div>
-      <div className="col-span-2 flex justify-center">
-        {duePill ? (
-          <Pill variant={duePill.variant}>{duePill.text}</Pill>
-        ) : (
-          <span className="font-mono text-[10px] text-mute-soft">—</span>
-        )}
-      </div>
-      <div className="col-span-1 flex flex-wrap gap-1 justify-end">
-        {displayedTags.map((t) => (
-          <Pill key={t} variant="neutral">
-            {t}
-          </Pill>
-        ))}
-        {extraTagCount > 0 && (
-          <Pill variant="neutral">+{extraTagCount}</Pill>
-        )}
-      </div>
-      <div className="col-span-1 flex justify-end">
+      <div className="md:col-span-1 md:flex md:justify-end">
         {isAdmin && (
           <DeleteTaskButton taskId={task.id} title={task.title} />
         )}

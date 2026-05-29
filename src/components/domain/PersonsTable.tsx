@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
+import { MobileListItem } from "@/components/ui/MobileListItem";
 import { Pill } from "@/components/ui/Pill";
 import type { PersonListItem } from "@/lib/db/queries/persons";
 import { getInitials } from "@/lib/utils/initials";
@@ -54,7 +55,34 @@ export function PersonsTable({
   }
 
   return (
-    <div className="bg-card border border-line rounded shadow-sm overflow-hidden">
+    <>
+      {/* Mobile: card list */}
+      <ul className="md:hidden bg-card border border-line rounded shadow-sm overflow-hidden">
+        {persons.map((p) => (
+          <MobileListItem
+            key={p.id}
+            href={`/persons/${p.id}`}
+            title={p.name}
+            subtitle={
+              p.kind === "internal"
+                ? p.specialty ?? undefined
+                : p.externalRole ?? undefined
+            }
+            pills={
+              <>
+                <Pill variant={p.kind === "internal" ? "oak" : "sage"}>
+                  {p.kind === "internal" ? "Interna" : "Externa"}
+                </Pill>
+                {p.clientName && <Pill variant="neutral">{p.clientName}</Pill>}
+              </>
+            }
+            {...(p.email ? { meta: p.email } : {})}
+          />
+        ))}
+      </ul>
+
+      {/* Desktop: table */}
+      <div className="hidden md:block bg-card border border-line rounded shadow-sm overflow-hidden">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-line">
@@ -122,7 +150,8 @@ export function PersonsTable({
           ))}
         </tbody>
       </table>
-    </div>
+      </div>
+    </>
   );
 }
 

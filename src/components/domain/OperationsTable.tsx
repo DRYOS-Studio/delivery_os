@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
+import { MobileListItem } from "@/components/ui/MobileListItem";
 import { Pill, type PillVariant } from "@/components/ui/Pill";
 import type { OperationListItem } from "@/lib/db/queries/operations";
 import { formatDateBR } from "@/lib/utils/date";
@@ -71,7 +72,35 @@ export function OperationsTable({
   }
 
   return (
-    <div className="bg-card border border-line rounded shadow-sm overflow-hidden">
+    <>
+      {/* Mobile: card list */}
+      <ul className="md:hidden bg-card border border-line rounded shadow-sm overflow-hidden">
+        {operations.map((op) => (
+          <MobileListItem
+            key={op.id}
+            href={`/operations/${op.id}`}
+            title={op.name}
+            subtitle={`${op.clientName} · ${op.clientSlug}`}
+            pills={
+              <>
+                <Pill variant="oak" showDot>
+                  {PRODUCT_LINE_LABEL[op.productLine]}
+                </Pill>
+                <Pill variant={STATUS_VARIANT[op.status]}>
+                  {STATUS_LABEL[op.status]}
+                </Pill>
+              </>
+            }
+            meta={`${op.activeFrentes} ${op.activeFrentes === 1 ? "frente" : "frentes"} · ${formatDateBR(op.createdAt)}`}
+            {...(isAdmin
+              ? { trailingValue: formatMoneyBR(op.monthlyRecurringRevenue) }
+              : {})}
+          />
+        ))}
+      </ul>
+
+      {/* Desktop: table */}
+      <div className="hidden md:block bg-card border border-line rounded shadow-sm overflow-hidden">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-line">
@@ -131,7 +160,8 @@ export function OperationsTable({
           ))}
         </tbody>
       </table>
-    </div>
+      </div>
+    </>
   );
 }
 

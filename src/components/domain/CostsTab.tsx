@@ -103,31 +103,33 @@ export function CostsTab({ operationId, breakdown }: Props) {
               {adHocItems.map((c, idx) => (
                 <li
                   key={c.id}
-                  className={`grid grid-cols-12 gap-3 items-center px-4 py-3 ${
+                  className={`flex flex-col gap-2 px-4 py-3 md:grid md:grid-cols-12 md:gap-3 md:items-center ${
                     idx !== adHocItems.length - 1 ? "border-b border-line" : ""
                   }`}
                 >
-                  <div className="col-span-4 font-medium text-ink truncate">
+                  <div className="md:col-span-4 font-medium text-ink min-w-0">
                     <Link
                       href={`/operations/${operationId}/costs/${c.id}/edit`}
-                      className="hover:underline"
+                      className="hover:underline md:truncate"
                     >
                       {c.label}
                     </Link>
                   </div>
-                  <div className="col-span-2 font-mono text-sm text-ink">
-                    {formatMoneyBR(c.amount)}
+                  <div className="flex flex-wrap items-center gap-2 md:contents">
+                    <div className="md:col-span-2 font-mono text-sm text-ink">
+                      {formatMoneyBR(c.amount)}
+                    </div>
+                    <div className="md:col-span-2">
+                      <Pill variant={c.recurrence === "mensal" ? "sage" : "oak"}>
+                        {c.recurrence === "mensal" ? "Mensal" : "Única"}
+                      </Pill>
+                    </div>
+                    <div className="md:col-span-3 font-mono text-[10px] text-mute">
+                      {formatDateBR(c.startedAt)}
+                      {c.endedAt ? ` → ${formatDateBR(c.endedAt)}` : ""}
+                    </div>
                   </div>
-                  <div className="col-span-2">
-                    <Pill variant={c.recurrence === "mensal" ? "sage" : "oak"}>
-                      {c.recurrence === "mensal" ? "Mensal" : "Única"}
-                    </Pill>
-                  </div>
-                  <div className="col-span-3 font-mono text-[10px] text-mute">
-                    {formatDateBR(c.startedAt)}
-                    {c.endedAt ? ` → ${formatDateBR(c.endedAt)}` : ""}
-                  </div>
-                  <div className="col-span-1 flex justify-end">
+                  <div className="md:col-span-1 flex md:justify-end">
                     <DeleteCostButton costId={c.id} label={c.label} />
                   </div>
                 </li>
@@ -160,13 +162,13 @@ export function CostsTab({ operationId, breakdown }: Props) {
               {allocations.map((a, idx) => (
                 <li
                   key={a.allocationId}
-                  className={`grid grid-cols-12 gap-3 items-center px-4 py-3 ${
+                  className={`flex flex-col gap-2 px-4 py-3 md:grid md:grid-cols-12 md:gap-3 md:items-center ${
                     idx !== allocations.length - 1
                       ? "border-b border-line"
                       : ""
                   }`}
                 >
-                  <div className="col-span-4 flex items-center gap-2 min-w-0">
+                  <div className="md:col-span-4 flex items-center gap-2 min-w-0">
                     <Avatar
                       size="sm"
                       initials={getInitials(a.personName)}
@@ -180,38 +182,40 @@ export function CostsTab({ operationId, breakdown }: Props) {
                       {a.personName}
                     </Link>
                   </div>
-                  <div className="col-span-2 font-mono text-sm text-ink">
-                    {a.fixedMonthlyCost !== null ? (
-                      <span className="text-mute-soft">— valor fechado —</span>
-                    ) : (
-                      <>
-                        {a.effectiveWeeklyHours.toFixed(1)}h/sem
-                        {a.weeklyHours === null && (
-                          <span
-                            className="text-mute-soft ml-1"
-                            title={`Derivado de ${a.capacityPct}% × contratadas`}
-                          >
-                            ({a.capacityPct}%)
-                          </span>
-                        )}
-                      </>
-                    )}
-                  </div>
-                  <div className="col-span-3 font-mono text-sm text-ink">
-                    {a.fixedMonthlyCost !== null ? (
-                      <span className="text-mute-soft">fechado</span>
-                    ) : a.hourlyRate !== null ? (
-                      `${formatMoneyBR(a.hourlyRate)}/h`
-                    ) : (
-                      <span className="text-mute-soft">— sem taxa —</span>
-                    )}
-                  </div>
-                  <div className="col-span-3 font-mono text-sm text-ink text-right">
-                    {a.fixedMonthlyCost !== null || a.hourlyRate !== null ? (
-                      formatMoneyBR(a.monthlyCost)
-                    ) : (
-                      <span className="text-mute-soft">—</span>
-                    )}
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 md:contents">
+                    <div className="md:col-span-2 font-mono text-sm text-ink">
+                      {a.fixedMonthlyCost !== null ? (
+                        <span className="text-mute-soft">— valor fechado —</span>
+                      ) : (
+                        <>
+                          {a.effectiveWeeklyHours.toFixed(1)}h/sem
+                          {a.weeklyHours === null && (
+                            <span
+                              className="text-mute-soft ml-1"
+                              title={`Derivado de ${a.capacityPct}% × contratadas`}
+                            >
+                              ({a.capacityPct}%)
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </div>
+                    <div className="md:col-span-3 font-mono text-sm text-ink">
+                      {a.fixedMonthlyCost !== null ? (
+                        <span className="text-mute-soft">fechado</span>
+                      ) : a.hourlyRate !== null ? (
+                        `${formatMoneyBR(a.hourlyRate)}/h`
+                      ) : (
+                        <span className="text-mute-soft">— sem taxa —</span>
+                      )}
+                    </div>
+                    <div className="md:col-span-3 font-mono text-sm text-ink md:text-right">
+                      {a.fixedMonthlyCost !== null || a.hourlyRate !== null ? (
+                        formatMoneyBR(a.monthlyCost)
+                      ) : (
+                        <span className="text-mute-soft">—</span>
+                      )}
+                    </div>
                   </div>
                 </li>
               ))}
