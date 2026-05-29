@@ -1,3 +1,4 @@
+import { MobileShell } from "@/components/layout/MobileShell";
 import { Sidebar } from "@/components/layout/Sidebar";
 
 export default async function AppLayout({
@@ -5,10 +6,5 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <div className="min-h-screen">
-      <Sidebar />
-      <main className="ml-[220px] max-w-[1280px] p-7">{children}</main>
-    </div>
-  );
+  return <MobileShell sidebar={<Sidebar />}>{children}</MobileShell>;
 }
