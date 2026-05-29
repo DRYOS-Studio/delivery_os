@@ -255,6 +255,7 @@ export type OperationDetail = {
   diagnosticId: string | null;
   startDate: string | null;
   endDate: string | null;
+  notificationWebhookUrl: string | null;
   createdAt: string;
   client: { id: string; name: string; slug: string };
   frentes: FrenteListItem[];
@@ -269,7 +270,8 @@ export async function getOperation(id: string): Promise<OperationDetail | null> 
       id, name, product_line, status, recurrence,
       monthly_recurring_revenue, monthly_fixed_cost,
       response_hours, resolution_hours,
-      diagnostic_id, start_date, end_date, created_at,
+      diagnostic_id, start_date, end_date, notification_webhook_url,
+      created_at,
       client:clients(id, name, slug),
       frentes(
         id, name, cycle_type, domain, phase,
@@ -322,6 +324,7 @@ export async function getOperation(id: string): Promise<OperationDetail | null> 
     diagnosticId: data.diagnostic_id,
     startDate: data.start_date,
     endDate: data.end_date,
+    notificationWebhookUrl: data.notification_webhook_url,
     createdAt: data.created_at,
     client: {
       id: data.client.id,

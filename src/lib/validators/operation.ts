@@ -78,6 +78,10 @@ export const operationSchema = z
       emptyToUndefined,
       z.string().uuid().optional(),
     ),
+    notification_webhook_url: z.preprocess(
+      emptyToUndefined,
+      z.string().url("URL inválida.").max(500, "URL muito longa.").optional(),
+    ),
   })
   .refine(
     (data) =>

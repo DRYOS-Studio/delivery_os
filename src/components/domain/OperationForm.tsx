@@ -88,6 +88,8 @@ export function OperationForm(props: Props): React.JSX.Element {
         diagnostic_id: props.initialData.diagnosticId ?? undefined,
         start_date: props.initialData.startDate ?? undefined,
         end_date: props.initialData.endDate ?? undefined,
+        notification_webhook_url:
+          props.initialData.notificationWebhookUrl ?? undefined,
       }
     : {
         client_id: "",
@@ -102,6 +104,7 @@ export function OperationForm(props: Props): React.JSX.Element {
         diagnostic_id: undefined,
         start_date: undefined,
         end_date: undefined,
+        notification_webhook_url: undefined,
       };
 
   const {
@@ -168,6 +171,7 @@ export function OperationForm(props: Props): React.JSX.Element {
     fd.set("diagnostic_id", data.diagnostic_id ?? "");
     fd.set("start_date", data.start_date ?? "");
     fd.set("end_date", data.end_date ?? "");
+    fd.set("notification_webhook_url", data.notification_webhook_url ?? "");
 
     const result = isEdit
       ? await updateOperationAction(props.initialData.id, fd)
@@ -485,6 +489,27 @@ export function OperationForm(props: Props): React.JSX.Element {
           />
         </Field>
       </div>
+
+      <fieldset className="border-t border-line pt-5 mt-2">
+        <legend className="font-display text-sm font-semibold text-ink mb-3 px-0">
+          Integrações
+        </legend>
+        <Field
+          label="Webhook de notificação (n8n)"
+          htmlFor="notification_webhook_url"
+          error={errors.notification_webhook_url?.message}
+          hint="URL pra onde DRYOS posta eventos (Frente parada, SLA estourado). Deixe em branco pra desligar."
+        >
+          <input
+            id="notification_webhook_url"
+            type="url"
+            placeholder="https://n8n.exemplo.com/webhook/dryos-..."
+            {...register("notification_webhook_url")}
+            disabled={busy}
+            className={inputCn}
+          />
+        </Field>
+      </fieldset>
 
       <div className="flex items-center justify-between pt-2">
         <div className="flex items-center gap-2">
