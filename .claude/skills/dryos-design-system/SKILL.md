@@ -490,6 +490,39 @@ Seções dentro da Operação aberta usam Cards com padding p-6:
 
 ---
 
+## Mobile patterns
+
+DRYOS é primariamente desktop, mas precisa ser navegável em mobile (especialmente member em campo). Patterns canônicos abaixo — toda tela nova nasce com eles aplicados.
+
+### Breakpoints
+
+Tailwind default: `sm 640 / md 768 / lg 1024 / xl 1280 / 2xl 1536`. Mobile-first sempre — escreva o base (mobile) primeiro, adicione `md:`/`lg:`/`xl:` pra refinar acima.
+
+**Fronteira shell mobile/desktop:** `md` (768px). Abaixo: drawer + cards. Acima: sidebar fixa + tabelas.
+
+### Shell — drawer pattern
+
+Sidebar fixa de 220px funciona em desktop mas come a tela em mobile. Pattern:
+
+- **Top-bar mobile** (`md:hidden sticky top-0 z-30`): logo "DRYOS Studio" + botão hamburger à direita. Altura `h-14`.
+- **Sidebar desktop** (`hidden md:block`): wrapper externo aplica `fixed left-0 top-0 h-screen w-[220px]`. O componente `Sidebar` em si é puro conteúdo (`h-full w-full flex flex-col`).
+- **Drawer mobile** (`md:hidden fixed inset-0 z-40`): backdrop `bg-ink/40` + painel `inset-y-0 left-0 w-[260px]` slide via `translate-x` (200ms). X interno no canto superior direito.
+- **Fechamentos do drawer:** click no X, click no backdrop, tecla ESC, e auto-close ao navegar (`useEffect` em `usePathname`). Trava scroll do body enquanto aberto.
+- **Main content:** `md:ml-[220px] p-4 md:p-7` (padding menor em mobile).
+
+Composição:
+
+```tsx
+// app/(app)/layout.tsx
+<MobileShell sidebar={<Sidebar />}>{children}</MobileShell>
+```
+
+`MobileShell` é Client Component (estado open); `Sidebar` segue Server Component (faz queries). Padrão Next 16: Client component recebe Server component via `children`/prop.
+
+**Por que não `<dialog>` nativo?** Estilo conflita com tokens DS; controle de animação fica mais limpo com transform + state. Vale revisitar quando precisar de focus trap real (v2).
+
+---
+
 ## Modo escuro
 
 Toggle via `body.dark` ou via Next.js theme provider.

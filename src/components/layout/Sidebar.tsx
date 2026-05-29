@@ -28,7 +28,7 @@ export async function Sidebar() {
   const isAdmin = profile?.role === "admin";
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-[220px] bg-surface border-r border-line p-5 flex flex-col">
+    <aside className="h-full w-full bg-surface border-r border-line p-5 flex flex-col overflow-y-auto">
       <div className="flex items-center gap-2 mb-7">
         <div className="w-8 h-8 rounded-sm bg-ink text-bg flex items-center justify-center font-display font-semibold text-sm">
           D
