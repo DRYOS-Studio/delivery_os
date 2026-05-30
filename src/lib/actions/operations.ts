@@ -24,6 +24,7 @@ type CreateInput = {
   diagnostic_id: string | null;
   start_date: string | null;
   end_date: string | null;
+  notification_webhook_url: string | null;
 };
 
 function parseFormDataToInput(formData: FormData): {
@@ -39,6 +40,7 @@ function parseFormDataToInput(formData: FormData): {
   diagnostic_id: string;
   start_date: string;
   end_date: string;
+  notification_webhook_url: string;
 } {
   const mrrRaw = (formData.get("monthly_recurring_revenue") as string | null) ?? "";
   const mrrNumber = mrrRaw === "" ? null : Number(mrrRaw);
@@ -58,6 +60,9 @@ function parseFormDataToInput(formData: FormData): {
     diagnostic_id: ((formData.get("diagnostic_id") as string | null) ?? "").trim(),
     start_date: ((formData.get("start_date") as string | null) ?? "").trim(),
     end_date: ((formData.get("end_date") as string | null) ?? "").trim(),
+    notification_webhook_url: (
+      (formData.get("notification_webhook_url") as string | null) ?? ""
+    ).trim(),
   };
 }
 
@@ -83,6 +88,7 @@ function validate(formData: FormData): ActionResult<CreateInput> {
     diagnostic_id: parsed.data.diagnostic_id ?? null,
     start_date: parsed.data.start_date ?? null,
     end_date: parsed.data.end_date ?? null,
+    notification_webhook_url: parsed.data.notification_webhook_url ?? null,
   });
 }
 
@@ -140,6 +146,7 @@ export async function updateOperationAction(
       diagnostic_id: v.data.diagnostic_id,
       start_date: v.data.start_date,
       end_date: v.data.end_date,
+      notification_webhook_url: v.data.notification_webhook_url,
     })
     .eq("id", id);
 

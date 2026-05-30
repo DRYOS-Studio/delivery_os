@@ -5,6 +5,7 @@ import { type ActionResult, dbErr, err, ok } from "@/lib/actions/_types";
 import { requireAdminAction, requireUserAction } from "@/lib/auth/server";
 import { createServer } from "@/lib/db/client";
 import { getIncident } from "@/lib/db/queries/incidents";
+import { maybeNotifySlaBreach } from "@/lib/notifications/triggers";
 import {
   incidentSchema,
   type IncidentOutput,
@@ -64,6 +65,9 @@ export async function createIncidentAction(
   if (error) return dbErr(error, "createIncidentAction");
   if (!row) return err("Falha ao criar incidente.", "no_data");
 
+  // Fire-and-forget: notifica se já nasceu em breach
+  void maybeNotifySlaBreach(row.id);
+
   revalidatePath(`/operations/${operationId}`);
   return ok({ id: row.id, operationId });
 }
@@ -96,6 +100,9 @@ export async function updateIncidentAction(
     })
     .eq("id", incidentId);
   if (error) return dbErr(error, "updateIncidentAction");
+
+  // Fire-and-forget: dispara se o update deixou o incidente em breach
+  void maybeNotifySlaBreach(incidentId);
 
   revalidatePath(`/operations/${current.operation_id}`);
   return ok({ id: incidentId, operationId: current.operation_id });

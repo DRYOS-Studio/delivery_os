@@ -537,6 +537,47 @@ export type Database = {
           },
         ]
       }
+      notifications_log: {
+        Row: {
+          event_type: string
+          id: string
+          operation_id: string
+          payload: Json
+          response_status: number | null
+          sent_at: string
+          subject_id: string
+          subject_kind: string
+        }
+        Insert: {
+          event_type: string
+          id?: string
+          operation_id: string
+          payload: Json
+          response_status?: number | null
+          sent_at?: string
+          subject_id: string
+          subject_kind: string
+        }
+        Update: {
+          event_type?: string
+          id?: string
+          operation_id?: string
+          payload?: Json
+          response_status?: number | null
+          sent_at?: string
+          subject_id?: string
+          subject_kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_notifications_log_operation"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "operations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       operation_costs: {
         Row: {
           amount: number
@@ -731,6 +772,7 @@ export type Database = {
           monthly_fixed_cost: number | null
           monthly_recurring_revenue: number | null
           name: string
+          notification_webhook_url: string | null
           product_line: Database["public"]["Enums"]["product_line"]
           recurrence: Database["public"]["Enums"]["recurrence"] | null
           resolution_hours: number | null
@@ -749,6 +791,7 @@ export type Database = {
           monthly_fixed_cost?: number | null
           monthly_recurring_revenue?: number | null
           name: string
+          notification_webhook_url?: string | null
           product_line: Database["public"]["Enums"]["product_line"]
           recurrence?: Database["public"]["Enums"]["recurrence"] | null
           resolution_hours?: number | null
@@ -767,6 +810,7 @@ export type Database = {
           monthly_fixed_cost?: number | null
           monthly_recurring_revenue?: number | null
           name?: string
+          notification_webhook_url?: string | null
           product_line?: Database["public"]["Enums"]["product_line"]
           recurrence?: Database["public"]["Enums"]["recurrence"] | null
           resolution_hours?: number | null
@@ -853,6 +897,7 @@ export type Database = {
           created_at: string
           id: string
           name: string | null
+          person_id: string | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string
         }
@@ -860,6 +905,7 @@ export type Database = {
           created_at?: string
           id: string
           name?: string | null
+          person_id?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
@@ -867,10 +913,19 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string | null
+          person_id?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_profiles_person_id"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       public_links: {
         Row: {

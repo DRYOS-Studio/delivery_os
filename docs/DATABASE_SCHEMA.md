@@ -1,6 +1,6 @@
 # Database Schema
 
-**Última análise**: 2026-05-26 (operation-members)
+**Última análise**: 2026-05-29 (minhas-tasks)
 **Projeto Supabase**: `Delivery OS` (`tmsaucxoeqpfluzwrwkc`)
 **Schema**: `public`
 
@@ -30,7 +30,8 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 | **Operação · Custos** | `operation_costs` | 1 |
 | **Catálogo · Produtos** | `service_products` | 1 |
 | **Catálogo · Quick Wins** | `quick_win_catalog` | 1 |
-| **Total atual** | | **25** |
+| **Notificações** | `notifications_log` | 1 |
+| **Total atual** | | **26** |
 
 ---
 
@@ -528,9 +529,10 @@ Trigger `sync_operation_villain_progress` (AFTER INSERT/UPDATE/DELETE) recalcula
 | `id` | uuid PK → auth.users (CASCADE) | |
 | `role` | enum `user_role` NOT NULL default 'member' | admin / member |
 | `name` | text | nullable; display name livre |
+| `person_id` | uuid → persons (SET NULL) | nullable; liga o login à Pessoa interna. Fonte da verdade pra "Minhas Tasks" (`minhas-tasks` #). Index parcial `idx_profiles_person_id WHERE person_id IS NOT NULL`. |
 | `created_at`, `updated_at` | timestamptz | |
 
-Trigger `create_profile_for_new_user` (AFTER INSERT em auth.users, SECURITY DEFINER) cria profile automático com role='member' em cada signup. Backfill na migration cobriu users existentes; seed `rafaelemeth@gmail.com` virou admin.
+Trigger `create_profile_for_new_user` (AFTER INSERT em auth.users, SECURITY DEFINER) cria profile automático com role='member' em cada signup. Backfill na migration cobriu users existentes; seed `rafaelemeth@gmail.com` virou admin. O vínculo `person_id` recebeu backfill por match de email (auth.user × Pessoa interna não-arquivada) na migration `20260529160001_profile_person_link`.
 
 RLS (refinado por `operation-members`, #80):
 - SELECT (`profiles_scoped_select`): admin vê todos; member vê **si mesmo + colegas que compartilham uma Operação** (via `operation_members`). Não é mais "todos veem todos".
@@ -565,6 +567,34 @@ RLS:
 - INSERT/DELETE de vínculo só por admin (via `addOperationMemberAction`/`removeOperationMemberAction`, gated por `requireAdminAction`).
 
 **Cascata:** tabelas com `operation_id` usam `can_see_operation(operation_id)`; `allocations`/`tasks` via JOIN com `frentes`; `clients`/`persons`/`diagnostics` via EXISTS em operações visíveis. Catálogos globais (`villains`, `service_products`, `quick_win_catalog`) ficam abertos a `authenticated`. UI admin em `/operations/[id]/settings/members`.
+
+---
+
+### `notifications_log` — audit + dedup de notificações outbound (#90)
+
+Registra cada disparo (sucesso ou falha) pra `operations.notification_webhook_url` via n8n. Index dedup permite checar "já enviei esse evento pra esse subject nas últimas 24h?".
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `operation_id` | uuid → operations (CASCADE) | |
+| `event_type` | text NOT NULL | CHECK in `('frente_stale', 'sla_breach')` |
+| `subject_kind` | text NOT NULL | CHECK in `('frente', 'sla_incident')` |
+| `subject_id` | uuid NOT NULL | id da Frente ou do incidente |
+| `sent_at` | timestamptz default now() | |
+| `payload` | jsonb NOT NULL | snapshot do JSON enviado (payload v1) |
+| `response_status` | int | HTTP status (200 ok, 0 timeout/rede) |
+
+Index dedup: `(operation_id, event_type, subject_id, sent_at DESC)`.
+
+**RLS:**
+- SELECT: admin-only via `is_admin()`.
+- INSERT: admin-only via policy (Server Actions); cron usa `createAdmin()` (service-role bypassa RLS).
+- Member não vê — notificações são internas.
+
+**Coluna relacionada:** `operations.notification_webhook_url` (text NULL) — URL n8n por Operação; NULL = no-op silencioso.
+
+**Dispatcher:** `src/lib/notifications/dispatcher.ts` POSTa + loga aqui em uma transação lógica (POST → registra status). Timeout 10s. Nunca lança — notificação não pode quebrar fluxo principal.
 
 ---
 

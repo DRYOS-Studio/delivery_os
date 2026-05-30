@@ -100,9 +100,13 @@ Removida do MVP: custo de Bitwarden Teams (US$ 4/usuário/mês) evitável agora.
 - Rota `app/api/webhooks/tally/route.ts`
 - Ingestão via n8n (decisão arquitetural — n8n é o hub de webhooks)
 
-**discord-notifications** - PLANNED
+**discord-notifications** - COMPLETE (#90) — MVP com 2 eventos
 
-- Outbound via n8n (eventos: status parado +7d, decisão vencendo, SLA estourado, task overdue, Frente stale)
+- Outbound via n8n: `frente_stale` (cron diário 08:00 BRT, > 7 dias parado) e `sla_breach` (sync em Server Action + safety net no cron)
+- Coluna `operations.notification_webhook_url` (per-Op) + tabela `notifications_log` (audit + dedup 24h)
+- Módulo `src/lib/notifications/` (types/payload/dispatcher/detectors/triggers) + payload canônico versionado (`v: 1`)
+- Cron `/api/cron/notifications` autenticado por `CRON_SECRET` (Vercel Cron)
+- Os 3 eventos restantes (task overdue, decisão vencendo, status parado op-level) entram em issue futura sem refazer a infra
 
 **sla-incidents-ingest** - PLANNED (novo — não estava no roadmap original)
 
