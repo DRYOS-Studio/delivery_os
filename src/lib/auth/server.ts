@@ -8,6 +8,7 @@ export type Role = "admin" | "member";
 export type ProfileLite = {
   user: User;
   role: Role;
+  personId: string | null;
 };
 
 export function isAdmin(role: Role | null | undefined): boolean {
@@ -28,10 +29,14 @@ export async function getProfile(): Promise<ProfileLite | null> {
   if (!user) return null;
   const { data } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, person_id")
     .eq("id", user.id)
     .maybeSingle();
-  return { user, role: (data?.role as Role) ?? "member" };
+  return {
+    user,
+    role: (data?.role as Role) ?? "member",
+    personId: data?.person_id ?? null,
+  };
 }
 
 export async function requireUser(redirectToOnFail?: string): Promise<User> {
@@ -70,11 +75,15 @@ export async function requireAdminAction(): Promise<ActionResult<ProfileLite>> {
   const supabase = await createServer();
   const { data } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, person_id")
     .eq("id", userResult.data.id)
     .maybeSingle();
   if (data?.role !== "admin") {
     return err("Acesso restrito a admin.", "forbidden");
   }
-  return ok({ user: userResult.data, role: "admin" });
+  return ok({
+    user: userResult.data,
+    role: "admin",
+    personId: data.person_id ?? null,
+  });
 }

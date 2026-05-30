@@ -1,6 +1,6 @@
 # Database Schema
 
-**Última análise**: 2026-05-29 (discord-notifications)
+**Última análise**: 2026-05-29 (minhas-tasks)
 **Projeto Supabase**: `Delivery OS` (`tmsaucxoeqpfluzwrwkc`)
 **Schema**: `public`
 
@@ -529,9 +529,10 @@ Trigger `sync_operation_villain_progress` (AFTER INSERT/UPDATE/DELETE) recalcula
 | `id` | uuid PK → auth.users (CASCADE) | |
 | `role` | enum `user_role` NOT NULL default 'member' | admin / member |
 | `name` | text | nullable; display name livre |
+| `person_id` | uuid → persons (SET NULL) | nullable; liga o login à Pessoa interna. Fonte da verdade pra "Minhas Tasks" (`minhas-tasks` #). Index parcial `idx_profiles_person_id WHERE person_id IS NOT NULL`. |
 | `created_at`, `updated_at` | timestamptz | |
 
-Trigger `create_profile_for_new_user` (AFTER INSERT em auth.users, SECURITY DEFINER) cria profile automático com role='member' em cada signup. Backfill na migration cobriu users existentes; seed `rafaelemeth@gmail.com` virou admin.
+Trigger `create_profile_for_new_user` (AFTER INSERT em auth.users, SECURITY DEFINER) cria profile automático com role='member' em cada signup. Backfill na migration cobriu users existentes; seed `rafaelemeth@gmail.com` virou admin. O vínculo `person_id` recebeu backfill por match de email (auth.user × Pessoa interna não-arquivada) na migration `20260529160001_profile_person_link`.
 
 RLS (refinado por `operation-members`, #80):
 - SELECT (`profiles_scoped_select`): admin vê todos; member vê **si mesmo + colegas que compartilham uma Operação** (via `operation_members`). Não é mais "todos veem todos".

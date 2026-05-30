@@ -8,6 +8,7 @@ import {
   Contact,
   Home,
   LayoutDashboard,
+  ListChecks,
   Package,
   Settings,
   Skull,
@@ -57,12 +58,14 @@ export function SidebarNav({
   operationsCount,
   personsCount,
   hotCriticalCount,
+  myTasksCount,
   isAdmin = false,
 }: {
   clientsCount?: number;
   operationsCount?: number;
   personsCount?: number;
   hotCriticalCount?: number;
+  myTasksCount?: number | undefined;
   isAdmin?: boolean;
 }) {
   const pathname = usePathname();
@@ -77,6 +80,12 @@ export function SidebarNav({
     label: "Espaço de trabalho",
     items: [
       { href: "/", label: "Home", icon: Home },
+      {
+        href: "/me/tasks",
+        label: "Minhas Tasks",
+        icon: ListChecks,
+        count: myTasksCount,
+      },
       { href: "/clients", label: "Clientes", icon: Users, count: clientsCount },
       {
         href: "/operations",

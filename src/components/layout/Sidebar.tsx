@@ -8,6 +8,7 @@ import { countActiveClients } from "@/lib/db/queries/clients";
 import { countHotCriticalFrentes } from "@/lib/db/queries/frentes";
 import { countActiveOperations } from "@/lib/db/queries/operations";
 import { countActivePersons } from "@/lib/db/queries/persons";
+import { countMyOpenTasks } from "@/lib/db/queries/tasks";
 import { initialsFromEmail } from "@/lib/utils/initials";
 
 export async function Sidebar() {
@@ -26,6 +27,10 @@ export async function Sidebar() {
   ]);
   const email = profile?.user.email ?? "anon";
   const isAdmin = profile?.role === "admin";
+  const myOpenTasks = profile?.personId
+    ? await countMyOpenTasks(profile.personId)
+    : 0;
+  const myTasksCount = myOpenTasks > 0 ? myOpenTasks : undefined;
 
   return (
     <aside className="h-full w-full bg-surface border-r border-line p-5 flex flex-col overflow-y-auto">
@@ -48,6 +53,7 @@ export async function Sidebar() {
         operationsCount={operationsCount}
         personsCount={personsCounts.total}
         hotCriticalCount={hotCriticalCount}
+        myTasksCount={myTasksCount}
         isAdmin={isAdmin}
       />
 

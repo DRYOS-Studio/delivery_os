@@ -1,0 +1,60 @@
+import Link from "next/link";
+import { StatusCycleButton } from "@/components/domain/StatusCycleButton";
+import { Pill, type PillVariant } from "@/components/ui/Pill";
+import type { MyTaskRow } from "@/lib/db/queries/tasks";
+
+type Props = {
+  task: MyTaskRow;
+};
+
+function dueDatePill(
+  dueDate: string | null,
+  status: MyTaskRow["status"],
+): { text: string; variant: PillVariant } | null {
+  if (!dueDate) return null;
+  if (status === "done") return null;
+  const due = new Date(`${dueDate}T23:59:59`);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diffDays = Math.floor((due.getTime() - today.getTime()) / 86_400_000);
+  if (diffDays < 0)
+    return { text: `Atrasada ${Math.abs(diffDays)}d`, variant: "critical" };
+  if (diffDays === 0) return { text: "Hoje", variant: "warning" };
+  if (diffDays <= 3) return { text: `Em ${diffDays}d`, variant: "oak" };
+  return { text: formatShortDate(dueDate), variant: "neutral" };
+}
+
+function formatShortDate(iso: string): string {
+  const d = new Date(`${iso}T00:00:00`);
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+}
+
+export function MyTaskListItem({ task }: Props) {
+  const duePill = dueDatePill(task.dueDate, task.status);
+  const titleStyle =
+    task.status === "done" ? "line-through text-mute" : "text-ink";
+
+  return (
+    <li className="flex items-start gap-3 px-4 py-3 border-b border-line last:border-b-0">
+      <div className="shrink-0 pt-0.5">
+        <StatusCycleButton taskId={task.id} currentStatus={task.status} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <Link
+          href={`/operations/${task.operationId}/frentes/${task.frenteId}/tasks/${task.id}/edit`}
+          className={`font-medium ${titleStyle} hover:underline block truncate`}
+        >
+          {task.title}
+        </Link>
+        <p className="font-mono text-[10px] text-mute-soft truncate mt-0.5">
+          {task.clientName} · {task.operationName} · {task.frenteName}
+        </p>
+      </div>
+      {duePill && (
+        <div className="shrink-0">
+          <Pill variant={duePill.variant}>{duePill.text}</Pill>
+        </div>
+      )}
+    </li>
+  );
+}

@@ -897,6 +897,7 @@ export type Database = {
           created_at: string
           id: string
           name: string | null
+          person_id: string | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string
         }
@@ -904,6 +905,7 @@ export type Database = {
           created_at?: string
           id: string
           name?: string | null
+          person_id?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
@@ -911,10 +913,19 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string | null
+          person_id?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_profiles_person_id"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       public_links: {
         Row: {
