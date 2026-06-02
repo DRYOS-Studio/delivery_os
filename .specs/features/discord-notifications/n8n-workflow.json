@@ -1,0 +1,309 @@
+{
+  "name": "DRYOS Notifications → Discord",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## DRYOS Notifications → Discord\n\n**Como configurar:**\n1. No node **Client Lookup** edite o objeto `CLIENTS` colando os webhooks Discord reais de cada cliente.\n2. No node **Webhook DRYOS** (topo esquerdo) copie a Production URL e cole no campo `notification_webhook_url` da Operação no DRYOS (`/operations/[id]/edit` → seção Integrações).\n3. Quando tiver +5 clientes, troque o Code lookup por um n8n **Data Table** (tabela `dryos_clients` com mesmas colunas).\n\n**Payload v1** completo: `.specs/features/discord-notifications/payload-v1.md` no repo do DRYOS.\n\n**Eventos suportados:**\n- `frente_stale` → canal `#dryos-frentes` (cor oak)\n- `sla_breach` severity=low/medium → canal `#dryos-sla` (cor critical)\n- `sla_breach` severity=high → canal `#dryos-sla-critico` + menção `@role on-call` (cor critical)",
+        "height": 360,
+        "width": 520,
+        "color": 5
+      },
+      "id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+      "name": "How to use",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [200, 60]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dryos-notifications",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "11111111-1111-1111-1111-111111111111",
+      "name": "Webhook DRYOS",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [260, 480],
+      "webhookId": "dryos-notifications"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "ok",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+      "name": "Respond 200 OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [480, 320]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lookup: client_id → webhooks Discord do cliente + role on-call\n// TODO: substituir por n8n Data Table quando criar a tabela dryos_clients\nconst CLIENTS = {\n  // Exemplo — copie esse bloco pra cada cliente real\n  \"f1234567-89ab-cdef-0123-456789abcdef\": {\n    name: \"Altis Lisboa\",\n    webhook_frentes:   \"https://discord.com/api/webhooks/REPLACE/ME\",\n    webhook_sla:       \"https://discord.com/api/webhooks/REPLACE/ME\",\n    webhook_sla_high:  \"https://discord.com/api/webhooks/REPLACE/ME\",\n    role_oncall_id:    \"REPLACE_ROLE_ID\"\n  }\n};\n\nconst item = $input.first().json;\nconst clientId = item.operation && item.operation.client && item.operation.client.id;\n\nif (!clientId) {\n  throw new Error(\"Payload sem operation.client.id — checar contrato\");\n}\n\nconst config = CLIENTS[clientId];\nif (!config) {\n  // Cliente desconhecido: não bloqueia o fluxo, só sinaliza.\n  // Considere adicionar branch de fallback pra canal de erros.\n  throw new Error(`Cliente sem config no lookup: ${clientId}`);\n}\n\nreturn [{ json: { ...item, _config: config } }];"
+      },
+      "id": "22222222-2222-2222-2222-222222222222",
+      "name": "Client Lookup",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 480]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.event }}",
+                    "rightValue": "frente_stale",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "frente_stale"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.event }}",
+                    "rightValue": "sla_breach",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sla_breach"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "33333333-3333-3333-3333-333333333333",
+      "name": "Switch event",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [940, 480]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build embed Discord — frente_stale\nconst it = $input.first().json;\n\nconst staleDays = it.context.stale_days;\nconst color = staleDays >= 14 ? 11680328 : 13211454; // critical vs oak\nconst emoji  = staleDays >= 14 ? \"🔴\" : \"🟡\";\n\nconst body = {\n  embeds: [{\n    title: `${emoji} Frente parada há ${staleDays}d`,\n    description: `**${it.subject.name}**\\n${it.context.actionable_status}`,\n    url: it.url,\n    color: color,\n    fields: [\n      { name: \"Operação\", value: `${it.operation.client.name} · ${it.operation.name}`, inline: false }\n    ],\n    footer: { text: `DRYOS Studio · ${it.operation.client.name}` },\n    timestamp: it.ts\n  }]\n};\n\nreturn [{ json: { _webhook_url: it._config.webhook_frentes, _body: body } }];"
+      },
+      "id": "55555555-5555-5555-5555-555555555555",
+      "name": "Build frente_stale embed",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1180, 320]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json._webhook_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json._body) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "88888888-8888-8888-8888-888888888888",
+      "name": "POST → Discord (frentes)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1440, 320]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "high-cond",
+              "leftValue": "={{ $json.context.severity }}",
+              "rightValue": "high",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "44444444-4444-4444-4444-444444444444",
+      "name": "IF severity high?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1180, 640]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build embed Discord — sla_breach severity HIGH (com role ping)\nconst it = $input.first().json;\n\nconst kindLabel = it.context.breach_kind === \"response\" ? \"sem resposta\" : \"não resolvido\";\n\nconst body = {\n  content: `<@&${it._config.role_oncall_id}> SLA crítico`,\n  embeds: [{\n    title: `🚨 SLA ${kindLabel} · ${it.context.hours_elapsed}h / ${it.context.hours_limit}h`,\n    description: `**${it.subject.name}**`,\n    url: it.url,\n    color: 11680328,\n    fields: [\n      { name: \"Operação\", value: `${it.operation.client.name} · ${it.operation.name}`, inline: true },\n      { name: \"Severidade\", value: it.context.severity, inline: true }\n    ],\n    footer: { text: `DRYOS Studio · ${it.operation.client.name}` },\n    timestamp: it.ts\n  }]\n};\n\nreturn [{ json: { _webhook_url: it._config.webhook_sla_high, _body: body } }];"
+      },
+      "id": "66666666-6666-6666-6666-666666666666",
+      "name": "Build sla_breach embed (high)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1440, 540]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build embed Discord — sla_breach severity low/medium (sem ping)\nconst it = $input.first().json;\n\nconst kindLabel = it.context.breach_kind === \"response\" ? \"sem resposta\" : \"não resolvido\";\n\nconst body = {\n  embeds: [{\n    title: `⚠️ SLA ${kindLabel} · ${it.context.hours_elapsed}h / ${it.context.hours_limit}h`,\n    description: `**${it.subject.name}**`,\n    url: it.url,\n    color: 13211454,\n    fields: [\n      { name: \"Operação\", value: `${it.operation.client.name} · ${it.operation.name}`, inline: true },\n      { name: \"Severidade\", value: it.context.severity, inline: true }\n    ],\n    footer: { text: `DRYOS Studio · ${it.operation.client.name}` },\n    timestamp: it.ts\n  }]\n};\n\nreturn [{ json: { _webhook_url: it._config.webhook_sla, _body: body } }];"
+      },
+      "id": "77777777-7777-7777-7777-777777777777",
+      "name": "Build sla_breach embed (normal)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1440, 760]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json._webhook_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json._body) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "99999999-9999-9999-9999-999999999999",
+      "name": "POST → Discord (sla high)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1700, 540]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json._webhook_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json._body) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "name": "POST → Discord (sla normal)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1700, 760]
+    }
+  ],
+  "connections": {
+    "Webhook DRYOS": {
+      "main": [
+        [
+          { "node": "Respond 200 OK", "type": "main", "index": 0 },
+          { "node": "Client Lookup",  "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Client Lookup": {
+      "main": [
+        [ { "node": "Switch event", "type": "main", "index": 0 } ]
+      ]
+    },
+    "Switch event": {
+      "main": [
+        [ { "node": "Build frente_stale embed", "type": "main", "index": 0 } ],
+        [ { "node": "IF severity high?",         "type": "main", "index": 0 } ]
+      ]
+    },
+    "Build frente_stale embed": {
+      "main": [
+        [ { "node": "POST → Discord (frentes)", "type": "main", "index": 0 } ]
+      ]
+    },
+    "IF severity high?": {
+      "main": [
+        [ { "node": "Build sla_breach embed (high)",   "type": "main", "index": 0 } ],
+        [ { "node": "Build sla_breach embed (normal)", "type": "main", "index": 0 } ]
+      ]
+    },
+    "Build sla_breach embed (high)": {
+      "main": [
+        [ { "node": "POST → Discord (sla high)", "type": "main", "index": 0 } ]
+      ]
+    },
+    "Build sla_breach embed (normal)": {
+      "main": [
+        [ { "node": "POST → Discord (sla normal)", "type": "main", "index": 0 } ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "versionId": "",
+  "tags": []
+}
