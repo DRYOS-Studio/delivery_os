@@ -30,7 +30,10 @@ export type NotificationPayload = {
   operation: {
     id: string;
     name: string;
-    client_name: string;
+    client: {
+      id: string;
+      name: string;
+    };
   };
   subject: {
     kind: SubjectKind;

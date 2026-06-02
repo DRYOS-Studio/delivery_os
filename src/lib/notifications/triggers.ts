@@ -28,7 +28,7 @@ export async function maybeNotifySlaBreach(incidentId: string): Promise<void> {
         operation:operations!inner (
           id, name, response_hours, resolution_hours,
           notification_webhook_url, archived_at,
-          client:clients!inner ( name )
+          client:clients!inner ( id, name )
         )
       `,
       )
@@ -57,7 +57,11 @@ export async function maybeNotifySlaBreach(incidentId: string): Promise<void> {
     if (recent) return;
 
     const payload = buildSlaBreachPayload({
-      operation: { id: op.id, name: op.name, client_name: client.name },
+      operation: {
+        id: op.id,
+        name: op.name,
+        client: { id: client.id, name: client.name },
+      },
       incident: { id: incident.id, title: incident.title },
       context: {
         severity: incident.severity,

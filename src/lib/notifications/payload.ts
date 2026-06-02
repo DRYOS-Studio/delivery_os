@@ -10,7 +10,10 @@ const APP_URL =
 type OperationLite = {
   id: string;
   name: string;
-  client_name: string;
+  client: {
+    id: string;
+    name: string;
+  };
 };
 
 export function buildFrenteStalePayload(input: {
