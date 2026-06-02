@@ -11,6 +11,7 @@ const PUBLIC_PREFIXES = [
   "/login",
   "/auth/callback",
   "/api/webhooks",
+  "/api/cron",
   "/public",
 ];
 
