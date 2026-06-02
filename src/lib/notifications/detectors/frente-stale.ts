@@ -11,6 +11,7 @@ export type StaleFrenteToNotify = {
   stale_days: number;
   operation_id: string;
   operation_name: string;
+  client_id: string;
   client_name: string;
   webhook_url: string;
 };
@@ -26,14 +27,14 @@ type FrenteRow = {
         name: string;
         notification_webhook_url: string | null;
         archived_at: string | null;
-        client: { name: string } | { name: string }[] | null;
+        client: { id: string; name: string } | { id: string; name: string }[] | null;
       }
     | {
         id: string;
         name: string;
         notification_webhook_url: string | null;
         archived_at: string | null;
-        client: { name: string } | { name: string }[] | null;
+        client: { id: string; name: string } | { id: string; name: string }[] | null;
       }[]
     | null;
 };
@@ -69,7 +70,7 @@ export async function listStaleFrentesPendingNotification(
         name,
         notification_webhook_url,
         archived_at,
-        client:clients!inner ( name )
+        client:clients!inner ( id, name )
       )
     `,
     )
@@ -99,6 +100,7 @@ export async function listStaleFrentesPendingNotification(
         stale_days,
         operation_id: op.id,
         operation_name: op.name,
+        client_id: client.id,
         client_name: client.name,
         webhook_url: op.notification_webhook_url,
       };

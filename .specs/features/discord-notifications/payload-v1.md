@@ -12,7 +12,10 @@
   "operation": {
     "id": "uuid",
     "name": "Studio | Sparks",
-    "client_name": "Altis Lisboa"
+    "client": {
+      "id": "uuid",
+      "name": "Altis Lisboa"
+    }
   },
   "subject": {
     "kind": "frente" | "sla_incident",
@@ -31,7 +34,19 @@
 - HTTP method: **POST**.
 - HTTP body: **JSON**.
 - `Content-Type: application/json`.
-- Sem autenticação no header — autenticação fica no path/secret da URL do n8n (cada Operação tem sua URL única).
+- Sem autenticação no header — autenticação fica no path/secret da URL do n8n.
+
+## Roteamento sugerido (n8n)
+
+Cada cliente tem **1 servidor Discord** com N canais por tema. Use `operation.client.id` como chave de lookup numa n8n Data Table tipo `dryos_clients`:
+
+| client_id | client_name | webhook_frentes | webhook_sla | webhook_sla_high | role_oncall_id |
+|---|---|---|---|---|---|
+| uuid-altis | Altis Lisboa | https://discord.com/... | https://discord.com/... | https://discord.com/... | 1234... |
+
+Fluxo: `[Webhook DRYOS] → [Data Table: get row by client_id] → [Switch event] → [Discord webhook do canal correto]`.
+
+`operation.id` e `operation.name` são úteis pra metadados no embed; **`operation.client.id` é a chave estável** (não renomeia).
 
 ---
 
@@ -46,7 +61,10 @@ Frente parada há ≥ 7 dias (`actionable_status_since`). Disparado pelo cron di
   "operation": {
     "id": "2cdc981b-0548-4580-a2df-02ee7b9b0518",
     "name": "Studio | Sparks",
-    "client_name": "Altis Lisboa"
+    "client": {
+      "id": "f1234567-89ab-cdef-0123-456789abcdef",
+      "name": "Altis Lisboa"
+    }
   },
   "subject": {
     "kind": "frente",
@@ -73,7 +91,7 @@ Frente parada há ≥ 7 dias (`actionable_status_since`). Disparado pelo cron di
 - Title: `"🟡 Frente parada há {stale_days}d"` (ou `"🔴"` se ≥ 14)
 - Description: o `actionable_status` literal
 - Fields:
-  - `Operação`: `{operation.client_name} · {operation.name}` linkado
+  - `Operação`: `{operation.client.name} · {operation.name}` linkado
   - `Frente`: `{subject.name}`
 - Footer: `DRYOS Studio • {ts}`
 - Button "Abrir Frente": `{url}`
@@ -93,7 +111,10 @@ Incidente SLA ultrapassou o limite de resposta ou resolução da Operação. Dis
   "operation": {
     "id": "2cdc981b-...",
     "name": "Studio | Sparks",
-    "client_name": "Altis Lisboa"
+    "client": {
+      "id": "f1234567-...",
+      "name": "Altis Lisboa"
+    }
   },
   "subject": {
     "kind": "sla_incident",
@@ -124,7 +145,7 @@ Incidente SLA ultrapassou o limite de resposta ou resolução da Operação. Dis
 - Title: `"🚨 SLA estourado — {breach_kind}"`
 - Description: `"{subject.name}"` (título do incidente)
 - Fields:
-  - `Operação`: `{operation.client_name} · {operation.name}`
+  - `Operação`: `{operation.client.name} · {operation.name}`
   - `Severidade`: `{severity}`
   - `Tempo decorrido`: `{hours_elapsed}h (limite {hours_limit}h)`
 - Button "Abrir Operação": `{url}`

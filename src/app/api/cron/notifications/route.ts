@@ -41,7 +41,7 @@ export async function GET(req: Request) {
         operation: {
           id: f.operation_id,
           name: f.operation_name,
-          client_name: f.client_name,
+          client: { id: f.client_id, name: f.client_name },
         },
         frente: { id: f.frente_id, name: f.frente_name },
         context: {
@@ -82,7 +82,7 @@ export async function GET(req: Request) {
         operation: {
           id: b.operation_id,
           name: b.operation_name,
-          client_name: b.client_name,
+          client: { id: b.client_id, name: b.client_name },
         },
         incident: { id: b.incident_id, title: b.incident_title },
         context: {

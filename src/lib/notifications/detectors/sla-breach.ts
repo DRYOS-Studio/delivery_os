@@ -68,6 +68,7 @@ export type SlaBreachToNotify = {
   breach: SlaBreach;
   operation_id: string;
   operation_name: string;
+  client_id: string;
   client_name: string;
   webhook_url: string;
 };
@@ -88,7 +89,7 @@ type IncidentRow = {
         resolution_hours: number | null;
         notification_webhook_url: string | null;
         archived_at: string | null;
-        client: { name: string } | { name: string }[] | null;
+        client: { id: string; name: string } | { id: string; name: string }[] | null;
       }
     | {
         id: string;
@@ -97,7 +98,7 @@ type IncidentRow = {
         resolution_hours: number | null;
         notification_webhook_url: string | null;
         archived_at: string | null;
-        client: { name: string } | { name: string }[] | null;
+        client: { id: string; name: string } | { id: string; name: string }[] | null;
       }[]
     | null;
 };
@@ -133,7 +134,7 @@ export async function listOpenSlaIncidentsPendingNotification(
         resolution_hours,
         notification_webhook_url,
         archived_at,
-        client:clients!inner ( name )
+        client:clients!inner ( id, name )
       )
     `,
     )
@@ -161,6 +162,7 @@ export async function listOpenSlaIncidentsPendingNotification(
       breach,
       operation_id: op.id,
       operation_name: op.name,
+      client_id: client.id,
       client_name: client.name,
       webhook_url: op.notification_webhook_url,
     });
