@@ -1205,6 +1205,7 @@ export type Database = {
           id: string
           quick_win_id: string | null
           sla_incident_id: string | null
+          start_date: string | null
           status: Database["public"]["Enums"]["task_status"]
           tags: string[] | null
           title: string
@@ -1220,6 +1221,7 @@ export type Database = {
           id?: string
           quick_win_id?: string | null
           sla_incident_id?: string | null
+          start_date?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           tags?: string[] | null
           title: string
@@ -1235,6 +1237,7 @@ export type Database = {
           id?: string
           quick_win_id?: string | null
           sla_incident_id?: string | null
+          start_date?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           tags?: string[] | null
           title?: string

@@ -11,6 +11,7 @@ export type TaskRow = {
   status: TaskStatus;
   assigneePersonId: string | null;
   assigneeName: string | null;
+  startDate: string | null;
   dueDate: string | null;
   tags: string[] | null;
   quickWinId: string | null;
@@ -27,6 +28,7 @@ type TaskJoinedRow = {
   description: string | null;
   status: TaskStatus;
   assignee_person_id: string | null;
+  start_date: string | null;
   due_date: string | null;
   tags: string[] | null;
   quick_win_id: string | null;
@@ -55,6 +57,7 @@ function mapRow(row: TaskJoinedRow): TaskRow {
     status: row.status,
     assigneePersonId: row.assignee_person_id,
     assigneeName: assignee?.name ?? null,
+    startDate: row.start_date,
     dueDate: row.due_date,
     tags: row.tags,
     quickWinId: row.quick_win_id,
@@ -67,7 +70,7 @@ function mapRow(row: TaskJoinedRow): TaskRow {
 
 const TASK_SELECT = `
   id, frente_id, title, description, status,
-  assignee_person_id, due_date, tags,
+  assignee_person_id, start_date, due_date, tags,
   quick_win_id, sla_incident_id,
   created_at, updated_at, completed_at,
   assignee:persons!fk_tasks_assignee_person_id (id, name)
@@ -162,7 +165,7 @@ function pickOne<T>(v: ToOne<T>): T | null {
 
 const CROSS_FRENTE_SELECT = `
   id, frente_id, title, description, status,
-  assignee_person_id, due_date, tags,
+  assignee_person_id, start_date, due_date, tags,
   quick_win_id, sla_incident_id,
   created_at, updated_at, completed_at,
   assignee:persons!fk_tasks_assignee_person_id (id, name),
@@ -188,6 +191,7 @@ function mapCrossFrenteRow(row: CrossFrenteJoinedRow): CrossFrenteTaskRow {
     status: row.status,
     assigneePersonId: row.assignee_person_id,
     assigneeName: assignee?.name ?? null,
+    startDate: row.start_date,
     dueDate: row.due_date,
     tags: row.tags,
     quickWinId: row.quick_win_id,

@@ -27,19 +27,28 @@ export const taskStatusEnum = z.enum(["todo", "doing", "blocked", "done"], {
   message: "Status obrigatório.",
 });
 
-export const taskSchema = z.object({
-  title: z
-    .string()
-    .trim()
-    .min(3, "Mínimo 3 caracteres.")
-    .max(200, "Máximo 200 caracteres."),
-  description: optionalText,
-  status: taskStatusEnum,
-  assignee_person_id: optionalUuid,
-  due_date: optionalDate,
-  tags: optionalTags,
-  quick_win_id: optionalUuid,
-  sla_incident_id: optionalUuid,
-});
+export const taskSchema = z
+  .object({
+    title: z
+      .string()
+      .trim()
+      .min(3, "Mínimo 3 caracteres.")
+      .max(200, "Máximo 200 caracteres."),
+    description: optionalText,
+    status: taskStatusEnum,
+    assignee_person_id: optionalUuid,
+    start_date: optionalDate,
+    due_date: optionalDate,
+    tags: optionalTags,
+    quick_win_id: optionalUuid,
+    sla_incident_id: optionalUuid,
+  })
+  .refine(
+    (d) => !d.start_date || !d.due_date || d.start_date <= d.due_date,
+    {
+      message: "A data de início não pode ser depois do prazo.",
+      path: ["start_date"],
+    },
+  );
 
 export type TaskInput = z.infer<typeof taskSchema>;
