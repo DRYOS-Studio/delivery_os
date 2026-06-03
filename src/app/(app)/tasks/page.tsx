@@ -1,5 +1,8 @@
+import { Plus } from "lucide-react";
+import Link from "next/link";
 import { TasksList } from "@/components/domain/TasksList";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { Button } from "@/components/ui/Button";
 import { requireProfile } from "@/lib/auth/server";
 import { listInternalPersons } from "@/lib/db/queries/persons";
 import { countTasks, listTasks, type TaskListFilter } from "@/lib/db/queries/tasks";
@@ -47,7 +50,18 @@ export default async function Page({
 
   return (
     <>
-      <PageHeader title="Tasks" subtitle={subtitle} />
+      <PageHeader
+        title="Tasks"
+        subtitle={subtitle}
+        actions={
+          <Link href="/tasks/new">
+            <Button variant="sage">
+              <Plus className="w-4 h-4" strokeWidth={1.75} />
+              Criar tarefa
+            </Button>
+          </Link>
+        }
+      />
       <TasksList
         tasks={tasks}
         filter={filter}

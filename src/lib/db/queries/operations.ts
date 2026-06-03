@@ -346,6 +346,63 @@ export async function countActiveOperations(): Promise<number> {
   return count ?? 0;
 }
 
+export type OperationWithFrentes = {
+  id: string;
+  name: string;
+  clientName: string;
+  frentes: { id: string; name: string }[];
+};
+
+/**
+ * Operações visíveis (RLS) não-arquivadas, cada uma com suas Frentes ativas.
+ * Alimenta pickers em cascata (Operação → Frente) sem round-trips por seleção.
+ * Operações sem Frente ativa são omitidas — não há onde criar a tarefa.
+ */
+export async function listOperationsWithFrentes(): Promise<
+  OperationWithFrentes[]
+> {
+  const supabase = await createServer();
+  const { data, error } = await supabase
+    .from("operations")
+    .select(
+      `
+      id, name,
+      client:clients!fk_operations_client_id (name),
+      frentes (id, name, archived_at)
+      `,
+    )
+    .is("archived_at", null)
+    .neq("status", "arquivada")
+    .order("name", { ascending: true });
+  if (error) throw new Error(`listOperationsWithFrentes: ${error.message}`);
+  if (!data) return [];
+
+  type Row = {
+    id: string;
+    name: string;
+    client: { name: string } | { name: string }[] | null;
+    frentes:
+      | { id: string; name: string; archived_at: string | null }[]
+      | null;
+  };
+
+  return (data as unknown as Row[])
+    .map((op): OperationWithFrentes => {
+      const client = Array.isArray(op.client) ? op.client[0] : op.client;
+      const frentes = (op.frentes ?? [])
+        .filter((f) => f.archived_at === null)
+        .map((f) => ({ id: f.id, name: f.name }))
+        .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+      return {
+        id: op.id,
+        name: op.name,
+        clientName: client?.name ?? "—",
+        frentes,
+      };
+    })
+    .filter((op) => op.frentes.length > 0);
+}
+
 export async function operationHasActiveFrentes(
   operationId: string,
 ): Promise<boolean> {
