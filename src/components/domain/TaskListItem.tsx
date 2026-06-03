@@ -85,12 +85,17 @@ export function TaskListItem({ task, operationId, isAdmin }: Props) {
             </span>
           )}
         </div>
-        <div className="md:col-span-2 md:flex md:justify-center">
+        <div className="md:col-span-2 flex flex-col items-start gap-0.5 md:items-center">
           {duePill ? (
             <Pill variant={duePill.variant}>{duePill.text}</Pill>
           ) : (
             <span className="hidden md:inline font-mono text-[10px] text-mute-soft">
               —
+            </span>
+          )}
+          {task.startDate && (
+            <span className="font-mono text-[10px] text-mute-soft">
+              início {formatShortDate(task.startDate)}
             </span>
           )}
         </div>

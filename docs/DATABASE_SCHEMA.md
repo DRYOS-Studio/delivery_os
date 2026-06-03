@@ -1,6 +1,6 @@
 # Database Schema
 
-**Última análise**: 2026-05-29 (minhas-tasks)
+**Última análise**: 2026-06-03 (tasks-start-date)
 **Projeto Supabase**: `Delivery OS` (`tmsaucxoeqpfluzwrwkc`)
 **Schema**: `public`
 
@@ -160,6 +160,7 @@ Cobre o gap entre Decisão (perpétuo), Reunião (touchpoint), SLA Incident (nã
 | `description` | text | markdown livre, nullable |
 | `status` | enum `task_status` | `todo` / `doing` / `blocked` / `done`, default `todo` |
 | `assignee_person_id` | uuid → persons (SET NULL) | nullable; person arquivada não derruba task |
+| `start_date` | date | nullable; data de início planejada. CHECK `check_tasks_start_before_due`: `start_date <= due_date` quando ambos preenchidos |
 | `due_date` | date | granularidade dia |
 | `tags` | text[] | livre; dedup no front |
 | `quick_win_id` | uuid → quick_wins (SET NULL) | vínculo opcional |
@@ -655,6 +656,7 @@ Index dedup: `(operation_id, event_type, subject_id, sent_at DESC)`.
 | 20260518040001 | operation_villain_narratives | 2026-05-19 (via MCP) |
 | 20260519160001 | service_products | 2026-05-19 (via MCP) |
 | 20260520170001 | quick_win_catalog | 2026-05-20 (via MCP) |
+| 20260603191700 | tasks_add_start_date | 2026-06-03 (via MCP) |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações

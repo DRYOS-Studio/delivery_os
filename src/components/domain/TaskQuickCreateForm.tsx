@@ -28,6 +28,7 @@ type FormShape = {
   description: string;
   status: "todo" | "doing" | "blocked" | "done";
   assignee_person_id: string;
+  start_date: string;
   due_date: string;
   tags_raw: string;
 };
@@ -70,6 +71,7 @@ export function TaskQuickCreateForm({
       description: "",
       status: "todo",
       assignee_person_id: "",
+      start_date: "",
       due_date: "",
       tags_raw: "",
     },
@@ -94,6 +96,7 @@ export function TaskQuickCreateForm({
     fd.set("description", values.description);
     fd.set("status", values.status);
     fd.set("assignee_person_id", values.assignee_person_id);
+    fd.set("start_date", values.start_date);
     fd.set("due_date", values.due_date);
     fd.set("tags", values.tags_raw);
     fd.set("quick_win_id", "");
@@ -238,6 +241,21 @@ export function TaskQuickCreateForm({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Field
+          label="Data de início"
+          htmlFor="start_date"
+          error={errors.start_date?.message}
+          hint="Opcional. Não pode ser depois do prazo."
+        >
+          <input
+            id="start_date"
+            type="date"
+            {...register("start_date")}
+            disabled={isSubmitting}
+            className={inputCn}
+          />
+        </Field>
+
+        <Field
           label="Prazo"
           htmlFor="due_date"
           error={errors.due_date?.message}
@@ -251,23 +269,23 @@ export function TaskQuickCreateForm({
             className={inputCn}
           />
         </Field>
-
-        <Field
-          label="Tags"
-          htmlFor="tags_raw"
-          error={errors.tags_raw?.message}
-          hint="Separe por vírgula."
-        >
-          <input
-            id="tags_raw"
-            type="text"
-            {...register("tags_raw")}
-            disabled={isSubmitting}
-            placeholder="ex: copy, infra, urgente"
-            className={inputCn}
-          />
-        </Field>
       </div>
+
+      <Field
+        label="Tags"
+        htmlFor="tags_raw"
+        error={errors.tags_raw?.message}
+        hint="Separe por vírgula."
+      >
+        <input
+          id="tags_raw"
+          type="text"
+          {...register("tags_raw")}
+          disabled={isSubmitting}
+          placeholder="ex: copy, infra, urgente"
+          className={inputCn}
+        />
+      </Field>
 
       <div className="flex items-center gap-2 pt-2">
         <Button type="submit" variant="primary" disabled={isSubmitting}>

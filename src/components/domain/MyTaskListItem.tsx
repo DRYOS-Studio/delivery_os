@@ -37,6 +37,9 @@ export function MyTaskListItem({ task, showAssignee = false }: Props) {
   const assigneeLabel = showAssignee
     ? (task.assigneeName ?? "Sem responsável")
     : null;
+  const startLabel = task.startDate
+    ? `início ${formatShortDate(task.startDate)}`
+    : null;
 
   return (
     <li className="flex items-start gap-3 px-4 py-3 border-b border-line last:border-b-0">
@@ -53,6 +56,7 @@ export function MyTaskListItem({ task, showAssignee = false }: Props) {
         <p className="font-mono text-[10px] text-mute-soft truncate mt-0.5">
           {task.clientName} · {task.operationName} · {task.frenteName}
           {assigneeLabel ? ` · ${assigneeLabel}` : ""}
+          {startLabel ? ` · ${startLabel}` : ""}
         </p>
       </div>
       {duePill && (
