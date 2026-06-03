@@ -129,13 +129,13 @@ export async function countAllOpenTasks(): Promise<number> {
   return count ?? 0;
 }
 
-// ── Minhas Tasks: visão agregada por assignee (cross-Frente) ──────────────
+// ── Tasks: visão agregada cross-Frente, filtrável por assignee ─────────────
 
 const OPEN_STATUSES: TaskStatus[] = ["todo", "doing", "blocked"];
 
-export type MyTaskFilter = "open" | "done" | "all";
+export type TaskListFilter = "open" | "done" | "all";
 
-export type MyTaskRow = TaskRow & {
+export type CrossFrenteTaskRow = TaskRow & {
   frenteName: string;
   operationId: string;
   operationName: string;
@@ -144,7 +144,7 @@ export type MyTaskRow = TaskRow & {
 
 type ToOne<T> = T | T[] | null;
 
-type MyTaskJoinedRow = Omit<TaskJoinedRow, "assignee"> & {
+type CrossFrenteJoinedRow = TaskJoinedRow & {
   frente: ToOne<{
     name: string;
     operation: ToOne<{
@@ -160,11 +160,12 @@ function pickOne<T>(v: ToOne<T>): T | null {
   return Array.isArray(v) ? (v[0] ?? null) : v;
 }
 
-const MY_TASK_SELECT = `
+const CROSS_FRENTE_SELECT = `
   id, frente_id, title, description, status,
   assignee_person_id, due_date, tags,
   quick_win_id, sla_incident_id,
   created_at, updated_at, completed_at,
+  assignee:persons!fk_tasks_assignee_person_id (id, name),
   frente:frentes!fk_tasks_frente_id (
     name,
     operation:operations!fk_frentes_operation_id (
@@ -174,7 +175,8 @@ const MY_TASK_SELECT = `
   )
 `;
 
-function mapMyRow(row: MyTaskJoinedRow): MyTaskRow {
+function mapCrossFrenteRow(row: CrossFrenteJoinedRow): CrossFrenteTaskRow {
+  const assignee = pickAssignee(row.assignee);
   const frente = pickOne(row.frente);
   const operation = pickOne(frente?.operation ?? null);
   const client = pickOne(operation?.client ?? null);
@@ -185,7 +187,7 @@ function mapMyRow(row: MyTaskJoinedRow): MyTaskRow {
     description: row.description,
     status: row.status,
     assigneePersonId: row.assignee_person_id,
-    assigneeName: null,
+    assigneeName: assignee?.name ?? null,
     dueDate: row.due_date,
     tags: row.tags,
     quickWinId: row.quick_win_id,
@@ -200,32 +202,60 @@ function mapMyRow(row: MyTaskJoinedRow): MyTaskRow {
   };
 }
 
-export async function listMyTasks(
-  personId: string,
-  filter: MyTaskFilter,
-): Promise<MyTaskRow[]> {
+/**
+ * Lista tasks agregadas de todas as Frentes visíveis (RLS aplica o gating por
+ * Operação). `assigneePersonId` undefined = todas; informado = só daquela pessoa.
+ */
+export async function listTasks(
+  filter: TaskListFilter,
+  assigneePersonId?: string,
+): Promise<CrossFrenteTaskRow[]> {
   const supabase = await createServer();
-  let query = supabase
-    .from("tasks")
-    .select(MY_TASK_SELECT)
-    .eq("assignee_person_id", personId);
+  let query = supabase.from("tasks").select(CROSS_FRENTE_SELECT);
 
+  if (assigneePersonId) query = query.eq("assignee_person_id", assigneePersonId);
   if (filter === "open") query = query.in("status", OPEN_STATUSES);
   else if (filter === "done") query = query.eq("status", "done");
 
   const { data, error } = await query
     .order("due_date", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: false });
-  if (error) throw new Error(`listMyTasks: ${error.message}`);
+  if (error) throw new Error(`listTasks: ${error.message}`);
   if (!data) return [];
 
-  return (data as unknown as MyTaskJoinedRow[])
-    .map(mapMyRow)
+  return (data as unknown as CrossFrenteJoinedRow[])
+    .map(mapCrossFrenteRow)
     .sort((a, b) => {
       const aDone = a.status === "done" ? 1 : 0;
       const bDone = b.status === "done" ? 1 : 0;
       return aDone - bDone;
     });
+}
+
+export async function countTasks(
+  assigneePersonId?: string,
+): Promise<{ open: number; done: number; all: number }> {
+  const supabase = await createServer();
+  const base = () => {
+    const q = supabase
+      .from("tasks")
+      .select("id", { count: "exact", head: true });
+    return assigneePersonId
+      ? q.eq("assignee_person_id", assigneePersonId)
+      : q;
+  };
+  const [openRes, doneRes, allRes] = await Promise.all([
+    base().in("status", OPEN_STATUSES),
+    base().eq("status", "done"),
+    base(),
+  ]);
+  const firstErr = openRes.error ?? doneRes.error ?? allRes.error;
+  if (firstErr) throw new Error(`countTasks: ${firstErr.message}`);
+  return {
+    open: openRes.count ?? 0,
+    done: doneRes.count ?? 0,
+    all: allRes.count ?? 0,
+  };
 }
 
 export async function countMyOpenTasks(personId: string): Promise<number> {
@@ -237,27 +267,4 @@ export async function countMyOpenTasks(personId: string): Promise<number> {
     .in("status", OPEN_STATUSES);
   if (error) throw new Error(`countMyOpenTasks: ${error.message}`);
   return count ?? 0;
-}
-
-export async function countMyTasks(
-  personId: string,
-): Promise<{ open: number; done: number; all: number }> {
-  const supabase = await createServer();
-  const base = () =>
-    supabase
-      .from("tasks")
-      .select("id", { count: "exact", head: true })
-      .eq("assignee_person_id", personId);
-  const [openRes, doneRes, allRes] = await Promise.all([
-    base().in("status", OPEN_STATUSES),
-    base().eq("status", "done"),
-    base(),
-  ]);
-  const firstErr = openRes.error ?? doneRes.error ?? allRes.error;
-  if (firstErr) throw new Error(`countMyTasks: ${firstErr.message}`);
-  return {
-    open: openRes.count ?? 0,
-    done: doneRes.count ?? 0,
-    all: allRes.count ?? 0,
-  };
 }

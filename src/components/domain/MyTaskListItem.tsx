@@ -1,15 +1,16 @@
 import Link from "next/link";
 import { StatusCycleButton } from "@/components/domain/StatusCycleButton";
 import { Pill, type PillVariant } from "@/components/ui/Pill";
-import type { MyTaskRow } from "@/lib/db/queries/tasks";
+import type { CrossFrenteTaskRow } from "@/lib/db/queries/tasks";
 
 type Props = {
-  task: MyTaskRow;
+  task: CrossFrenteTaskRow;
+  showAssignee?: boolean;
 };
 
 function dueDatePill(
   dueDate: string | null,
-  status: MyTaskRow["status"],
+  status: CrossFrenteTaskRow["status"],
 ): { text: string; variant: PillVariant } | null {
   if (!dueDate) return null;
   if (status === "done") return null;
@@ -29,10 +30,13 @@ function formatShortDate(iso: string): string {
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
 }
 
-export function MyTaskListItem({ task }: Props) {
+export function MyTaskListItem({ task, showAssignee = false }: Props) {
   const duePill = dueDatePill(task.dueDate, task.status);
   const titleStyle =
     task.status === "done" ? "line-through text-mute" : "text-ink";
+  const assigneeLabel = showAssignee
+    ? (task.assigneeName ?? "Sem responsável")
+    : null;
 
   return (
     <li className="flex items-start gap-3 px-4 py-3 border-b border-line last:border-b-0">
@@ -48,6 +52,7 @@ export function MyTaskListItem({ task }: Props) {
         </Link>
         <p className="font-mono text-[10px] text-mute-soft truncate mt-0.5">
           {task.clientName} · {task.operationName} · {task.frenteName}
+          {assigneeLabel ? ` · ${assigneeLabel}` : ""}
         </p>
       </div>
       {duePill && (

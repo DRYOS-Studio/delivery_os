@@ -81,8 +81,8 @@ export function SidebarNav({
     items: [
       { href: "/", label: "Home", icon: Home },
       {
-        href: "/me/tasks",
-        label: "Minhas Tasks",
+        href: "/tasks",
+        label: "Tasks",
         icon: ListChecks,
         count: myTasksCount,
       },

@@ -45,3 +45,5 @@ next-env.d.ts
 supabase/.temp/
 supabase/.branches/
 graphify-out/
+
+.claude/worktrees/
