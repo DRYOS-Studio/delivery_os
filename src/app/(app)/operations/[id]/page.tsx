@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AreaTasksSection } from "@/components/domain/AreaTasksSection";
 import { AttachmentsSection } from "@/components/domain/AttachmentsSection";
 import { CostsTab } from "@/components/domain/CostsTab";
 import { FinanceCards } from "@/components/domain/FinanceCards";
@@ -33,6 +34,7 @@ import { getOperation } from "@/lib/db/queries/operations";
 import { listPublicLinksByOperation } from "@/lib/db/queries/publicLinks";
 import { listActiveQuickWinCatalog } from "@/lib/db/queries/quick-win-catalog";
 import { listQuickWinsByOperation } from "@/lib/db/queries/quick-wins";
+import { listAreaTasksByOperation } from "@/lib/db/queries/tasks";
 import { listVillainNarratives } from "@/lib/db/queries/villain-narratives";
 import { relativeFromNow } from "@/lib/utils/date";
 import { getCurrentPeriod } from "@/lib/utils/period";
@@ -47,6 +49,7 @@ type OperationTabKey =
   | "eventos"
   | "anexos"
   | "sla"
+  | "interno"
   | "custos"
   | "publico";
 
@@ -57,6 +60,7 @@ const PUBLIC_TABS: ReadonlyArray<OperationTabKey> = [
   "eventos",
   "anexos",
   "sla",
+  "interno",
   "publico",
 ];
 
@@ -103,6 +107,7 @@ export default async function Page({
     costsBreakdown,
     villainNarratives,
     quickWinCatalogItems,
+    areaTasks,
   ] = await Promise.all([
     getOperation(id),
     getBriefingFreshness(id),
@@ -120,6 +125,7 @@ export default async function Page({
     getOperationMonthlyCosts(id),
     listVillainNarratives(id, currentPeriod.yyyymm),
     listActiveQuickWinCatalog(),
+    listAreaTasksByOperation(id),
   ]);
   if (!op) notFound();
 
@@ -141,6 +147,7 @@ export default async function Page({
     },
     { key: "anexos", label: "Anexos", count: attachments.length },
     { key: "sla", label: "SLA", count: openIncidentsCount },
+    { key: "interno", label: "Área / Interno", count: areaTasks.length },
   ];
   if (isAdmin) {
     baseTabs.push({
@@ -246,6 +253,14 @@ export default async function Page({
             resolution_hours: op.resolutionHours,
           }}
           operationId={op.id}
+        />
+      )}
+
+      {tab === "interno" && (
+        <AreaTasksSection
+          tasks={areaTasks}
+          operationId={op.id}
+          isAdmin={isAdmin}
         />
       )}
 

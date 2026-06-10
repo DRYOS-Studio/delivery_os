@@ -22,6 +22,7 @@ function parseFormData(formData: FormData) {
     title: ((formData.get("title") as string | null) ?? "").trim(),
     description: ((formData.get("description") as string | null) ?? "").trim(),
     status: ((formData.get("status") as string | null) ?? "todo").trim(),
+    area: ((formData.get("area") as string | null) ?? "").trim(),
     assignee_person_ids: formData
       .getAll("assignee_person_ids")
       .map((v) => String(v).trim())
@@ -153,6 +154,52 @@ export async function createTaskAction(
 
   revalidateForTask(row.operation_id, frenteId);
   return ok({ id: row.id, frenteId });
+}
+
+/**
+ * Cria tarefa de ÁREA (transversal à Operação, sem Frente). Visibilidade pela
+ * RLS = admin + quem é da área. `area` obrigatória aqui.
+ */
+export async function createAreaTaskAction(
+  operationId: string,
+  formData: FormData,
+): Promise<ActionResult<{ id: string }>> {
+  const userResult = await requireUserAction();
+  if (!userResult.ok) return userResult;
+
+  const v = validate(formData);
+  if (!v.ok) return v;
+  const data = v.data;
+  if (!data.area) return err("Área obrigatória.", "validation_area");
+
+  const supabase = await createServer();
+  const { data: row, error } = await supabase
+    .from("tasks")
+    .insert({
+      operation_id: operationId,
+      frente_id: null,
+      area: data.area,
+      title: data.title,
+      description: data.description ?? null,
+      status: data.status,
+      start_date: data.start_date ?? null,
+      due_date: data.due_date ?? null,
+      tags: data.tags ?? null,
+    })
+    .select("id")
+    .single();
+  if (error) return dbErr(error, "createAreaTaskAction");
+  if (!row) return err("Falha ao criar tarefa.", "no_data");
+
+  const syncError = await syncAssignees(
+    supabase,
+    row.id,
+    data.assignee_person_ids,
+  );
+  if (syncError) return dbErr(syncError, "createAreaTaskAction.assignees");
+
+  revalidateForTask(operationId, null);
+  return ok({ id: row.id });
 }
 
 export async function updateTaskAction(
