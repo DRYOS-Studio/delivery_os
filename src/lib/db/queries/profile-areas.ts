@@ -1,15 +1,9 @@
 import { createServer } from "@/lib/db/client";
-import type { Database } from "@/lib/db/types";
+import { type TaskArea } from "@/lib/utils/areas";
 
-export type TaskArea = Database["public"]["Enums"]["task_area"];
-
-export const ALL_AREAS: readonly TaskArea[] = ["cs", "financeiro", "juridico"];
-
-export const AREA_LABELS: Record<TaskArea, string> = {
-  cs: "CS",
-  financeiro: "Financeiro",
-  juridico: "Jurídico",
-};
+// Constantes/types puros vivem em @/lib/utils/areas (importável por client
+// components). Re-export aqui pra não quebrar importadores de servidor.
+export { ALL_AREAS, AREA_LABELS, type TaskArea } from "@/lib/utils/areas";
 
 export type ProfileWithAreas = {
   id: string;

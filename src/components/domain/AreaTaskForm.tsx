@@ -8,7 +8,7 @@ import { DeleteTaskButton } from "@/components/domain/DeleteTaskButton";
 import { Button } from "@/components/ui/Button";
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import { createAreaTaskAction, updateTaskAction } from "@/lib/actions/tasks";
-import { AREA_LABELS, ALL_AREAS, type TaskArea } from "@/lib/db/queries/profile-areas";
+import { AREA_LABELS, ALL_AREAS, type TaskArea } from "@/lib/utils/areas";
 import type { TaskRow } from "@/lib/db/queries/tasks";
 
 type AssigneeOption = { id: string; name: string };

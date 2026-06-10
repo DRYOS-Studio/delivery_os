@@ -5,7 +5,7 @@ import { StatusCycleButton } from "@/components/domain/StatusCycleButton";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Pill, type PillVariant } from "@/components/ui/Pill";
-import { AREA_LABELS } from "@/lib/db/queries/profile-areas";
+import { AREA_LABELS } from "@/lib/utils/areas";
 import type { TaskRow } from "@/lib/db/queries/tasks";
 import { getInitials } from "@/lib/utils/initials";
 
