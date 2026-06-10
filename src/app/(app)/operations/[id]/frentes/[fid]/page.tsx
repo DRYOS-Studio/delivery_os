@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { getProfile, requireUser } from "@/lib/auth/server";
 import { getFrenteDetail } from "@/lib/db/queries/frentes";
+import { canWriteOperation } from "@/lib/db/queries/operation-members";
 import { listTasksByFrente, type TaskRow } from "@/lib/db/queries/tasks";
 
 type Filter = "open" | "done" | "all";
@@ -41,6 +42,7 @@ export default async function Page({
   if (!frente || frente.operationId !== id) notFound();
 
   const isAdmin = profile?.role === "admin";
+  const canWrite = await canWriteOperation(id);
   const filtered = applyFilter(tasks, filter);
   // Contagem de Frente exclui subtarefas pra não inflar o "abertas" do header.
   const topLevel = tasks.filter((t) => !t.parentTaskId);
@@ -70,11 +72,13 @@ export default async function Page({
           </Link>
         }
         actions={
-          <Link href={`/operations/${id}/frentes/${fid}/tasks/new`}>
-            <Button variant="sage" size="sm">
-              + Nova tarefa
-            </Button>
-          </Link>
+          canWrite ? (
+            <Link href={`/operations/${id}/frentes/${fid}/tasks/new`}>
+              <Button variant="sage" size="sm">
+                + Nova tarefa
+              </Button>
+            </Link>
+          ) : undefined
         }
       />
       <FrenteMetaCard frente={frente} />
@@ -83,6 +87,7 @@ export default async function Page({
         frenteId={fid}
         operationId={id}
         isAdmin={isAdmin}
+        canWrite={canWrite}
         filter={filter}
         totalOpen={totalOpen}
         totalDone={totalDone}

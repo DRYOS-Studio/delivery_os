@@ -14,6 +14,7 @@ type Props = {
   frenteId: string;
   operationId: string;
   isAdmin: boolean;
+  canWrite?: boolean;
   filter: TaskFilter;
   totalOpen: number;
   totalDone: number;
@@ -36,6 +37,7 @@ export function TasksSection({
   frenteId,
   operationId,
   isAdmin,
+  canWrite = true,
   filter,
   totalOpen,
   totalDone,
@@ -62,14 +64,16 @@ export function TasksSection({
       <div className="flex items-center gap-2 mb-4">
         <h2 className="font-display text-lg text-ink font-semibold">Tarefas</h2>
         <Pill variant="neutral">{totalOpen} abertas</Pill>
-        <div className="ml-auto">
-          <Link href={`${basePath(operationId, frenteId)}/tasks/new`}>
-            <Button variant="sage" size="sm">
-              <Plus className="w-3.5 h-3.5" strokeWidth={1.75} />
-              Nova tarefa
-            </Button>
-          </Link>
-        </div>
+        {canWrite && (
+          <div className="ml-auto">
+            <Link href={`${basePath(operationId, frenteId)}/tasks/new`}>
+              <Button variant="sage" size="sm">
+                <Plus className="w-3.5 h-3.5" strokeWidth={1.75} />
+                Nova tarefa
+              </Button>
+            </Link>
+          </div>
+        )}
       </div>
 
       <div className="flex gap-2 mb-4">
@@ -106,12 +110,14 @@ export function TasksSection({
                 ? "Nenhuma tarefa concluída ainda."
                 : "Nenhuma tarefa cadastrada nesta Frente."}
           </p>
-          <Link href={`${basePath(operationId, frenteId)}/tasks/new`}>
-            <Button variant="sage" size="sm">
-              <Plus className="w-3.5 h-3.5" strokeWidth={1.75} />
-              Adicionar primeira tarefa
-            </Button>
-          </Link>
+          {canWrite && (
+            <Link href={`${basePath(operationId, frenteId)}/tasks/new`}>
+              <Button variant="sage" size="sm">
+                <Plus className="w-3.5 h-3.5" strokeWidth={1.75} />
+                Adicionar primeira tarefa
+              </Button>
+            </Link>
+          )}
         </div>
       ) : (
         <div className="bg-card border border-line rounded shadow-sm overflow-hidden">

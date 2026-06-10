@@ -47,6 +47,7 @@ type Props = {
   openCount: number;
   op: OpSLAConfig;
   operationId: string;
+  canWrite?: boolean;
 };
 
 export function SLASection({
@@ -54,6 +55,7 @@ export function SLASection({
   openCount,
   op,
   operationId,
+  canWrite = true,
 }: Props): React.JSX.Element {
   const hasSLA = op.response_hours !== null || op.resolution_hours !== null;
 
@@ -72,13 +74,15 @@ export function SLASection({
             <Pill variant="neutral">{incidents.length}</Pill>
           )}
         </div>
-        <Link
-          href={`/operations/${operationId}/incidents/new`}
-          className="inline-flex items-center gap-1.5 rounded font-medium px-2.5 py-1.5 text-xs bg-sage-bg text-sage-deep hover:bg-sage hover:text-bg transition-colors"
-        >
-          <Plus className="w-3 h-3" strokeWidth={2} />
-          Registrar incidente
-        </Link>
+        {canWrite && (
+          <Link
+            href={`/operations/${operationId}/incidents/new`}
+            className="inline-flex items-center gap-1.5 rounded font-medium px-2.5 py-1.5 text-xs bg-sage-bg text-sage-deep hover:bg-sage hover:text-bg transition-colors"
+          >
+            <Plus className="w-3 h-3" strokeWidth={2} />
+            Registrar incidente
+          </Link>
+        )}
       </div>
 
       <Card className="mb-4">

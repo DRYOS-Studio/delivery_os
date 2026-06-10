@@ -30,11 +30,13 @@ export function MeetingsDecisionsTimeline({
   decisions,
   operationId,
   meetingAttachmentCounts,
+  canWrite = true,
 }: {
   meetings: MeetingListItem[];
   decisions: DecisionListItem[];
   operationId: string;
   meetingAttachmentCounts?: Map<string, number> | undefined;
+  canWrite?: boolean;
 }): React.JSX.Element {
   const items: TimelineItemData[] = [
     ...meetings.map(
@@ -67,45 +69,49 @@ export function MeetingsDecisionsTimeline({
           </h2>
           <Pill variant="neutral">{total}</Pill>
         </div>
-        <div className="flex items-center gap-2">
-          <Link
-            href={`/operations/${operationId}/meetings/new`}
-            className="inline-flex items-center gap-1.5 rounded font-medium px-2.5 py-1.5 text-xs bg-sage-bg text-sage-deep hover:bg-sage hover:text-bg transition-colors"
-          >
-            <Plus className="w-3 h-3" strokeWidth={2} />
-            Reunião
-          </Link>
-          <Link
-            href={`/operations/${operationId}/decisions/new`}
-            className="inline-flex items-center gap-1.5 rounded font-medium px-2.5 py-1.5 text-xs bg-sage-bg text-sage-deep hover:bg-sage hover:text-bg transition-colors"
-          >
-            <Plus className="w-3 h-3" strokeWidth={2} />
-            Decisão
-          </Link>
-        </div>
+        {canWrite && (
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/operations/${operationId}/meetings/new`}
+              className="inline-flex items-center gap-1.5 rounded font-medium px-2.5 py-1.5 text-xs bg-sage-bg text-sage-deep hover:bg-sage hover:text-bg transition-colors"
+            >
+              <Plus className="w-3 h-3" strokeWidth={2} />
+              Reunião
+            </Link>
+            <Link
+              href={`/operations/${operationId}/decisions/new`}
+              className="inline-flex items-center gap-1.5 rounded font-medium px-2.5 py-1.5 text-xs bg-sage-bg text-sage-deep hover:bg-sage hover:text-bg transition-colors"
+            >
+              <Plus className="w-3 h-3" strokeWidth={2} />
+              Decisão
+            </Link>
+          </div>
+        )}
       </div>
 
       {total === 0 ? (
         <Card>
           <div className="flex flex-col items-center text-center py-8 gap-3">
             <p className="text-sm text-ink-soft max-w-md">
-              Nenhuma reunião ou decisão registrada. Registre a primeira pra
-              começar a timeline.
+              Nenhuma reunião ou decisão registrada.
+              {canWrite ? " Registre a primeira pra começar a timeline." : ""}
             </p>
-            <div className="flex items-center gap-2">
-              <Link
-                href={`/operations/${operationId}/meetings/new`}
-                className="inline-flex items-center gap-1.5 rounded font-medium px-3 py-1.5 text-xs bg-sage text-bg hover:bg-sage-deep transition-colors"
-              >
-                Reunião
-              </Link>
-              <Link
-                href={`/operations/${operationId}/decisions/new`}
-                className="inline-flex items-center gap-1.5 rounded font-medium px-3 py-1.5 text-xs bg-sage text-bg hover:bg-sage-deep transition-colors"
-              >
-                Decisão
-              </Link>
-            </div>
+            {canWrite && (
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/operations/${operationId}/meetings/new`}
+                  className="inline-flex items-center gap-1.5 rounded font-medium px-3 py-1.5 text-xs bg-sage text-bg hover:bg-sage-deep transition-colors"
+                >
+                  Reunião
+                </Link>
+                <Link
+                  href={`/operations/${operationId}/decisions/new`}
+                  className="inline-flex items-center gap-1.5 rounded font-medium px-3 py-1.5 text-xs bg-sage text-bg hover:bg-sage-deep transition-colors"
+                >
+                  Decisão
+                </Link>
+              </div>
+            )}
           </div>
         </Card>
       ) : (
