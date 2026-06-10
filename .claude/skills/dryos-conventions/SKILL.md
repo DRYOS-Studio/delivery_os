@@ -202,6 +202,26 @@ export const createServer = () => createServerClient<Database>(...)
 export const createBrowser = () => createBrowserClient<Database>(...)
 ```
 
+#### ⚠️ Fronteira client/server: `tsc` não pega, só `npm run build`
+
+`client.ts` importa `next/headers` (`cookies`) — **proibido em Client Component**. Um `'use client'` que importe (mesmo transitivamente) qualquer módulo que puxe `client.ts` quebra o build do Turbopack na Vercel. **`tsc --noEmit` passa mesmo assim** — ele não analisa a fronteira. Só `npm run build` pega.
+
+Regra: **constante/type/util reaproveitado por Client Component vive em módulo puro** (`src/lib/utils/*`), nunca num `queries/*.ts` ou `actions/*.ts` que importe `client.ts`. Se um módulo de servidor precisa expor a mesma constante, ele **re-exporta** do módulo puro.
+
+```typescript
+// ❌ profile-areas.ts (servidor) exporta constante E importa createServer
+//    → AreaTaskForm (client) importa a constante → next/headers no client → build quebra
+
+// ✅ src/lib/utils/areas.ts — puro, sem import de servidor
+export const AREA_LABELS = { ... };
+// ✅ profile-areas.ts re-exporta pra callers de servidor
+export { AREA_LABELS } from '@/lib/utils/areas';
+// ✅ AreaTaskForm.tsx (client) importa do módulo puro
+import { AREA_LABELS } from '@/lib/utils/areas';
+```
+
+**Sempre rodar `npm run build` (não só `typecheck`) antes de PR que toca em Client Component.**
+
 ### Queries
 
 - Toda query fica em `src/lib/db/queries/<entity>.ts`
@@ -468,6 +488,7 @@ docs: update prd with villain decisions
 Antes de abrir PR:
 
 - [ ] `npm run typecheck` passa sem erro
+- [ ] `npm run build` passa **se tocou em Client Component** (`tsc` não pega violação de fronteira client/server — só o build do Turbopack)
 - [ ] `npm run lint` passa sem erro
 - [ ] `npm run gen:types` rodado se tocou em migration
 - [ ] Migrations idempotentes
