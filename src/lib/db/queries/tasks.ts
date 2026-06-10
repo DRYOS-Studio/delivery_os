@@ -3,14 +3,15 @@ import type { Database } from "@/lib/db/types";
 
 export type TaskStatus = Database["public"]["Enums"]["task_status"];
 
+export type TaskAssignee = { id: string; name: string };
+
 export type TaskRow = {
   id: string;
   frenteId: string;
   title: string;
   description: string | null;
   status: TaskStatus;
-  assigneePersonId: string | null;
-  assigneeName: string | null;
+  assignees: TaskAssignee[];
   startDate: string | null;
   dueDate: string | null;
   tags: string[] | null;
@@ -21,13 +22,14 @@ export type TaskRow = {
   completedAt: string | null;
 };
 
+type AssigneeJoin = { person: TaskAssignee | TaskAssignee[] | null };
+
 type TaskJoinedRow = {
   id: string;
   frente_id: string;
   title: string;
   description: string | null;
   status: TaskStatus;
-  assignee_person_id: string | null;
   start_date: string | null;
   due_date: string | null;
   tags: string[] | null;
@@ -36,27 +38,24 @@ type TaskJoinedRow = {
   created_at: string;
   updated_at: string;
   completed_at: string | null;
-  assignee: { id: string; name: string } | { id: string; name: string }[] | null;
+  assignees: AssigneeJoin[] | null;
 };
 
-function pickAssignee(
-  a: TaskJoinedRow["assignee"],
-): { id: string; name: string } | null {
-  if (!a) return null;
-  if (Array.isArray(a)) return a[0] ?? null;
-  return a;
+function mapAssignees(rows: AssigneeJoin[] | null): TaskAssignee[] {
+  if (!rows) return [];
+  return rows
+    .map((r) => (Array.isArray(r.person) ? (r.person[0] ?? null) : r.person))
+    .filter((p): p is TaskAssignee => p != null);
 }
 
 function mapRow(row: TaskJoinedRow): TaskRow {
-  const assignee = pickAssignee(row.assignee);
   return {
     id: row.id,
     frenteId: row.frente_id,
     title: row.title,
     description: row.description,
     status: row.status,
-    assigneePersonId: row.assignee_person_id,
-    assigneeName: assignee?.name ?? null,
+    assignees: mapAssignees(row.assignees),
     startDate: row.start_date,
     dueDate: row.due_date,
     tags: row.tags,
@@ -70,10 +69,10 @@ function mapRow(row: TaskJoinedRow): TaskRow {
 
 const TASK_SELECT = `
   id, frente_id, title, description, status,
-  assignee_person_id, start_date, due_date, tags,
+  start_date, due_date, tags,
   quick_win_id, sla_incident_id,
   created_at, updated_at, completed_at,
-  assignee:persons!fk_tasks_assignee_person_id (id, name)
+  assignees:task_assignees ( person:persons!fk_task_assignees_person_id (id, name) )
 `;
 
 export async function listTasksByFrente(frenteId: string): Promise<TaskRow[]> {
@@ -163,23 +162,30 @@ function pickOne<T>(v: ToOne<T>): T | null {
   return Array.isArray(v) ? (v[0] ?? null) : v;
 }
 
-const CROSS_FRENTE_SELECT = `
-  id, frente_id, title, description, status,
-  assignee_person_id, start_date, due_date, tags,
-  quick_win_id, sla_incident_id,
-  created_at, updated_at, completed_at,
-  assignee:persons!fk_tasks_assignee_person_id (id, name),
-  frente:frentes!fk_tasks_frente_id (
-    name,
-    operation:operations!fk_frentes_operation_id (
-      id, name,
-      client:clients!fk_operations_client_id (name)
+/**
+ * `inner` = true poda as tasks pras que têm a pessoa filtrada entre os
+ * responsáveis (e o array `assignees` vem restrito a ela — aceitável, é o
+ * filtro). false embeda todos os responsáveis pra exibição.
+ */
+function crossFrenteSelect(inner: boolean): string {
+  const join = inner ? "task_assignees!inner" : "task_assignees";
+  return `
+    id, frente_id, title, description, status,
+    start_date, due_date, tags,
+    quick_win_id, sla_incident_id,
+    created_at, updated_at, completed_at,
+    assignees:${join} ( person:persons!fk_task_assignees_person_id (id, name) ),
+    frente:frentes!fk_tasks_frente_id (
+      name,
+      operation:operations!fk_frentes_operation_id (
+        id, name,
+        client:clients!fk_operations_client_id (name)
+      )
     )
-  )
-`;
+  `;
+}
 
 function mapCrossFrenteRow(row: CrossFrenteJoinedRow): CrossFrenteTaskRow {
-  const assignee = pickAssignee(row.assignee);
   const frente = pickOne(row.frente);
   const operation = pickOne(frente?.operation ?? null);
   const client = pickOne(operation?.client ?? null);
@@ -189,8 +195,7 @@ function mapCrossFrenteRow(row: CrossFrenteJoinedRow): CrossFrenteTaskRow {
     title: row.title,
     description: row.description,
     status: row.status,
-    assigneePersonId: row.assignee_person_id,
-    assigneeName: assignee?.name ?? null,
+    assignees: mapAssignees(row.assignees),
     startDate: row.start_date,
     dueDate: row.due_date,
     tags: row.tags,
@@ -215,9 +220,12 @@ export async function listTasks(
   assigneePersonId?: string,
 ): Promise<CrossFrenteTaskRow[]> {
   const supabase = await createServer();
-  let query = supabase.from("tasks").select(CROSS_FRENTE_SELECT);
+  let query = supabase
+    .from("tasks")
+    .select(crossFrenteSelect(Boolean(assigneePersonId)));
 
-  if (assigneePersonId) query = query.eq("assignee_person_id", assigneePersonId);
+  if (assigneePersonId)
+    query = query.eq("assignees.person_id", assigneePersonId);
   if (filter === "open") query = query.in("status", OPEN_STATUSES);
   else if (filter === "done") query = query.eq("status", "done");
 
@@ -241,12 +249,16 @@ export async function countTasks(
 ): Promise<{ open: number; done: number; all: number }> {
   const supabase = await createServer();
   const base = () => {
-    const q = supabase
-      .from("tasks")
-      .select("id", { count: "exact", head: true });
-    return assigneePersonId
-      ? q.eq("assignee_person_id", assigneePersonId)
-      : q;
+    if (assigneePersonId) {
+      return supabase
+        .from("tasks")
+        .select("id, task_assignees!inner(person_id)", {
+          count: "exact",
+          head: true,
+        })
+        .eq("task_assignees.person_id", assigneePersonId);
+    }
+    return supabase.from("tasks").select("id", { count: "exact", head: true });
   };
   const [openRes, doneRes, allRes] = await Promise.all([
     base().in("status", OPEN_STATUSES),
@@ -266,8 +278,11 @@ export async function countMyOpenTasks(personId: string): Promise<number> {
   const supabase = await createServer();
   const { count, error } = await supabase
     .from("tasks")
-    .select("id", { count: "exact", head: true })
-    .eq("assignee_person_id", personId)
+    .select("id, task_assignees!inner(person_id)", {
+      count: "exact",
+      head: true,
+    })
+    .eq("task_assignees.person_id", personId)
     .in("status", OPEN_STATUSES);
   if (error) throw new Error(`countMyOpenTasks: ${error.message}`);
   return count ?? 0;

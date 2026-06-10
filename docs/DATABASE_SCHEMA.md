@@ -1,6 +1,6 @@
 # Database Schema
 
-**Última análise**: 2026-06-03 (tasks-start-date)
+**Última análise**: 2026-06-10 (tasks-multi-assignee)
 **Projeto Supabase**: `Delivery OS` (`tmsaucxoeqpfluzwrwkc`)
 **Schema**: `public`
 
@@ -14,7 +14,7 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 |---|---|---|
 | **Cliente** | `clients` | 1 |
 | **Operação** | `operations` | 1 |
-| **Entrega** | `frentes`, `allocations`, `tasks` | 3 |
+| **Entrega** | `frentes`, `allocations`, `tasks`, `task_assignees` | 4 |
 | **Pessoas** | `persons` | 1 |
 | **Briefing** | `briefings`, `briefing_versions` | 2 |
 | **Reuniões / Decisões** | `meetings`, `meeting_attendees`, `decisions` | 3 |
@@ -31,7 +31,7 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 | **Catálogo · Produtos** | `service_products` | 1 |
 | **Catálogo · Quick Wins** | `quick_win_catalog` | 1 |
 | **Notificações** | `notifications_log` | 1 |
-| **Total atual** | | **26** |
+| **Total atual** | | **27** |
 
 ---
 
@@ -159,7 +159,6 @@ Cobre o gap entre Decisão (perpétuo), Reunião (touchpoint), SLA Incident (nã
 | `title` | text NOT NULL | CHECK length ≥ 3 |
 | `description` | text | markdown livre, nullable |
 | `status` | enum `task_status` | `todo` / `doing` / `blocked` / `done`, default `todo` |
-| `assignee_person_id` | uuid → persons (SET NULL) | nullable; person arquivada não derruba task |
 | `start_date` | date | nullable; data de início planejada. CHECK `check_tasks_start_before_due`: `start_date <= due_date` quando ambos preenchidos |
 | `due_date` | date | granularidade dia |
 | `tags` | text[] | livre; dedup no front |
@@ -167,9 +166,26 @@ Cobre o gap entre Decisão (perpétuo), Reunião (touchpoint), SLA Incident (nã
 | `sla_incident_id` | uuid → sla_incidents (SET NULL) | vínculo opcional |
 | `created_at`, `updated_at`, `completed_at` | timestamptz | `completed_at` auto-managed por trigger |
 
+> Responsáveis migraram de `assignee_person_id` (single, removido em `20260610120000`) pra N:N via `task_assignees`.
+
 Trigger `manage_task_completed_at` (BEFORE INSERT OR UPDATE): set quando status → `done`, clear quando sai de `done`.
-Indexes: `(frente_id, status)` + `assignee_person_id` (partial WHERE NOT NULL).
-RLS: `tasks_authenticated_full` (delete bloqueado pra member via `requireAdminAction` na action — Inv. 14).
+Indexes: `(frente_id, status)`.
+RLS: scoped via `frente.operation_id` + `can_see_operation` (#80). Delete bloqueado pra member via `requireAdminAction` na action (Inv. 14).
+
+---
+
+### `task_assignees` — responsáveis (N:N) de uma tarefa, todos iguais
+
+Substitui `tasks.assignee_person_id`. Sem "responsável principal" — todos iguais. A tarefa aparece na agenda de cada pessoa marcada.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `task_id` | uuid → tasks (CASCADE) | PK composto |
+| `person_id` | uuid → persons (CASCADE) | PK composto |
+| `created_at` | timestamptz | default now() |
+
+Index: `person_id`.
+RLS: espelha `tasks` — visível/mutável se `can_see_operation` da Operação da Frente da task (via JOIN task→frente). Sem policy UPDATE (junção é insert/delete).
 
 ---
 
@@ -657,6 +673,7 @@ Index dedup: `(operation_id, event_type, subject_id, sent_at DESC)`.
 | 20260519160001 | service_products | 2026-05-19 (via MCP) |
 | 20260520170001 | quick_win_catalog | 2026-05-20 (via MCP) |
 | 20260603191700 | tasks_add_start_date | 2026-06-03 (via MCP) |
+| 20260610120000 | task_assignees | 2026-06-10 (via MCP) — N:N responsáveis, dropa `tasks.assignee_person_id` |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações
