@@ -1,6 +1,6 @@
 # Database Schema
 
-**Última análise**: 2026-06-10 (task-areas)
+**Última análise**: 2026-06-10 (areas-as-access-groups — AD-014)
 **Projeto Supabase**: `Delivery OS` (`tmsaucxoeqpfluzwrwkc`)
 **Schema**: `public`
 
@@ -26,12 +26,12 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 | **Diagnóstico** | `diagnostics` | 1 |
 | **Quick Wins** | `quick_wins`, `quick_win_impacts` | 2 |
 | **Profiles** | `profiles` | 1 |
-| **Auth · Scope** | `operation_members`, `profile_areas` | 2 |
+| **Auth · Scope** | `operation_members`, `profile_areas`, `areas`, `area_clients`, `area_operations` | 5 |
 | **Operação · Custos** | `operation_costs` | 1 |
 | **Catálogo · Produtos** | `service_products` | 1 |
 | **Catálogo · Quick Wins** | `quick_win_catalog` | 1 |
 | **Notificações** | `notifications_log` | 1 |
-| **Total atual** | | **28** |
+| **Total atual** | | **31** |
 
 ---
 
@@ -159,7 +159,7 @@ Cobre o gap entre Decisão (perpétuo), Reunião (touchpoint), SLA Incident (nã
 | `id` | uuid PK | gen_random_uuid() |
 | `operation_id` | uuid NOT NULL → operations (CASCADE) | sempre presente; em task de entrega é derivado da Frente (trigger `sync_task_operation`) |
 | `frente_id` | uuid → frentes (CASCADE) | **nullable**; obrigatório em task de entrega, NULL em task de área (CHECK `check_tasks_area_xor_frente`) |
-| `area` | enum `task_area` | nullable; `cs`/`financeiro`/`juridico`. Setada = task de área (sem Frente, gated por `can_see_area`, escopo global) |
+| `area_id` | uuid → areas (RESTRICT) | nullable; FK p/ catálogo dinâmico `areas`. Setada = task de área (sem Frente, gated por área **+ concessão**, não mais global). Write-once (trigger) |
 | `title` | text NOT NULL | CHECK length ≥ 3 |
 | `description` | text | markdown livre, nullable |
 | `status` | enum `task_status` | `todo` / `doing` / `blocked` / `done`, default `todo` |
@@ -176,8 +176,8 @@ Cobre o gap entre Decisão (perpétuo), Reunião (touchpoint), SLA Incident (nã
 Trigger `manage_task_completed_at` (BEFORE INSERT OR UPDATE): set quando status → `done`, clear quando sai de `done`.
 Trigger `sync_task_operation` (BEFORE INSERT OR UPDATE OF frente_id, operation_id): quando há Frente, deriva/valida `operation_id = frente.operation_id` (raise em mismatch).
 Trigger `enforce_task_parent`: hierarquia de subtarefa trava em **1 nível** + **mesma Frente**; **proibida em task de área**. Sem rollup de status.
-Indexes: `(frente_id, status)`, `parent_task_id` (partial), `(operation_id, area)`, `area` (partial WHERE NOT NULL).
-RLS: `area NULL → can_see_operation(operation_id)`; `area setada → can_see_area(area)` (escopo global). Delete bloqueado pra member via `requireAdminAction` na action (Inv. 14). **Invariante:** `/public` filtra `area IS NULL` (task de área nunca vaza).
+Indexes: `(frente_id, status)`, `parent_task_id` (partial), `(operation_id, area_id)`, `area_id` (partial WHERE NOT NULL).
+RLS: `area_id NULL → can_read_operation(operation_id)` (membro real OU área com concessão); `area_id setada → is_admin() OR (user_in_area(area_id) AND area_can_reach_operation(area_id, operation_id))`. Escrita: entrega = `can_see_operation` (read-only pra área); bucket de área = área+concessão. **Invariante:** `/public` filtra `area_id IS NULL` (task de área nunca vaza).
 
 ---
 
@@ -196,19 +196,45 @@ RLS: gated por `can_see_task(task_id)` (cobre task de entrega via operação e t
 
 ---
 
-### `profile_areas` — vínculo profile × área (CS/Financeiro/Jurídico)
+### `areas` — catálogo dinâmico de áreas (grupo de acesso) ⭐ AD-014
 
-Define quem (login) é de qual área. **Escopo global**: quem está aqui vê tasks daquela área de **todas** as Operações (via `can_see_area`). Admin vê tudo sem row. Eixo de **visibilidade** (profile), separado de `task_assignees` (eixo de execução, person).
+Substitui o enum `task_area`. Áreas criáveis/arquiváveis pela UI (admin). Seeds `cs`/`financeiro`/`juridico` (slug estável). Soft-delete via `archived_at` (nunca DELETE — FK `tasks.area_id` é RESTRICT).
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | gen_random_uuid() |
+| `slug` | text UNIQUE | normalizado (lower, sem acento, kebab); seeds casam o enum antigo |
+| `name` | text NOT NULL | rótulo exibido |
+| `archived_at` | timestamptz | soft-delete; área arquivada não concede acesso |
+| `created_at`, `created_by` | | |
+
+RLS: `areas_admin_all` (admin CUD) + `areas_authenticated_select` (todo autenticado lê o catálogo — labels/selects).
+
+### `area_clients` / `area_operations` — concessões de acesso ⭐ AD-014
+
+Concedem **leitura** de uma área a um cliente inteiro (`area_clients`) e/ou a uma operação específica (`area_operations`). PK composta, FKs CASCADE. RLS admin-only (CUD+SELECT) — a leitura pela área é resolvida pelas funções `SECURITY DEFINER`, não por SELECT direto.
+
+| `area_clients` | `area_operations` |
+|---|---|
+| `(area_id → areas, client_id → clients)` PK | `(area_id → areas, operation_id → operations)` PK |
+
+Funções de acesso: `area_can_reach_operation(area_id, op_id)` (pura, não toca `tasks`), `is_area_granted(op_id)` (minhas áreas não-arquivadas alcançam op), `can_read_operation = can_see_operation OR is_area_granted`, `user_in_area(area_id)`.
+
+---
+
+### `profile_areas` — vínculo profile × área
+
+Define quem (login) é de qual área. **Escopo NÃO é mais global** (AD-014): a área só vê onde tem concessão (`area_clients`/`area_operations`). Admin vê tudo sem row. Eixo de **visibilidade** (profile), separado de `task_assignees` (eixo de execução, person).
 
 | Coluna | Tipo | Notas |
 |---|---|---|
 | `profile_id` | uuid → profiles (CASCADE) | PK composto |
-| `area` | enum `task_area` | PK composto; `cs`/`financeiro`/`juridico` |
+| `area_id` | uuid → areas (CASCADE) | PK composto (era enum `task_area`, migrado em `20260610150001`) |
 | `created_at` | timestamptz | default now() |
 | `created_by` | uuid → profiles (SET NULL) | quem atribuiu |
 
 Index: `profile_id`.
-RLS: `pa_admin_all` (admin gere tudo) + `pa_member_select_self` (member lê só os próprios). Helper `can_see_area(area)` = `is_admin() OR EXISTS(profile_areas WHERE profile_id=auth.uid())`.
+RLS: `pa_admin_all` (admin gere tudo) + `pa_member_select_self` (member lê só os próprios).
 
 ---
 
@@ -658,7 +684,8 @@ Index dedup: `(operation_id, event_type, subject_id, sent_at DESC)`.
 | `product_recommendation` | core, spark, studio |
 | `user_role` | admin, member |
 | `task_status` | todo, doing, blocked, done |
-| `task_area` | cs, financeiro, juridico |
+
+> Enum `task_area` **removido** em `20260610150001` — virou a tabela `areas` (FK `area_id`).
 | `cost_recurrence` | mensal, unica |
 
 ---
@@ -701,6 +728,9 @@ Index dedup: `(operation_id, event_type, subject_id, sent_at DESC)`.
 | 20260610130000 | task_subtasks | 2026-06-10 (via MCP) — `tasks.parent_task_id` self-FK + trigger `enforce_task_parent` |
 | 20260610140000 | task_areas_scope | 2026-06-10 (via MCP) — enum `task_area`, tabela `profile_areas`, função `can_see_area` |
 | 20260610140001 | tasks_area_operation | 2026-06-10 (via MCP) — `tasks.area`/`operation_id`, `frente_id` nullable, XOR, RLS por área, `can_see_task` |
+| 20260610150000 | areas_table | 2026-06-10 (via MCP, AD-014) — tabelas `areas`+`area_clients`+`area_operations`, RLS, seeds cs/fin/jur |
+| 20260610150001 | areas_enum_to_fk | 2026-06-10 (via MCP, AD-014) — enum `task_area`→FK `area_id` em tasks/profile_areas; funções `area_can_reach_operation`/`is_area_granted`/`user_in_area`; `can_read_operation`/`can_see_task` reescritas; drop `task_area` |
+| 20260610150002 | area_grants_rls | 2026-06-10 (via MCP, AD-014) — SELECT de ~12 tabelas operation-scoped ampliado p/ leitura por concessão; decisions/meetings só `cliente` pra área |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações

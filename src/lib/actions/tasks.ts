@@ -22,7 +22,7 @@ function parseFormData(formData: FormData) {
     title: ((formData.get("title") as string | null) ?? "").trim(),
     description: ((formData.get("description") as string | null) ?? "").trim(),
     status: ((formData.get("status") as string | null) ?? "todo").trim(),
-    area: ((formData.get("area") as string | null) ?? "").trim(),
+    area_id: ((formData.get("area_id") as string | null) ?? "").trim(),
     assignee_person_ids: formData
       .getAll("assignee_person_ids")
       .map((v) => String(v).trim())
@@ -170,7 +170,7 @@ export async function createAreaTaskAction(
   const v = validate(formData);
   if (!v.ok) return v;
   const data = v.data;
-  if (!data.area) return err("Área obrigatória.", "validation_area");
+  if (!data.area_id) return err("Área obrigatória.", "validation_area_id");
 
   const supabase = await createServer();
   const { data: row, error } = await supabase
@@ -178,7 +178,7 @@ export async function createAreaTaskAction(
     .insert({
       operation_id: operationId,
       frente_id: null,
-      area: data.area,
+      area_id: data.area_id,
       title: data.title,
       description: data.description ?? null,
       status: data.status,

@@ -8,7 +8,7 @@ import { DeleteTaskButton } from "@/components/domain/DeleteTaskButton";
 import { Button } from "@/components/ui/Button";
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import { createAreaTaskAction, updateTaskAction } from "@/lib/actions/tasks";
-import { AREA_LABELS, ALL_AREAS, type TaskArea } from "@/lib/utils/areas";
+import type { AreaOption } from "@/lib/utils/areas";
 import type { TaskRow } from "@/lib/db/queries/tasks";
 
 type AssigneeOption = { id: string; name: string };
@@ -18,6 +18,7 @@ type Props = (
   | { mode: "edit"; operationId: string; initialData: TaskRow }
 ) & {
   assignees: AssigneeOption[];
+  areas: AreaOption[];
   isAdmin: boolean;
 };
 
@@ -32,7 +33,7 @@ type FormShape = {
   title: string;
   description: string;
   status: "todo" | "doing" | "blocked" | "done";
-  area: TaskArea;
+  area_id: string;
   assignee_person_ids: string[];
   start_date: string;
   due_date: string;
@@ -44,15 +45,15 @@ export function AreaTaskForm(props: Props): React.JSX.Element {
   const isEdit = props.mode === "edit";
   const [generalError, setGeneralError] = useState<string | null>(null);
 
-  const initialArea =
-    isEdit && props.initialData.area ? props.initialData.area : "cs";
+  const editAreaName = isEdit ? (props.initialData.area?.name ?? "—") : "";
+  const defaultAreaId = props.areas[0]?.id ?? "";
 
   const defaultValues: FormShape = isEdit
     ? {
         title: props.initialData.title,
         description: props.initialData.description ?? "",
         status: props.initialData.status,
-        area: initialArea,
+        area_id: props.initialData.areaId ?? defaultAreaId,
         assignee_person_ids: props.initialData.assignees.map((a) => a.id),
         start_date: props.initialData.startDate ?? "",
         due_date: props.initialData.dueDate ?? "",
@@ -62,7 +63,7 @@ export function AreaTaskForm(props: Props): React.JSX.Element {
         title: "",
         description: "",
         status: "todo",
-        area: "cs",
+        area_id: defaultAreaId,
         assignee_person_ids: [],
         start_date: "",
         due_date: "",
@@ -85,7 +86,7 @@ export function AreaTaskForm(props: Props): React.JSX.Element {
     fd.set("title", values.title);
     fd.set("description", values.description);
     fd.set("status", values.status);
-    fd.set("area", values.area);
+    fd.set("area_id", values.area_id);
     for (const id of values.assignee_person_ids) {
       fd.append("assignee_person_ids", id);
     }
@@ -146,25 +147,25 @@ export function AreaTaskForm(props: Props): React.JSX.Element {
       </Field>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Field label="Área" htmlFor="area" required>
+        <Field label="Área" htmlFor="area_id" required>
           {isEdit ? (
             <input
-              id="area"
+              id="area_id"
               type="text"
-              value={AREA_LABELS[initialArea]}
+              value={editAreaName}
               disabled
               className={inputCn}
             />
           ) : (
             <select
-              id="area"
-              {...register("area")}
+              id="area_id"
+              {...register("area_id")}
               disabled={isSubmitting}
               className={inputCn}
             >
-              {ALL_AREAS.map((a) => (
-                <option key={a} value={a}>
-                  {AREA_LABELS[a]}
+              {props.areas.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
                 </option>
               ))}
             </select>

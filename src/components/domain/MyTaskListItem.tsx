@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { StatusCycleButton } from "@/components/domain/StatusCycleButton";
 import { Pill, type PillVariant } from "@/components/ui/Pill";
-import { AREA_LABELS } from "@/lib/utils/areas";
 import type { CrossFrenteTaskRow } from "@/lib/db/queries/tasks";
 
 type Props = {
@@ -44,12 +43,10 @@ export function MyTaskListItem({ task, showAssignee = false }: Props) {
     ? `início ${formatShortDate(task.startDate)}`
     : null;
   // Tarefa de área não tem Frente → edita pela rota de área.
-  const editHref = task.area
+  const editHref = task.areaId
     ? `/operations/${task.operationId}/areas/${task.id}/edit`
     : `/operations/${task.operationId}/frentes/${task.frenteId}/tasks/${task.id}/edit`;
-  const contextLabel = task.area
-    ? AREA_LABELS[task.area]
-    : (task.frenteName ?? "—");
+  const contextLabel = task.area?.name ?? task.frenteName ?? "—";
 
   return (
     <li className="flex items-start gap-3 px-4 py-3 border-b border-line last:border-b-0">
@@ -58,7 +55,7 @@ export function MyTaskListItem({ task, showAssignee = false }: Props) {
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 min-w-0">
-          {task.area && <Pill variant="oak">{AREA_LABELS[task.area]}</Pill>}
+          {task.area && <Pill variant="oak">{task.area.name}</Pill>}
           <Link
             href={editHref}
             className={`font-medium ${titleStyle} hover:underline truncate`}

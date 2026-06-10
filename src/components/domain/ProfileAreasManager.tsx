@@ -7,43 +7,63 @@ import {
   removeProfileAreaAction,
 } from "@/lib/actions/profile-areas";
 import { type ProfileWithAreas } from "@/lib/db/queries/profile-areas";
-import { ALL_AREAS, AREA_LABELS, type TaskArea } from "@/lib/utils/areas";
+import type { AreaOption } from "@/lib/utils/areas";
 import { cn } from "@/lib/utils/cn";
 
-type Props = { profiles: ProfileWithAreas[] };
+type Props = { profiles: ProfileWithAreas[]; allAreas: AreaOption[] };
 
 /**
  * Toggle de áreas por usuário (admin). Cada pill liga/desliga uma área —
- * popula/limpa profile_areas. A lista inteira serve de auditoria (quem é de quê).
+ * popula/limpa profile_areas (por area_id). A lista inteira serve de auditoria.
  */
-export function ProfileAreasManager({ profiles }: Props): React.JSX.Element {
+export function ProfileAreasManager({
+  profiles,
+  allAreas,
+}: Props): React.JSX.Element {
   return (
     <div className="bg-card border border-line rounded shadow-sm overflow-hidden">
       <ul className="divide-y divide-line">
         {profiles.map((p) => (
-          <ProfileRow key={p.id} profile={p} />
+          <ProfileRow key={p.id} profile={p} allAreas={allAreas} />
         ))}
       </ul>
     </div>
   );
 }
 
-function ProfileRow({ profile }: { profile: ProfileWithAreas }) {
-  const [areas, setAreas] = useState<TaskArea[]>(profile.areas);
+function ProfileRow({
+  profile,
+  allAreas,
+}: {
+  profile: ProfileWithAreas;
+  allAreas: AreaOption[];
+}) {
+  const [areaIds, setAreaIds] = useState<string[]>(
+    profile.areas.map((a) => a.id),
+  );
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  function toggle(area: TaskArea) {
-    const has = areas.includes(area);
-    const next = has ? areas.filter((a) => a !== area) : [...areas, area];
-    setAreas(next); // otimista
+  function toggle(areaId: string) {
+    const has = areaIds.includes(areaId);
+    const next = has
+      ? areaIds.filter((a) => a !== areaId)
+      : [...areaIds, areaId];
+    const prev = areaIds;
+    setAreaIds(next); // otimista
     setError(null);
     startTransition(async () => {
       const result = has
-        ? await removeProfileAreaAction({ profile_id: profile.id, area })
-        : await addProfileAreaAction({ profile_id: profile.id, area });
+        ? await removeProfileAreaAction({
+            profile_id: profile.id,
+            area_id: areaId,
+          })
+        : await addProfileAreaAction({
+            profile_id: profile.id,
+            area_id: areaId,
+          });
       if (!result.ok) {
-        setAreas(areas); // reverte
+        setAreaIds(prev); // reverte
         setError(result.error);
       }
     });
@@ -55,13 +75,13 @@ function ProfileRow({ profile }: { profile: ProfileWithAreas }) {
         {profile.name ?? "Sem nome"}
       </span>
       <div className="flex flex-wrap items-center gap-2">
-        {ALL_AREAS.map((area) => {
-          const active = areas.includes(area);
+        {allAreas.map((area) => {
+          const active = areaIds.includes(area.id);
           return (
             <button
-              key={area}
+              key={area.id}
               type="button"
-              onClick={() => toggle(area)}
+              onClick={() => toggle(area.id)}
               disabled={isPending}
               aria-pressed={active}
               className={cn(
@@ -72,7 +92,7 @@ function ProfileRow({ profile }: { profile: ProfileWithAreas }) {
               )}
             >
               {active && <Check className="w-3 h-3" strokeWidth={3} />}
-              {AREA_LABELS[area]}
+              {area.name}
             </button>
           );
         })}

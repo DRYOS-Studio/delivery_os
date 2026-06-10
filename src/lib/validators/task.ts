@@ -36,15 +36,6 @@ export const taskStatusEnum = z.enum(["todo", "doing", "blocked", "done"], {
   message: "Status obrigatório.",
 });
 
-export const taskAreaEnum = z.enum(["cs", "financeiro", "juridico"], {
-  message: "Área inválida.",
-});
-
-const optionalArea = z.preprocess(
-  (v) => (v === "" || v === null || v === undefined ? undefined : v),
-  taskAreaEnum.optional(),
-);
-
 export const taskSchema = z
   .object({
     title: z
@@ -54,7 +45,7 @@ export const taskSchema = z
       .max(200, "Máximo 200 caracteres."),
     description: optionalText,
     status: taskStatusEnum,
-    area: optionalArea,
+    area_id: optionalUuid,
     assignee_person_ids: optionalUuidArray,
     parent_task_id: optionalUuid,
     start_date: optionalDate,

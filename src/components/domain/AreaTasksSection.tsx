@@ -5,7 +5,6 @@ import { StatusCycleButton } from "@/components/domain/StatusCycleButton";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Pill, type PillVariant } from "@/components/ui/Pill";
-import { AREA_LABELS } from "@/lib/utils/areas";
 import type { TaskRow } from "@/lib/db/queries/tasks";
 import { getInitials } from "@/lib/utils/initials";
 
@@ -81,7 +80,7 @@ export function AreaTasksSection({ tasks, operationId, isAdmin }: Props) {
                   >
                     {t.title}
                   </Link>
-                  {t.area && <Pill variant="oak">{AREA_LABELS[t.area]}</Pill>}
+                  {t.area && <Pill variant="oak">{t.area.name}</Pill>}
                   {t.assignees.length > 0 && (
                     <div className="flex -space-x-1.5 shrink-0">
                       {t.assignees.slice(0, 3).map((a) => (
