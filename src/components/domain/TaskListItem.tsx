@@ -1,3 +1,4 @@
+import { CornerDownRight, Plus } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 import { Pill, type PillVariant } from "@/components/ui/Pill";
@@ -10,6 +11,8 @@ type Props = {
   task: TaskRow;
   operationId: string;
   isAdmin: boolean;
+  isSubtask?: boolean;
+  subtasks?: { done: number; total: number } | undefined;
 };
 
 function dueDatePill(
@@ -42,27 +45,62 @@ function formatShortDate(iso: string): string {
   });
 }
 
-export function TaskListItem({ task, operationId, isAdmin }: Props) {
+export function TaskListItem({
+  task,
+  operationId,
+  isAdmin,
+  isSubtask = false,
+  subtasks,
+}: Props) {
   const duePill = dueDatePill(task.dueDate, task.status);
   const displayedTags = task.tags?.slice(0, 2) ?? [];
   const extraTagCount =
     task.tags && task.tags.length > 2 ? task.tags.length - 2 : 0;
   const titleStyle =
     task.status === "done" ? "line-through text-mute" : "text-ink";
+  const newSubtaskHref = `/operations/${operationId}/frentes/${task.frenteId}/tasks/new?parent=${task.id}`;
 
   return (
-    <li className="flex flex-col gap-2 px-4 py-3 border-b border-line last:border-b-0 md:grid md:grid-cols-12 md:gap-3 md:items-center">
+    <li
+      className={`flex flex-col gap-2 px-4 py-3 border-b border-line last:border-b-0 md:grid md:grid-cols-12 md:gap-3 md:items-center ${
+        isSubtask ? "bg-surface/40 md:pl-10" : ""
+      }`}
+    >
       <div className="flex items-center gap-3 md:contents">
         <div className="md:col-span-1 md:flex md:justify-center shrink-0">
           <StatusCycleButton taskId={task.id} currentStatus={task.status} />
         </div>
         <div className="md:col-span-5 flex-1 min-w-0">
-          <Link
-            href={`/operations/${operationId}/frentes/${task.frenteId}/tasks/${task.id}/edit`}
-            className={`font-medium ${titleStyle} hover:underline md:truncate md:block`}
-          >
-            {task.title}
-          </Link>
+          <div className="flex items-center gap-2 min-w-0">
+            {isSubtask && (
+              <CornerDownRight
+                className="w-3.5 h-3.5 text-mute-soft shrink-0"
+                strokeWidth={1.75}
+              />
+            )}
+            <Link
+              href={`/operations/${operationId}/frentes/${task.frenteId}/tasks/${task.id}/edit`}
+              className={`font-medium ${titleStyle} hover:underline md:truncate md:block`}
+            >
+              {task.title}
+            </Link>
+          </div>
+          {!isSubtask && (
+            <div className="flex items-center gap-2 mt-1">
+              {subtasks && subtasks.total > 0 && (
+                <span className="font-mono text-[10px] text-mute-soft">
+                  {subtasks.done}/{subtasks.total} subtarefas
+                </span>
+              )}
+              <Link
+                href={newSubtaskHref}
+                className="inline-flex items-center gap-0.5 font-mono text-[10px] text-mute-soft hover:text-ink"
+              >
+                <Plus className="w-3 h-3" strokeWidth={1.75} />
+                subtarefa
+              </Link>
+            </div>
+          )}
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 md:contents">

@@ -46,6 +46,7 @@ export const taskSchema = z
     description: optionalText,
     status: taskStatusEnum,
     assignee_person_ids: optionalUuidArray,
+    parent_task_id: optionalUuid,
     start_date: optionalDate,
     due_date: optionalDate,
     tags: optionalTags,

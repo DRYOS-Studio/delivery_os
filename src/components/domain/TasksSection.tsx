@@ -1,5 +1,6 @@
 import { Plus } from "lucide-react";
 import Link from "next/link";
+import { Fragment } from "react";
 import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import { TaskListItem } from "@/components/domain/TaskListItem";
@@ -17,6 +18,7 @@ type Props = {
   totalOpen: number;
   totalDone: number;
   totalAll: number;
+  subtaskTotals: Record<string, { done: number; total: number }>;
 };
 
 const TABS: Array<{ key: TaskFilter; label: string }> = [
@@ -38,12 +40,22 @@ export function TasksSection({
   totalOpen,
   totalDone,
   totalAll,
+  subtaskTotals,
 }: Props) {
   const counts: Record<TaskFilter, number> = {
     open: totalOpen,
     done: totalDone,
     all: totalAll,
   };
+
+  // Agrupa o subset filtrado em pai → filhas. Filha cujo pai não está no subset
+  // (ex: pai concluído, filha aberta sob filtro "abertas") cai como top-level.
+  const visibleIds = new Set(tasks.map((t) => t.id));
+  const topLevel = tasks.filter(
+    (t) => !t.parentTaskId || !visibleIds.has(t.parentTaskId),
+  );
+  const childrenOf = (parentId: string): TaskRow[] =>
+    tasks.filter((t) => t.parentTaskId === parentId);
 
   return (
     <section className="mb-9">
@@ -104,13 +116,24 @@ export function TasksSection({
       ) : (
         <div className="bg-card border border-line rounded shadow-sm overflow-hidden">
           <ul>
-            {tasks.map((t) => (
-              <TaskListItem
-                key={t.id}
-                task={t}
-                operationId={operationId}
-                isAdmin={isAdmin}
-              />
+            {topLevel.map((t) => (
+              <Fragment key={t.id}>
+                <TaskListItem
+                  task={t}
+                  operationId={operationId}
+                  isAdmin={isAdmin}
+                  subtasks={subtaskTotals[t.id]}
+                />
+                {childrenOf(t.id).map((c) => (
+                  <TaskListItem
+                    key={c.id}
+                    task={c}
+                    operationId={operationId}
+                    isAdmin={isAdmin}
+                    isSubtask
+                  />
+                ))}
+              </Fragment>
             ))}
           </ul>
         </div>

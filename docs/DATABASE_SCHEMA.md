@@ -1,6 +1,6 @@
 # Database Schema
 
-**Última análise**: 2026-06-10 (tasks-multi-assignee)
+**Última análise**: 2026-06-10 (tasks-multi-assignee + tasks-subtasks)
 **Projeto Supabase**: `Delivery OS` (`tmsaucxoeqpfluzwrwkc`)
 **Schema**: `public`
 
@@ -159,6 +159,7 @@ Cobre o gap entre Decisão (perpétuo), Reunião (touchpoint), SLA Incident (nã
 | `title` | text NOT NULL | CHECK length ≥ 3 |
 | `description` | text | markdown livre, nullable |
 | `status` | enum `task_status` | `todo` / `doing` / `blocked` / `done`, default `todo` |
+| `parent_task_id` | uuid → tasks (CASCADE) | nullable; subtarefa aponta pro pai. CHECK anti-self + trigger `enforce_task_parent` (1 nível, mesma Frente). Deletar pai → CASCADE apaga filhas |
 | `start_date` | date | nullable; data de início planejada. CHECK `check_tasks_start_before_due`: `start_date <= due_date` quando ambos preenchidos |
 | `due_date` | date | granularidade dia |
 | `tags` | text[] | livre; dedup no front |
@@ -169,7 +170,8 @@ Cobre o gap entre Decisão (perpétuo), Reunião (touchpoint), SLA Incident (nã
 > Responsáveis migraram de `assignee_person_id` (single, removido em `20260610120000`) pra N:N via `task_assignees`.
 
 Trigger `manage_task_completed_at` (BEFORE INSERT OR UPDATE): set quando status → `done`, clear quando sai de `done`.
-Indexes: `(frente_id, status)`.
+Trigger `enforce_task_parent` (BEFORE INSERT OR UPDATE OF parent_task_id, frente_id): hierarquia de subtarefa trava em **1 nível** (pai não pode ser subtarefa; tarefa com filhas não vira subtarefa) e exige **mesma Frente** do pai. Sem rollup de status — pai e filhas independentes.
+Indexes: `(frente_id, status)` + `parent_task_id` (partial WHERE NOT NULL).
 RLS: scoped via `frente.operation_id` + `can_see_operation` (#80). Delete bloqueado pra member via `requireAdminAction` na action (Inv. 14).
 
 ---
@@ -674,6 +676,7 @@ Index dedup: `(operation_id, event_type, subject_id, sent_at DESC)`.
 | 20260520170001 | quick_win_catalog | 2026-05-20 (via MCP) |
 | 20260603191700 | tasks_add_start_date | 2026-06-03 (via MCP) |
 | 20260610120000 | task_assignees | 2026-06-10 (via MCP) — N:N responsáveis, dropa `tasks.assignee_person_id` |
+| 20260610130000 | task_subtasks | 2026-06-10 (via MCP) — `tasks.parent_task_id` self-FK + trigger `enforce_task_parent` |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações

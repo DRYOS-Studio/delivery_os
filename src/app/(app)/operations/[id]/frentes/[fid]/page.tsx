@@ -42,9 +42,20 @@ export default async function Page({
 
   const isAdmin = profile?.role === "admin";
   const filtered = applyFilter(tasks, filter);
-  const totalOpen = tasks.filter((t) => t.status !== "done").length;
-  const totalDone = tasks.filter((t) => t.status === "done").length;
-  const totalAll = tasks.length;
+  // Contagem de Frente exclui subtarefas pra não inflar o "abertas" do header.
+  const topLevel = tasks.filter((t) => !t.parentTaskId);
+  const totalOpen = topLevel.filter((t) => t.status !== "done").length;
+  const totalDone = topLevel.filter((t) => t.status === "done").length;
+  const totalAll = topLevel.length;
+
+  // Totais de subtarefas por pai (lista completa, independe do filtro de status).
+  const subtaskTotals: Record<string, { done: number; total: number }> = {};
+  for (const t of tasks) {
+    if (!t.parentTaskId) continue;
+    const acc = (subtaskTotals[t.parentTaskId] ??= { done: 0, total: 0 });
+    acc.total += 1;
+    if (t.status === "done") acc.done += 1;
+  }
 
   return (
     <>
@@ -76,6 +87,7 @@ export default async function Page({
         totalOpen={totalOpen}
         totalDone={totalDone}
         totalAll={totalAll}
+        subtaskTotals={subtaskTotals}
       />
     </>
   );

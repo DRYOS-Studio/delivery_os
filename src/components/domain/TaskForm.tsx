@@ -12,9 +12,15 @@ import type { TaskRow } from "@/lib/db/queries/tasks";
 type AssigneeOption = { id: string; name: string };
 type QuickWinOption = { id: string; title: string };
 type IncidentOption = { id: string; title: string };
+type ParentOption = { id: string; title: string };
 
 type Props = (
-  | { mode: "create"; frenteId: string; operationId: string }
+  | {
+      mode: "create";
+      frenteId: string;
+      operationId: string;
+      defaultParentId?: string;
+    }
   | {
       mode: "edit";
       frenteId: string;
@@ -25,6 +31,7 @@ type Props = (
   assignees: AssigneeOption[];
   quickWins: QuickWinOption[];
   incidents: IncidentOption[];
+  parents: ParentOption[];
   isAdmin: boolean;
 };
 
@@ -40,6 +47,7 @@ type FormShape = {
   description: string;
   status: "todo" | "doing" | "blocked" | "done";
   assignee_person_ids: string[];
+  parent_task_id: string;
   start_date: string;
   due_date: string;
   tags_raw: string;
@@ -80,6 +88,7 @@ export function TaskForm(props: Props): React.JSX.Element {
         description: props.initialData.description ?? "",
         status: props.initialData.status,
         assignee_person_ids: props.initialData.assignees.map((a) => a.id),
+        parent_task_id: props.initialData.parentTaskId ?? "",
         start_date: props.initialData.startDate ?? "",
         due_date: props.initialData.dueDate ?? "",
         tags_raw: (props.initialData.tags ?? []).join(", "),
@@ -91,6 +100,7 @@ export function TaskForm(props: Props): React.JSX.Element {
         description: "",
         status: "todo",
         assignee_person_ids: [],
+        parent_task_id: props.mode === "create" ? (props.defaultParentId ?? "") : "",
         start_date: "",
         due_date: "",
         tags_raw: "",
@@ -116,6 +126,7 @@ export function TaskForm(props: Props): React.JSX.Element {
     for (const id of values.assignee_person_ids) {
       fd.append("assignee_person_ids", id);
     }
+    fd.set("parent_task_id", values.parent_task_id);
     fd.set("start_date", values.start_date);
     fd.set("due_date", values.due_date);
     fd.set("tags", values.tags_raw);
@@ -227,6 +238,29 @@ export function TaskForm(props: Props): React.JSX.Element {
           )}
         </Field>
       </div>
+
+      {props.parents.length > 0 && (
+        <Field
+          label="Tarefa-pai"
+          htmlFor="parent_task_id"
+          error={errors.parent_task_id?.message}
+          hint="Opcional. Vira subtarefa da escolhida (mesma Frente)."
+        >
+          <select
+            id="parent_task_id"
+            {...register("parent_task_id")}
+            disabled={isSubmitting}
+            className={inputCn}
+          >
+            <option value="">— nenhuma (tarefa top-level)</option>
+            {props.parents.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.title}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Field
