@@ -12,6 +12,7 @@ export type TaskRow = {
   description: string | null;
   status: TaskStatus;
   assignees: TaskAssignee[];
+  parentTaskId: string | null;
   startDate: string | null;
   dueDate: string | null;
   tags: string[] | null;
@@ -30,6 +31,7 @@ type TaskJoinedRow = {
   title: string;
   description: string | null;
   status: TaskStatus;
+  parent_task_id: string | null;
   start_date: string | null;
   due_date: string | null;
   tags: string[] | null;
@@ -56,6 +58,7 @@ function mapRow(row: TaskJoinedRow): TaskRow {
     description: row.description,
     status: row.status,
     assignees: mapAssignees(row.assignees),
+    parentTaskId: row.parent_task_id,
     startDate: row.start_date,
     dueDate: row.due_date,
     tags: row.tags,
@@ -68,7 +71,7 @@ function mapRow(row: TaskJoinedRow): TaskRow {
 }
 
 const TASK_SELECT = `
-  id, frente_id, title, description, status,
+  id, frente_id, title, description, status, parent_task_id,
   start_date, due_date, tags,
   quick_win_id, sla_incident_id,
   created_at, updated_at, completed_at,
@@ -94,6 +97,37 @@ export async function listTasksByFrente(frenteId: string): Promise<TaskRow[]> {
       const bDone = b.status === "done" ? 1 : 0;
       return aDone - bDone;
     });
+}
+
+/**
+ * Tarefas top-level (parent_task_id NULL) de uma Frente, candidatas a pai.
+ * Exclui a própria task (em edição) pra não oferecer self-parent.
+ */
+export async function listEligibleParents(
+  frenteId: string,
+  excludeTaskId?: string,
+): Promise<Array<{ id: string; title: string }>> {
+  const supabase = await createServer();
+  let query = supabase
+    .from("tasks")
+    .select("id, title")
+    .eq("frente_id", frenteId)
+    .is("parent_task_id", null)
+    .order("created_at", { ascending: false });
+  if (excludeTaskId) query = query.neq("id", excludeTaskId);
+  const { data, error } = await query;
+  if (error) throw new Error(`listEligibleParents: ${error.message}`);
+  return data ?? [];
+}
+
+export async function countSubtasks(parentId: string): Promise<number> {
+  const supabase = await createServer();
+  const { count, error } = await supabase
+    .from("tasks")
+    .select("id", { count: "exact", head: true })
+    .eq("parent_task_id", parentId);
+  if (error) throw new Error(`countSubtasks: ${error.message}`);
+  return count ?? 0;
 }
 
 export async function getTask(id: string): Promise<TaskRow | null> {
@@ -170,7 +204,7 @@ function pickOne<T>(v: ToOne<T>): T | null {
 function crossFrenteSelect(inner: boolean): string {
   const join = inner ? "task_assignees!inner" : "task_assignees";
   return `
-    id, frente_id, title, description, status,
+    id, frente_id, title, description, status, parent_task_id,
     start_date, due_date, tags,
     quick_win_id, sla_incident_id,
     created_at, updated_at, completed_at,
@@ -196,6 +230,7 @@ function mapCrossFrenteRow(row: CrossFrenteJoinedRow): CrossFrenteTaskRow {
     description: row.description,
     status: row.status,
     assignees: mapAssignees(row.assignees),
+    parentTaskId: row.parent_task_id,
     startDate: row.start_date,
     dueDate: row.due_date,
     tags: row.tags,

@@ -1235,6 +1235,7 @@ export type Database = {
           due_date: string | null
           frente_id: string
           id: string
+          parent_task_id: string | null
           quick_win_id: string | null
           sla_incident_id: string | null
           start_date: string | null
@@ -1250,6 +1251,7 @@ export type Database = {
           due_date?: string | null
           frente_id: string
           id?: string
+          parent_task_id?: string | null
           quick_win_id?: string | null
           sla_incident_id?: string | null
           start_date?: string | null
@@ -1265,6 +1267,7 @@ export type Database = {
           due_date?: string | null
           frente_id?: string
           id?: string
+          parent_task_id?: string | null
           quick_win_id?: string | null
           sla_incident_id?: string | null
           start_date?: string | null
@@ -1279,6 +1282,13 @@ export type Database = {
             columns: ["frente_id"]
             isOneToOne: false
             referencedRelation: "frentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_tasks_parent_task_id"
+            columns: ["parent_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
           {

@@ -27,6 +27,7 @@ function parseFormData(formData: FormData) {
       .getAll("assignee_person_ids")
       .map((v) => String(v).trim())
       .filter((v) => v.length > 0),
+    parent_task_id: ((formData.get("parent_task_id") as string | null) ?? "").trim(),
     start_date: ((formData.get("start_date") as string | null) ?? "").trim(),
     due_date: ((formData.get("due_date") as string | null) ?? "").trim(),
     tags: parseTags(formData.get("tags") as string | null),
@@ -70,6 +71,26 @@ async function syncAssignees(
   return insError ?? null;
 }
 
+/**
+ * Erros do trigger enforce_task_parent vêm com mensagem já amigável (PT). Quando
+ * a mensagem é sobre hierarquia, devolve como erro do campo parent_task_id pra UI
+ * destacar o select certo; senão cai no dbErr genérico.
+ */
+function mapTaskError(
+  error: { message: string },
+  context: string,
+): ReturnType<typeof err> | ReturnType<typeof dbErr> {
+  const m = error.message.toLowerCase();
+  if (
+    m.includes("subtarefa") ||
+    m.includes("tarefa-pai") ||
+    m.includes("tarefa com subtarefas")
+  ) {
+    return err(error.message, "validation_parent_task_id");
+  }
+  return dbErr(error, context);
+}
+
 async function revalidateForFrente(frenteId: string) {
   const frente = await getFrente(frenteId);
   if (frente) {
@@ -98,6 +119,7 @@ export async function createTaskAction(
       title: data.title,
       description: data.description ?? null,
       status: data.status,
+      parent_task_id: data.parent_task_id ?? null,
       start_date: data.start_date ?? null,
       due_date: data.due_date ?? null,
       tags: data.tags ?? null,
@@ -106,7 +128,7 @@ export async function createTaskAction(
     })
     .select("id")
     .single();
-  if (error) return dbErr(error, "createTaskAction");
+  if (error) return mapTaskError(error, "createTaskAction");
   if (!row) return err("Falha ao criar tarefa.", "no_data");
 
   const syncError = await syncAssignees(
@@ -141,6 +163,7 @@ export async function updateTaskAction(
       title: data.title,
       description: data.description ?? null,
       status: data.status,
+      parent_task_id: data.parent_task_id ?? null,
       start_date: data.start_date ?? null,
       due_date: data.due_date ?? null,
       tags: data.tags ?? null,
@@ -148,7 +171,7 @@ export async function updateTaskAction(
       sla_incident_id: data.sla_incident_id ?? null,
     })
     .eq("id", taskId);
-  if (error) return dbErr(error, "updateTaskAction");
+  if (error) return mapTaskError(error, "updateTaskAction");
 
   const syncError = await syncAssignees(
     supabase,

@@ -6,7 +6,11 @@ import { getFrenteDetail } from "@/lib/db/queries/frentes";
 import { listIncidentsByOperation } from "@/lib/db/queries/incidents";
 import { listInternalPersons } from "@/lib/db/queries/persons";
 import { listQuickWinsByOperation } from "@/lib/db/queries/quick-wins";
-import { getTask } from "@/lib/db/queries/tasks";
+import {
+  countSubtasks,
+  getTask,
+  listEligibleParents,
+} from "@/lib/db/queries/tasks";
 
 export default async function Page({
   params,
@@ -26,6 +30,11 @@ export default async function Page({
   if (!frente || frente.operationId !== id) notFound();
   if (!task || task.frenteId !== fid) notFound();
 
+  // Task com subtarefas não pode virar subtarefa → não oferece pai.
+  const childCount = await countSubtasks(tid);
+  const parents =
+    childCount > 0 ? [] : await listEligibleParents(fid, tid);
+
   return (
     <>
       <PageHeader
@@ -40,6 +49,7 @@ export default async function Page({
         assignees={assignees}
         quickWins={quickWins.map((q) => ({ id: q.id, title: q.title }))}
         incidents={incidents.map((i) => ({ id: i.id, title: i.title }))}
+        parents={parents}
         isAdmin={profile?.role === "admin"}
       />
     </>
