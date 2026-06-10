@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { Button } from "@/components/ui/Button";
+import { MultiSelect } from "@/components/ui/MultiSelect";
 import { createTaskAction } from "@/lib/actions/tasks";
 import type { OperationWithFrentes } from "@/lib/db/queries/operations";
 import type { InternalPersonItem } from "@/lib/db/queries/persons";
@@ -60,6 +61,7 @@ export function TaskQuickCreateForm({
     register,
     handleSubmit,
     watch,
+    control,
     setValue,
     setError,
     formState: { errors, isSubmitting },
@@ -224,31 +226,23 @@ export function TaskQuickCreateForm({
           label="Responsáveis"
           htmlFor="assignee_person_ids"
           error={errors.assignee_person_ids?.message}
-          hint="Marque uma ou mais pessoas."
+          hint="Busque e marque uma ou mais pessoas."
         >
-          {assignees.length === 0 ? (
-            <p className="font-mono text-[10px] text-mute-soft py-2">
-              Nenhuma pessoa interna cadastrada.
-            </p>
-          ) : (
-            <div className="max-h-44 overflow-y-auto bg-card border border-line rounded divide-y divide-line">
-              {assignees.map((p) => (
-                <label
-                  key={p.id}
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-ink-soft cursor-pointer hover:bg-surface"
-                >
-                  <input
-                    type="checkbox"
-                    value={p.id}
-                    {...register("assignee_person_ids")}
-                    disabled={isSubmitting}
-                    className="accent-oak"
-                  />
-                  {p.name}
-                </label>
-              ))}
-            </div>
-          )}
+          <Controller
+            control={control}
+            name="assignee_person_ids"
+            render={({ field }) => (
+              <MultiSelect
+                id="assignee_person_ids"
+                options={assignees}
+                value={field.value}
+                onChange={field.onChange}
+                disabled={isSubmitting}
+                placeholder="— sem responsável"
+                emptyText="Nenhuma pessoa interna cadastrada."
+              />
+            )}
+          />
         </Field>
       </div>
 
