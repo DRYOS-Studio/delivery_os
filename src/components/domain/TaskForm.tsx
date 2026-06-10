@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { Button } from "@/components/ui/Button";
+import { MultiSelect } from "@/components/ui/MultiSelect";
 import { DeleteTaskButton } from "@/components/domain/DeleteTaskButton";
 import { createTaskAction, updateTaskAction } from "@/lib/actions/tasks";
 import type { TaskRow } from "@/lib/db/queries/tasks";
@@ -111,6 +112,7 @@ export function TaskForm(props: Props): React.JSX.Element {
   const {
     register,
     handleSubmit,
+    control,
     setError,
     formState: { errors, isSubmitting },
   } = useForm<FormShape>({
@@ -211,31 +213,23 @@ export function TaskForm(props: Props): React.JSX.Element {
           label="Responsáveis"
           htmlFor="assignee_person_ids"
           error={errors.assignee_person_ids?.message}
-          hint="Marque uma ou mais pessoas."
+          hint="Busque e marque uma ou mais pessoas."
         >
-          {props.assignees.length === 0 ? (
-            <p className="font-mono text-[10px] text-mute-soft py-2">
-              Nenhuma pessoa interna cadastrada.
-            </p>
-          ) : (
-            <div className="max-h-44 overflow-y-auto bg-card border border-line rounded divide-y divide-line">
-              {props.assignees.map((p) => (
-                <label
-                  key={p.id}
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-ink-soft cursor-pointer hover:bg-surface"
-                >
-                  <input
-                    type="checkbox"
-                    value={p.id}
-                    {...register("assignee_person_ids")}
-                    disabled={isSubmitting}
-                    className="accent-oak"
-                  />
-                  {p.name}
-                </label>
-              ))}
-            </div>
-          )}
+          <Controller
+            control={control}
+            name="assignee_person_ids"
+            render={({ field }) => (
+              <MultiSelect
+                id="assignee_person_ids"
+                options={props.assignees}
+                value={field.value}
+                onChange={field.onChange}
+                disabled={isSubmitting}
+                placeholder="— sem responsável"
+                emptyText="Nenhuma pessoa interna cadastrada."
+              />
+            )}
+          />
         </Field>
       </div>
 
