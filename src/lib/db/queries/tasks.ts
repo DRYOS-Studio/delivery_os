@@ -2,12 +2,15 @@ import { createServer } from "@/lib/db/client";
 import type { Database } from "@/lib/db/types";
 
 export type TaskStatus = Database["public"]["Enums"]["task_status"];
+export type TaskArea = Database["public"]["Enums"]["task_area"];
 
 export type TaskAssignee = { id: string; name: string };
 
 export type TaskRow = {
   id: string;
-  frenteId: string;
+  frenteId: string | null;
+  operationId: string;
+  area: TaskArea | null;
   title: string;
   description: string | null;
   status: TaskStatus;
@@ -27,7 +30,9 @@ type AssigneeJoin = { person: TaskAssignee | TaskAssignee[] | null };
 
 type TaskJoinedRow = {
   id: string;
-  frente_id: string;
+  frente_id: string | null;
+  operation_id: string;
+  area: TaskArea | null;
   title: string;
   description: string | null;
   status: TaskStatus;
@@ -54,6 +59,8 @@ function mapRow(row: TaskJoinedRow): TaskRow {
   return {
     id: row.id,
     frenteId: row.frente_id,
+    operationId: row.operation_id,
+    area: row.area,
     title: row.title,
     description: row.description,
     status: row.status,
@@ -71,7 +78,7 @@ function mapRow(row: TaskJoinedRow): TaskRow {
 }
 
 const TASK_SELECT = `
-  id, frente_id, title, description, status, parent_task_id,
+  id, frente_id, operation_id, area, title, description, status, parent_task_id,
   start_date, due_date, tags,
   quick_win_id, sla_incident_id,
   created_at, updated_at, completed_at,
@@ -172,8 +179,7 @@ const OPEN_STATUSES: TaskStatus[] = ["todo", "doing", "blocked"];
 export type TaskListFilter = "open" | "done" | "all";
 
 export type CrossFrenteTaskRow = TaskRow & {
-  frenteName: string;
-  operationId: string;
+  frenteName: string | null;
   operationName: string;
   clientName: string;
 };
@@ -181,13 +187,11 @@ export type CrossFrenteTaskRow = TaskRow & {
 type ToOne<T> = T | T[] | null;
 
 type CrossFrenteJoinedRow = TaskJoinedRow & {
-  frente: ToOne<{
+  frente: ToOne<{ name: string }>;
+  operation: ToOne<{
+    id: string;
     name: string;
-    operation: ToOne<{
-      id: string;
-      name: string;
-      client: ToOne<{ name: string }>;
-    }>;
+    client: ToOne<{ name: string }>;
   }>;
 };
 
@@ -204,28 +208,28 @@ function pickOne<T>(v: ToOne<T>): T | null {
 function crossFrenteSelect(inner: boolean): string {
   const join = inner ? "task_assignees!inner" : "task_assignees";
   return `
-    id, frente_id, title, description, status, parent_task_id,
+    id, frente_id, operation_id, area, title, description, status, parent_task_id,
     start_date, due_date, tags,
     quick_win_id, sla_incident_id,
     created_at, updated_at, completed_at,
     assignees:${join} ( person:persons!fk_task_assignees_person_id (id, name) ),
-    frente:frentes!fk_tasks_frente_id (
-      name,
-      operation:operations!fk_frentes_operation_id (
-        id, name,
-        client:clients!fk_operations_client_id (name)
-      )
+    frente:frentes!fk_tasks_frente_id ( name ),
+    operation:operations!fk_tasks_operation_id (
+      id, name,
+      client:clients!fk_operations_client_id (name)
     )
   `;
 }
 
 function mapCrossFrenteRow(row: CrossFrenteJoinedRow): CrossFrenteTaskRow {
   const frente = pickOne(row.frente);
-  const operation = pickOne(frente?.operation ?? null);
+  const operation = pickOne(row.operation);
   const client = pickOne(operation?.client ?? null);
   return {
     id: row.id,
     frenteId: row.frente_id,
+    operationId: row.operation_id,
+    area: row.area,
     title: row.title,
     description: row.description,
     status: row.status,
@@ -239,8 +243,7 @@ function mapCrossFrenteRow(row: CrossFrenteJoinedRow): CrossFrenteTaskRow {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     completedAt: row.completed_at,
-    frenteName: frente?.name ?? "—",
-    operationId: operation?.id ?? "",
+    frenteName: frente?.name ?? null,
     operationName: operation?.name ?? "—",
     clientName: client?.name ?? "—",
   };

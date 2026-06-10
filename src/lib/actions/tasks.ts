@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { type ActionResult, dbErr, err, ok } from "@/lib/actions/_types";
 import { requireAdminAction, requireUserAction } from "@/lib/auth/server";
 import { createServer } from "@/lib/db/client";
-import { getFrente } from "@/lib/db/queries/frentes";
 import { getTask } from "@/lib/db/queries/tasks";
 import { taskSchema, taskStatusEnum } from "@/lib/validators/task";
 
@@ -91,19 +90,21 @@ function mapTaskError(
   return dbErr(error, context);
 }
 
-async function revalidateForFrente(frenteId: string) {
-  const frente = await getFrente(frenteId);
-  if (frente) {
-    revalidatePath(`/operations/${frente.operation_id}/frentes/${frenteId}`);
-    revalidatePath(`/operations/${frente.operation_id}`);
+// Revalida pela Operação (sempre presente) + Frente quando houver (task de
+// área não tem Frente). Evita getFrente(null).
+function revalidateForTask(operationId: string, frenteId: string | null) {
+  if (frenteId) {
+    revalidatePath(`/operations/${operationId}/frentes/${frenteId}`);
   }
+  revalidatePath(`/operations/${operationId}`);
   revalidatePath("/admin/dashboard");
+  revalidatePath("/tasks");
 }
 
 export async function createTaskAction(
   frenteId: string,
   formData: FormData,
-): Promise<ActionResult<{ id: string; frenteId: string }>> {
+): Promise<ActionResult<{ id: string; frenteId: string | null }>> {
   const userResult = await requireUserAction();
   if (!userResult.ok) return userResult;
 
@@ -112,10 +113,22 @@ export async function createTaskAction(
   const data = v.data;
 
   const supabase = await createServer();
+
+  // operation_id é NOT NULL; o trigger deriva da Frente, mas o insert precisa
+  // do valor. Busca a Operação da Frente (trigger ainda valida coerência).
+  const { data: frenteRow, error: frenteErr } = await supabase
+    .from("frentes")
+    .select("operation_id")
+    .eq("id", frenteId)
+    .single();
+  if (frenteErr) return dbErr(frenteErr, "createTaskAction.frente");
+  if (!frenteRow) return err("Frente não encontrada.", "not_found");
+
   const { data: row, error } = await supabase
     .from("tasks")
     .insert({
       frente_id: frenteId,
+      operation_id: frenteRow.operation_id,
       title: data.title,
       description: data.description ?? null,
       status: data.status,
@@ -126,7 +139,7 @@ export async function createTaskAction(
       quick_win_id: data.quick_win_id ?? null,
       sla_incident_id: data.sla_incident_id ?? null,
     })
-    .select("id")
+    .select("id, operation_id")
     .single();
   if (error) return mapTaskError(error, "createTaskAction");
   if (!row) return err("Falha ao criar tarefa.", "no_data");
@@ -138,14 +151,14 @@ export async function createTaskAction(
   );
   if (syncError) return dbErr(syncError, "createTaskAction.assignees");
 
-  await revalidateForFrente(frenteId);
+  revalidateForTask(row.operation_id, frenteId);
   return ok({ id: row.id, frenteId });
 }
 
 export async function updateTaskAction(
   taskId: string,
   formData: FormData,
-): Promise<ActionResult<{ id: string; frenteId: string }>> {
+): Promise<ActionResult<{ id: string; frenteId: string | null }>> {
   const userResult = await requireUserAction();
   if (!userResult.ok) return userResult;
 
@@ -180,7 +193,7 @@ export async function updateTaskAction(
   );
   if (syncError) return dbErr(syncError, "updateTaskAction.assignees");
 
-  await revalidateForFrente(current.frenteId);
+  revalidateForTask(current.operationId, current.frenteId);
   return ok({ id: taskId, frenteId: current.frenteId });
 }
 
@@ -204,7 +217,7 @@ export async function changeTaskStatusAction(
     .eq("id", taskId);
   if (error) return dbErr(error, "changeTaskStatusAction");
 
-  await revalidateForFrente(current.frenteId);
+  revalidateForTask(current.operationId, current.frenteId);
   return ok({ id: taskId });
 }
 
@@ -223,6 +236,6 @@ export async function deleteTaskAction(
   const { error } = await supabase.from("tasks").delete().eq("id", taskId);
   if (error) return dbErr(error, "deleteTaskAction");
 
-  await revalidateForFrente(current.frenteId);
+  revalidateForTask(current.operationId, current.frenteId);
   return ok({ id: taskId });
 }

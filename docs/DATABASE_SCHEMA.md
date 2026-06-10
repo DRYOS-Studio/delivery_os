@@ -1,6 +1,6 @@
 # Database Schema
 
-**Última análise**: 2026-06-10 (tasks-multi-assignee + tasks-subtasks)
+**Última análise**: 2026-06-10 (task-areas)
 **Projeto Supabase**: `Delivery OS` (`tmsaucxoeqpfluzwrwkc`)
 **Schema**: `public`
 
@@ -26,12 +26,12 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 | **Diagnóstico** | `diagnostics` | 1 |
 | **Quick Wins** | `quick_wins`, `quick_win_impacts` | 2 |
 | **Profiles** | `profiles` | 1 |
-| **Auth · Scope** | `operation_members` | 1 |
+| **Auth · Scope** | `operation_members`, `profile_areas` | 2 |
 | **Operação · Custos** | `operation_costs` | 1 |
 | **Catálogo · Produtos** | `service_products` | 1 |
 | **Catálogo · Quick Wins** | `quick_win_catalog` | 1 |
 | **Notificações** | `notifications_log` | 1 |
-| **Total atual** | | **27** |
+| **Total atual** | | **28** |
 
 ---
 
@@ -148,18 +148,22 @@ Index parcial `idx_frentes_actionable_status_since_active` em `(actionable_statu
 
 ---
 
-### `tasks` — tarefa planejada por Frente
+### `tasks` — tarefa de entrega (Frente) OU tarefa de área (Operação)
 
-Cobre o gap entre Decisão (perpétuo), Reunião (touchpoint), SLA Incident (não-planejado) e Quick Win (vinculado a vilão). Interna — sem visibility, não aparece em `/public/[token]`.
+Cobre o gap entre Decisão (perpétuo), Reunião (touchpoint), SLA Incident (não-planejado) e Quick Win (vinculado a vilão). Interna — não aparece em `/public/[token]`.
+
+**XOR entrega/área:** uma tarefa é **de entrega** (`area NULL` + `frente_id` obrigatório, visível à Operação) **ou** **de área** (`area` setada + `frente_id NULL`, transversal à Operação, visível só a admin + quem é da área). `operation_id` está sempre presente.
 
 | Coluna | Tipo | Notas |
 |---|---|---|
 | `id` | uuid PK | gen_random_uuid() |
-| `frente_id` | uuid NOT NULL → frentes (CASCADE) | Inv. de família |
+| `operation_id` | uuid NOT NULL → operations (CASCADE) | sempre presente; em task de entrega é derivado da Frente (trigger `sync_task_operation`) |
+| `frente_id` | uuid → frentes (CASCADE) | **nullable**; obrigatório em task de entrega, NULL em task de área (CHECK `check_tasks_area_xor_frente`) |
+| `area` | enum `task_area` | nullable; `cs`/`financeiro`/`juridico`. Setada = task de área (sem Frente, gated por `can_see_area`, escopo global) |
 | `title` | text NOT NULL | CHECK length ≥ 3 |
 | `description` | text | markdown livre, nullable |
 | `status` | enum `task_status` | `todo` / `doing` / `blocked` / `done`, default `todo` |
-| `parent_task_id` | uuid → tasks (CASCADE) | nullable; subtarefa aponta pro pai. CHECK anti-self + trigger `enforce_task_parent` (1 nível, mesma Frente). Deletar pai → CASCADE apaga filhas |
+| `parent_task_id` | uuid → tasks (CASCADE) | nullable; subtarefa aponta pro pai. CHECK anti-self + trigger `enforce_task_parent` (1 nível, mesma Frente; **proibido em task de área**). Deletar pai → CASCADE apaga filhas |
 | `start_date` | date | nullable; data de início planejada. CHECK `check_tasks_start_before_due`: `start_date <= due_date` quando ambos preenchidos |
 | `due_date` | date | granularidade dia |
 | `tags` | text[] | livre; dedup no front |
@@ -170,9 +174,10 @@ Cobre o gap entre Decisão (perpétuo), Reunião (touchpoint), SLA Incident (nã
 > Responsáveis migraram de `assignee_person_id` (single, removido em `20260610120000`) pra N:N via `task_assignees`.
 
 Trigger `manage_task_completed_at` (BEFORE INSERT OR UPDATE): set quando status → `done`, clear quando sai de `done`.
-Trigger `enforce_task_parent` (BEFORE INSERT OR UPDATE OF parent_task_id, frente_id): hierarquia de subtarefa trava em **1 nível** (pai não pode ser subtarefa; tarefa com filhas não vira subtarefa) e exige **mesma Frente** do pai. Sem rollup de status — pai e filhas independentes.
-Indexes: `(frente_id, status)` + `parent_task_id` (partial WHERE NOT NULL).
-RLS: scoped via `frente.operation_id` + `can_see_operation` (#80). Delete bloqueado pra member via `requireAdminAction` na action (Inv. 14).
+Trigger `sync_task_operation` (BEFORE INSERT OR UPDATE OF frente_id, operation_id): quando há Frente, deriva/valida `operation_id = frente.operation_id` (raise em mismatch).
+Trigger `enforce_task_parent`: hierarquia de subtarefa trava em **1 nível** + **mesma Frente**; **proibida em task de área**. Sem rollup de status.
+Indexes: `(frente_id, status)`, `parent_task_id` (partial), `(operation_id, area)`, `area` (partial WHERE NOT NULL).
+RLS: `area NULL → can_see_operation(operation_id)`; `area setada → can_see_area(area)` (escopo global). Delete bloqueado pra member via `requireAdminAction` na action (Inv. 14). **Invariante:** `/public` filtra `area IS NULL` (task de área nunca vaza).
 
 ---
 
@@ -187,7 +192,23 @@ Substitui `tasks.assignee_person_id`. Sem "responsável principal" — todos igu
 | `created_at` | timestamptz | default now() |
 
 Index: `person_id`.
-RLS: espelha `tasks` — visível/mutável se `can_see_operation` da Operação da Frente da task (via JOIN task→frente). Sem policy UPDATE (junção é insert/delete).
+RLS: gated por `can_see_task(task_id)` (cobre task de entrega via operação e task de área via área). Sem policy UPDATE (junção é insert/delete).
+
+---
+
+### `profile_areas` — vínculo profile × área (CS/Financeiro/Jurídico)
+
+Define quem (login) é de qual área. **Escopo global**: quem está aqui vê tasks daquela área de **todas** as Operações (via `can_see_area`). Admin vê tudo sem row. Eixo de **visibilidade** (profile), separado de `task_assignees` (eixo de execução, person).
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `profile_id` | uuid → profiles (CASCADE) | PK composto |
+| `area` | enum `task_area` | PK composto; `cs`/`financeiro`/`juridico` |
+| `created_at` | timestamptz | default now() |
+| `created_by` | uuid → profiles (SET NULL) | quem atribuiu |
+
+Index: `profile_id`.
+RLS: `pa_admin_all` (admin gere tudo) + `pa_member_select_self` (member lê só os próprios). Helper `can_see_area(area)` = `is_admin() OR EXISTS(profile_areas WHERE profile_id=auth.uid())`.
 
 ---
 
@@ -637,6 +658,7 @@ Index dedup: `(operation_id, event_type, subject_id, sent_at DESC)`.
 | `product_recommendation` | core, spark, studio |
 | `user_role` | admin, member |
 | `task_status` | todo, doing, blocked, done |
+| `task_area` | cs, financeiro, juridico |
 | `cost_recurrence` | mensal, unica |
 
 ---
@@ -677,6 +699,8 @@ Index dedup: `(operation_id, event_type, subject_id, sent_at DESC)`.
 | 20260603191700 | tasks_add_start_date | 2026-06-03 (via MCP) |
 | 20260610120000 | task_assignees | 2026-06-10 (via MCP) — N:N responsáveis, dropa `tasks.assignee_person_id` |
 | 20260610130000 | task_subtasks | 2026-06-10 (via MCP) — `tasks.parent_task_id` self-FK + trigger `enforce_task_parent` |
+| 20260610140000 | task_areas_scope | 2026-06-10 (via MCP) — enum `task_area`, tabela `profile_areas`, função `can_see_area` |
+| 20260610140001 | tasks_area_operation | 2026-06-10 (via MCP) — `tasks.area`/`operation_id`, `frente_id` nullable, XOR, RLS por área, `can_see_task` |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações

@@ -892,6 +892,42 @@ export type Database = {
           },
         ]
       }
+      profile_areas: {
+        Row: {
+          area: Database["public"]["Enums"]["task_area"]
+          created_at: string
+          created_by: string | null
+          profile_id: string
+        }
+        Insert: {
+          area: Database["public"]["Enums"]["task_area"]
+          created_at?: string
+          created_by?: string | null
+          profile_id: string
+        }
+        Update: {
+          area?: Database["public"]["Enums"]["task_area"]
+          created_at?: string
+          created_by?: string | null
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_profile_areas_created_by"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_profile_areas_profile_id"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -1229,12 +1265,14 @@ export type Database = {
       }
       tasks: {
         Row: {
+          area: Database["public"]["Enums"]["task_area"] | null
           completed_at: string | null
           created_at: string
           description: string | null
           due_date: string | null
-          frente_id: string
+          frente_id: string | null
           id: string
+          operation_id: string
           parent_task_id: string | null
           quick_win_id: string | null
           sla_incident_id: string | null
@@ -1245,12 +1283,14 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          area?: Database["public"]["Enums"]["task_area"] | null
           completed_at?: string | null
           created_at?: string
           description?: string | null
           due_date?: string | null
-          frente_id: string
+          frente_id?: string | null
           id?: string
+          operation_id: string
           parent_task_id?: string | null
           quick_win_id?: string | null
           sla_incident_id?: string | null
@@ -1261,12 +1301,14 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          area?: Database["public"]["Enums"]["task_area"] | null
           completed_at?: string | null
           created_at?: string
           description?: string | null
           due_date?: string | null
-          frente_id?: string
+          frente_id?: string | null
           id?: string
+          operation_id?: string
           parent_task_id?: string | null
           quick_win_id?: string | null
           sla_incident_id?: string | null
@@ -1282,6 +1324,13 @@ export type Database = {
             columns: ["frente_id"]
             isOneToOne: false
             referencedRelation: "frentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_tasks_operation_id"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "operations"
             referencedColumns: ["id"]
           },
           {
@@ -1354,7 +1403,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_see_area: {
+        Args: { a: Database["public"]["Enums"]["task_area"] }
+        Returns: boolean
+      }
       can_see_operation: { Args: { op_id: string }; Returns: boolean }
+      can_see_task: { Args: { t_id: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
@@ -1377,6 +1431,7 @@ export type Database = {
       severity_level: "low" | "medium" | "high" | "critical"
       sla_incident_status: "open" | "responded" | "resolved" | "cancelled"
       sla_severity: "low" | "medium" | "high"
+      task_area: "cs" | "financeiro" | "juridico"
       task_status: "todo" | "doing" | "blocked" | "done"
       user_role: "admin" | "member"
     }
@@ -1526,6 +1581,7 @@ export const Constants = {
       severity_level: ["low", "medium", "high", "critical"],
       sla_incident_status: ["open", "responded", "resolved", "cancelled"],
       sla_severity: ["low", "medium", "high"],
+      task_area: ["cs", "financeiro", "juridico"],
       task_status: ["todo", "doing", "blocked", "done"],
       user_role: ["admin", "member"],
     },
