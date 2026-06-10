@@ -55,6 +55,7 @@ type OperationTabKey =
   | "custos"
   | "publico";
 
+// "interno" NÃO entra aqui — é condicional a ter acesso de área (showAreaTab).
 const PUBLIC_TABS: ReadonlyArray<OperationTabKey> = [
   "visao",
   "frentes",
@@ -62,17 +63,19 @@ const PUBLIC_TABS: ReadonlyArray<OperationTabKey> = [
   "eventos",
   "anexos",
   "sla",
-  "interno",
   "publico",
 ];
 
 function normalizeTab(
   raw: string | undefined,
   isAdmin: boolean,
+  showAreaTab: boolean,
 ): OperationTabKey {
-  const allowed: ReadonlyArray<OperationTabKey> = isAdmin
-    ? [...PUBLIC_TABS, "custos"]
-    : PUBLIC_TABS;
+  const allowed: ReadonlyArray<OperationTabKey> = [
+    ...PUBLIC_TABS,
+    ...(showAreaTab ? (["interno"] as const) : []),
+    ...(isAdmin ? (["custos"] as const) : []),
+  ];
   return allowed.includes(raw as OperationTabKey)
     ? (raw as OperationTabKey)
     : "visao";
@@ -135,8 +138,12 @@ export default async function Page({
   ]);
   if (!op) notFound();
 
+  // Aba "Área / Interno" só pra quem tem acesso de área: vê tarefa de área OU
+  // pode criar (admin / membro de área com concessão). Some pro resto.
+  const showAreaTab = areaTasks.length > 0 || canCreateAreaTask;
+
   const { tab: tabRaw } = await searchParams;
-  const tab = normalizeTab(tabRaw, isAdmin);
+  const tab = normalizeTab(tabRaw, isAdmin, showAreaTab);
 
   const margin: MarginResult | null = isAdmin
     ? computeMargin(op.monthlyRecurringRevenue, costsBreakdown.totalMonthly)
@@ -153,8 +160,14 @@ export default async function Page({
     },
     { key: "anexos", label: "Anexos", count: attachments.length },
     { key: "sla", label: "SLA", count: openIncidentsCount },
-    { key: "interno", label: "Área / Interno", count: areaTasks.length },
   ];
+  if (showAreaTab) {
+    baseTabs.push({
+      key: "interno",
+      label: "Área / Interno",
+      count: areaTasks.length,
+    });
+  }
   if (isAdmin) {
     baseTabs.push({
       key: "custos",
@@ -268,7 +281,7 @@ export default async function Page({
         />
       )}
 
-      {tab === "interno" && (
+      {tab === "interno" && showAreaTab && (
         <AreaTasksSection
           tasks={areaTasks}
           operationId={op.id}
