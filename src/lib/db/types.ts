@@ -1194,9 +1194,41 @@ export type Database = {
           },
         ]
       }
+      task_assignees: {
+        Row: {
+          created_at: string
+          person_id: string
+          task_id: string
+        }
+        Insert: {
+          created_at?: string
+          person_id: string
+          task_id: string
+        }
+        Update: {
+          created_at?: string
+          person_id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_task_assignees_person_id"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_task_assignees_task_id"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
-          assignee_person_id: string | null
           completed_at: string | null
           created_at: string
           description: string | null
@@ -1212,7 +1244,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          assignee_person_id?: string | null
           completed_at?: string | null
           created_at?: string
           description?: string | null
@@ -1228,7 +1259,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          assignee_person_id?: string | null
           completed_at?: string | null
           created_at?: string
           description?: string | null
@@ -1244,13 +1274,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "fk_tasks_assignee_person_id"
-            columns: ["assignee_person_id"]
-            isOneToOne: false
-            referencedRelation: "persons"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "fk_tasks_frente_id"
             columns: ["frente_id"]

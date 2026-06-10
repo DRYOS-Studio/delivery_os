@@ -18,6 +18,15 @@ const optionalDate = z.preprocess(
     .optional(),
 );
 
+const optionalUuidArray = z.preprocess(
+  (v) => {
+    if (v === undefined || v === null) return [];
+    const arr = Array.isArray(v) ? v : [v];
+    return arr.filter((x) => x !== "" && x !== null && x !== undefined);
+  },
+  z.array(z.string().uuid("UUID inválido.")).default([]),
+);
+
 const optionalTags = z.preprocess(
   (v) => (v === undefined || v === null ? undefined : v),
   z.array(z.string().trim().min(1).max(30, "Tag máx 30 caracteres.")).optional(),
@@ -36,7 +45,7 @@ export const taskSchema = z
       .max(200, "Máximo 200 caracteres."),
     description: optionalText,
     status: taskStatusEnum,
-    assignee_person_id: optionalUuid,
+    assignee_person_ids: optionalUuidArray,
     start_date: optionalDate,
     due_date: optionalDate,
     tags: optionalTags,

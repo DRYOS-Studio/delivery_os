@@ -67,16 +67,23 @@ export function TaskListItem({ task, operationId, isAdmin }: Props) {
       </div>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 md:contents">
         <div className="md:col-span-2 md:flex md:justify-center">
-          {task.assigneeName ? (
-            <div className="flex items-center gap-1.5">
-              <Avatar
-                size="sm"
-                initials={getInitials(task.assigneeName)}
-                color="oak"
-                className="cursor-default"
-              />
+          {task.assignees.length > 0 ? (
+            <div className="flex items-center gap-1.5 min-w-0">
+              <div className="flex -space-x-1.5 shrink-0">
+                {task.assignees.slice(0, 3).map((a) => (
+                  <Avatar
+                    key={a.id}
+                    size="sm"
+                    initials={getInitials(a.name)}
+                    color="oak"
+                    className="cursor-default ring-1 ring-card"
+                  />
+                ))}
+              </div>
               <span className="font-mono text-[10px] text-mute md:truncate">
-                {task.assigneeName}
+                {task.assignees.length === 1
+                  ? task.assignees[0]?.name
+                  : `${task.assignees.length} pessoas`}
               </span>
             </div>
           ) : (

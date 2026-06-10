@@ -35,7 +35,9 @@ export function MyTaskListItem({ task, showAssignee = false }: Props) {
   const titleStyle =
     task.status === "done" ? "line-through text-mute" : "text-ink";
   const assigneeLabel = showAssignee
-    ? (task.assigneeName ?? "Sem responsável")
+    ? task.assignees.length > 0
+      ? task.assignees.map((a) => a.name).join(", ")
+      : "Sem responsável"
     : null;
   const startLabel = task.startDate
     ? `início ${formatShortDate(task.startDate)}`

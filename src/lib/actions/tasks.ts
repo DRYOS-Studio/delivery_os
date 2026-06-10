@@ -23,7 +23,10 @@ function parseFormData(formData: FormData) {
     title: ((formData.get("title") as string | null) ?? "").trim(),
     description: ((formData.get("description") as string | null) ?? "").trim(),
     status: ((formData.get("status") as string | null) ?? "todo").trim(),
-    assignee_person_id: ((formData.get("assignee_person_id") as string | null) ?? "").trim(),
+    assignee_person_ids: formData
+      .getAll("assignee_person_ids")
+      .map((v) => String(v).trim())
+      .filter((v) => v.length > 0),
     start_date: ((formData.get("start_date") as string | null) ?? "").trim(),
     due_date: ((formData.get("due_date") as string | null) ?? "").trim(),
     tags: parseTags(formData.get("tags") as string | null),
@@ -41,6 +44,30 @@ function validate(formData: FormData) {
     return err(message, `validation_${field}`);
   }
   return ok(parsed.data);
+}
+
+/**
+ * Sincroniza os responsáveis (N:N) de uma task: apaga os atuais e insere os
+ * novos. Volume baixo, diff completo é suficiente. Dedup defensivo.
+ */
+async function syncAssignees(
+  supabase: Awaited<ReturnType<typeof createServer>>,
+  taskId: string,
+  personIds: string[],
+): Promise<{ message: string } | null> {
+  const { error: delError } = await supabase
+    .from("task_assignees")
+    .delete()
+    .eq("task_id", taskId);
+  if (delError) return delError;
+
+  const unique = Array.from(new Set(personIds));
+  if (unique.length === 0) return null;
+
+  const { error: insError } = await supabase
+    .from("task_assignees")
+    .insert(unique.map((person_id) => ({ task_id: taskId, person_id })));
+  return insError ?? null;
 }
 
 async function revalidateForFrente(frenteId: string) {
@@ -71,7 +98,6 @@ export async function createTaskAction(
       title: data.title,
       description: data.description ?? null,
       status: data.status,
-      assignee_person_id: data.assignee_person_id ?? null,
       start_date: data.start_date ?? null,
       due_date: data.due_date ?? null,
       tags: data.tags ?? null,
@@ -82,6 +108,13 @@ export async function createTaskAction(
     .single();
   if (error) return dbErr(error, "createTaskAction");
   if (!row) return err("Falha ao criar tarefa.", "no_data");
+
+  const syncError = await syncAssignees(
+    supabase,
+    row.id,
+    data.assignee_person_ids,
+  );
+  if (syncError) return dbErr(syncError, "createTaskAction.assignees");
 
   await revalidateForFrente(frenteId);
   return ok({ id: row.id, frenteId });
@@ -108,7 +141,6 @@ export async function updateTaskAction(
       title: data.title,
       description: data.description ?? null,
       status: data.status,
-      assignee_person_id: data.assignee_person_id ?? null,
       start_date: data.start_date ?? null,
       due_date: data.due_date ?? null,
       tags: data.tags ?? null,
@@ -117,6 +149,13 @@ export async function updateTaskAction(
     })
     .eq("id", taskId);
   if (error) return dbErr(error, "updateTaskAction");
+
+  const syncError = await syncAssignees(
+    supabase,
+    taskId,
+    data.assignee_person_ids,
+  );
+  if (syncError) return dbErr(syncError, "updateTaskAction.assignees");
 
   await revalidateForFrente(current.frenteId);
   return ok({ id: taskId, frenteId: current.frenteId });

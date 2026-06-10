@@ -27,7 +27,7 @@ type FormShape = {
   title: string;
   description: string;
   status: "todo" | "doing" | "blocked" | "done";
-  assignee_person_id: string;
+  assignee_person_ids: string[];
   start_date: string;
   due_date: string;
   tags_raw: string;
@@ -70,7 +70,7 @@ export function TaskQuickCreateForm({
       title: "",
       description: "",
       status: "todo",
-      assignee_person_id: "",
+      assignee_person_ids: [],
       start_date: "",
       due_date: "",
       tags_raw: "",
@@ -95,7 +95,9 @@ export function TaskQuickCreateForm({
     fd.set("title", values.title);
     fd.set("description", values.description);
     fd.set("status", values.status);
-    fd.set("assignee_person_id", values.assignee_person_id);
+    for (const id of values.assignee_person_ids) {
+      fd.append("assignee_person_ids", id);
+    }
     fd.set("start_date", values.start_date);
     fd.set("due_date", values.due_date);
     fd.set("tags", values.tags_raw);
@@ -219,23 +221,34 @@ export function TaskQuickCreateForm({
         </Field>
 
         <Field
-          label="Responsável"
-          htmlFor="assignee_person_id"
-          error={errors.assignee_person_id?.message}
+          label="Responsáveis"
+          htmlFor="assignee_person_ids"
+          error={errors.assignee_person_ids?.message}
+          hint="Marque uma ou mais pessoas."
         >
-          <select
-            id="assignee_person_id"
-            {...register("assignee_person_id")}
-            disabled={isSubmitting}
-            className={inputCn}
-          >
-            <option value="">— sem responsável</option>
-            {assignees.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
+          {assignees.length === 0 ? (
+            <p className="font-mono text-[10px] text-mute-soft py-2">
+              Nenhuma pessoa interna cadastrada.
+            </p>
+          ) : (
+            <div className="max-h-44 overflow-y-auto bg-card border border-line rounded divide-y divide-line">
+              {assignees.map((p) => (
+                <label
+                  key={p.id}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-ink-soft cursor-pointer hover:bg-surface"
+                >
+                  <input
+                    type="checkbox"
+                    value={p.id}
+                    {...register("assignee_person_ids")}
+                    disabled={isSubmitting}
+                    className="accent-oak"
+                  />
+                  {p.name}
+                </label>
+              ))}
+            </div>
+          )}
         </Field>
       </div>
 
