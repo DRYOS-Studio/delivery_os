@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { MultiSelect, type MultiSelectOption } from "@/components/ui/MultiSelect";
 import {
@@ -29,6 +30,7 @@ export function AreaGrantsManager({
   options,
   grantedIds,
 }: Props): React.JSX.Element {
+  const router = useRouter();
   const [ids, setIds] = useState<string[]>(grantedIds);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -52,6 +54,8 @@ export function AreaGrantsManager({
         if (!r.ok) {
           setIds(prev);
           setError(r.error);
+          // Reconcilia UI com o que de fato persistiu (falha parcial num batch).
+          router.refresh();
           return;
         }
       }
@@ -60,6 +64,8 @@ export function AreaGrantsManager({
         if (!r.ok) {
           setIds(prev);
           setError(r.error);
+          // Reconcilia UI com o que de fato persistiu (falha parcial num batch).
+          router.refresh();
           return;
         }
       }

@@ -40,18 +40,6 @@ export async function getArea(id: string): Promise<Area | null> {
   return data ? mapArea(data) : null;
 }
 
-/** Todas as áreas (inclui arquivadas) — pra gestão admin no catálogo. */
-export async function listAllAreas(): Promise<Area[]> {
-  const supabase = await createServer();
-  const { data, error } = await supabase
-    .from("areas")
-    .select("id, slug, name, archived_at")
-    .order("archived_at", { ascending: true, nullsFirst: true })
-    .order("name", { ascending: true });
-  if (error) throw new Error(`listAllAreas: ${error.message}`);
-  return (data ?? []).map(mapArea);
-}
-
 /** id+name das áreas ativas (pra selects/atribuição). */
 export async function listAreaOptions(): Promise<
   Array<{ id: string; name: string }>
