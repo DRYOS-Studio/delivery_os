@@ -137,6 +137,29 @@ export async function countSubtasks(parentId: string): Promise<number> {
   return count ?? 0;
 }
 
+/**
+ * Tarefas de ÁREA de uma Operação (area IS NOT NULL). RLS já esconde as áreas
+ * que o usuário não pode ver (can_see_area).
+ */
+export async function listAreaTasksByOperation(
+  operationId: string,
+): Promise<TaskRow[]> {
+  const supabase = await createServer();
+  const { data, error } = await supabase
+    .from("tasks")
+    .select(TASK_SELECT)
+    .eq("operation_id", operationId)
+    .not("area", "is", null)
+    .order("status", { ascending: true })
+    .order("due_date", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(`listAreaTasksByOperation: ${error.message}`);
+  if (!data) return [];
+  return (data as unknown as TaskJoinedRow[])
+    .map(mapRow)
+    .sort((a, b) => (a.status === "done" ? 1 : 0) - (b.status === "done" ? 1 : 0));
+}
+
 export async function getTask(id: string): Promise<TaskRow | null> {
   const supabase = await createServer();
   const { data, error } = await supabase

@@ -64,6 +64,7 @@ Regras duras que valem no schema, nas queries e nas Server Actions. Diferente do
 12. **RLS habilitado em TODA tabela.** Sem exceção. Nova tabela = `ENABLE ROW LEVEL SECURITY` + policies por papel na mesma migration. Razão: skill `dryos-conventions` + princípio do menor privilégio. Tabela sem RLS é vazamento esperando acontecer.
 13. **Toda Server Action retorna `ActionResult<T>` — nunca `throw`.** Padrão detalhado em `## Server Actions` abaixo. Razão: throws viram 500 sem mensagem útil; `ActionResult` deixa UI tratar com toast/dialog específico.
 14. **Toda Server Action que muta dado começa com guard de auth.** `supabase.auth.getUser()` → `err('Sessão expirada.')` se null. RLS é defense-in-depth, NÃO substituto: confiar só no RLS deixa actions retornarem dado vazio em vez de erro tipado. Guard de papel (Admin/Membro) entra quando a tabela `profiles` existir.
+15. **Tarefa é XOR: entrega OU área.** `tasks` tem `CHECK ((area IS NULL AND frente_id IS NOT NULL) OR (area IS NOT NULL AND frente_id IS NULL))`. Tarefa de entrega = `frente_id` obrigatório, visível à Operação (`can_see_operation`). Tarefa de área (`cs`/`financeiro`/`juridico`) = sem Frente, no nível da Operação, visível só a admin + quem é da área (`can_see_area`, escopo global via `profile_areas`). `operation_id` sempre presente. `area` é write-once (trigger). Razão: tarefas de back-office (CS/Fin/Jur) não são de conhecimento total da Operação. **Toda query do `/public` filtra `area IS NULL`** — tarefa de área é interna e nunca vaza pro cliente.
 
 ---
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { StatusCycleButton } from "@/components/domain/StatusCycleButton";
 import { Pill, type PillVariant } from "@/components/ui/Pill";
+import { AREA_LABELS } from "@/lib/db/queries/profile-areas";
 import type { CrossFrenteTaskRow } from "@/lib/db/queries/tasks";
 
 type Props = {
@@ -42,6 +43,13 @@ export function MyTaskListItem({ task, showAssignee = false }: Props) {
   const startLabel = task.startDate
     ? `início ${formatShortDate(task.startDate)}`
     : null;
+  // Tarefa de área não tem Frente → edita pela rota de área.
+  const editHref = task.area
+    ? `/operations/${task.operationId}/areas/${task.id}/edit`
+    : `/operations/${task.operationId}/frentes/${task.frenteId}/tasks/${task.id}/edit`;
+  const contextLabel = task.area
+    ? AREA_LABELS[task.area]
+    : (task.frenteName ?? "—");
 
   return (
     <li className="flex items-start gap-3 px-4 py-3 border-b border-line last:border-b-0">
@@ -49,14 +57,17 @@ export function MyTaskListItem({ task, showAssignee = false }: Props) {
         <StatusCycleButton taskId={task.id} currentStatus={task.status} />
       </div>
       <div className="flex-1 min-w-0">
-        <Link
-          href={`/operations/${task.operationId}/frentes/${task.frenteId}/tasks/${task.id}/edit`}
-          className={`font-medium ${titleStyle} hover:underline block truncate`}
-        >
-          {task.title}
-        </Link>
+        <div className="flex items-center gap-2 min-w-0">
+          {task.area && <Pill variant="oak">{AREA_LABELS[task.area]}</Pill>}
+          <Link
+            href={editHref}
+            className={`font-medium ${titleStyle} hover:underline truncate`}
+          >
+            {task.title}
+          </Link>
+        </div>
         <p className="font-mono text-[10px] text-mute-soft truncate mt-0.5">
-          {task.clientName} · {task.operationName} · {task.frenteName}
+          {task.clientName} · {task.operationName} · {contextLabel}
           {assigneeLabel ? ` · ${assigneeLabel}` : ""}
           {startLabel ? ` · ${startLabel}` : ""}
         </p>
