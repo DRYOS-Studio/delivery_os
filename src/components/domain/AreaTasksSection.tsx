@@ -12,6 +12,7 @@ type Props = {
   tasks: TaskRow[];
   operationId: string;
   isAdmin: boolean;
+  canCreate?: boolean;
 };
 
 function dueDatePill(
@@ -33,7 +34,12 @@ function dueDatePill(
   };
 }
 
-export function AreaTasksSection({ tasks, operationId, isAdmin }: Props) {
+export function AreaTasksSection({
+  tasks,
+  operationId,
+  isAdmin,
+  canCreate = false,
+}: Props) {
   return (
     <section className="mb-9">
       <div className="flex items-center gap-2 mb-2">
@@ -42,7 +48,7 @@ export function AreaTasksSection({ tasks, operationId, isAdmin }: Props) {
           Área / Interno
         </h2>
         <Pill variant="neutral">{tasks.length}</Pill>
-        {isAdmin && (
+        {canCreate && (
           <div className="ml-auto">
             <Link href={`/operations/${operationId}/areas/new`}>
               <Button variant="sage" size="sm">
