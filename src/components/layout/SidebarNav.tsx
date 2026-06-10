@@ -9,6 +9,7 @@ import {
   Home,
   LayoutDashboard,
   ListChecks,
+  Lock,
   Package,
   Settings,
   Skull,
@@ -116,6 +117,7 @@ export function SidebarNav({
           { href: "/catalog/quick-wins", label: "Quick Wins", icon: Trophy },
         ],
       },
+      { href: "/admin/areas", label: "Áreas", icon: Lock },
       { href: "/admin", label: "Admin", icon: Settings, exactMatch: true },
     ],
   };
