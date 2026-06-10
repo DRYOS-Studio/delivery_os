@@ -75,7 +75,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
       .from("tasks")
       .select("id", { count: "exact", head: true })
       // KPI de entrega: exclui tarefas de área (back-office transversal).
-      .is("area", null)
+      .is("area_id", null)
       .in("status", ["todo", "doing", "blocked"]),
   ]);
 

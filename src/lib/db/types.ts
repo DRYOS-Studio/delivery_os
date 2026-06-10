@@ -71,6 +71,127 @@ export type Database = {
           },
         ]
       }
+      area_clients: {
+        Row: {
+          area_id: string
+          client_id: string
+          created_at: string
+          created_by: string | null
+        }
+        Insert: {
+          area_id: string
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          area_id?: string
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_area_clients_area_id"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_area_clients_client_id"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_area_clients_created_by"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      area_operations: {
+        Row: {
+          area_id: string
+          created_at: string
+          created_by: string | null
+          operation_id: string
+        }
+        Insert: {
+          area_id: string
+          created_at?: string
+          created_by?: string | null
+          operation_id: string
+        }
+        Update: {
+          area_id?: string
+          created_at?: string
+          created_by?: string | null
+          operation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_area_operations_area_id"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_area_operations_created_by"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_area_operations_operation_id"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "operations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      areas: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          slug: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          slug: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_areas_created_by"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attachments: {
         Row: {
           created_at: string
@@ -894,24 +1015,31 @@ export type Database = {
       }
       profile_areas: {
         Row: {
-          area: Database["public"]["Enums"]["task_area"]
+          area_id: string
           created_at: string
           created_by: string | null
           profile_id: string
         }
         Insert: {
-          area: Database["public"]["Enums"]["task_area"]
+          area_id: string
           created_at?: string
           created_by?: string | null
           profile_id: string
         }
         Update: {
-          area?: Database["public"]["Enums"]["task_area"]
+          area_id?: string
           created_at?: string
           created_by?: string | null
           profile_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_profile_areas_area_id"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fk_profile_areas_created_by"
             columns: ["created_by"]
@@ -1265,7 +1393,7 @@ export type Database = {
       }
       tasks: {
         Row: {
-          area: Database["public"]["Enums"]["task_area"] | null
+          area_id: string | null
           completed_at: string | null
           created_at: string
           description: string | null
@@ -1283,7 +1411,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          area?: Database["public"]["Enums"]["task_area"] | null
+          area_id?: string | null
           completed_at?: string | null
           created_at?: string
           description?: string | null
@@ -1301,7 +1429,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          area?: Database["public"]["Enums"]["task_area"] | null
+          area_id?: string | null
           completed_at?: string | null
           created_at?: string
           description?: string | null
@@ -1319,6 +1447,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_tasks_area_id"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fk_tasks_frente_id"
             columns: ["frente_id"]
@@ -1403,14 +1538,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      can_read_operation: { Args: { op_id: string }; Returns: boolean }
-      can_see_area: {
-        Args: { a: Database["public"]["Enums"]["task_area"] }
+      area_can_reach_operation: {
+        Args: { p_area_id: string; p_op_id: string }
         Returns: boolean
       }
+      can_read_operation: { Args: { op_id: string }; Returns: boolean }
       can_see_operation: { Args: { op_id: string }; Returns: boolean }
       can_see_task: { Args: { t_id: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
+      is_area_granted: { Args: { p_op_id: string }; Returns: boolean }
+      user_in_area: { Args: { p_area_id: string }; Returns: boolean }
     }
     Enums: {
       allocation_role: "responsavel" | "executor" | "aprovador" | "plantao"
@@ -1432,7 +1569,6 @@ export type Database = {
       severity_level: "low" | "medium" | "high" | "critical"
       sla_incident_status: "open" | "responded" | "resolved" | "cancelled"
       sla_severity: "low" | "medium" | "high"
-      task_area: "cs" | "financeiro" | "juridico"
       task_status: "todo" | "doing" | "blocked" | "done"
       user_role: "admin" | "member"
     }
@@ -1582,7 +1718,6 @@ export const Constants = {
       severity_level: ["low", "medium", "high", "critical"],
       sla_incident_status: ["open", "responded", "resolved", "cancelled"],
       sla_severity: ["low", "medium", "high"],
-      task_area: ["cs", "financeiro", "juridico"],
       task_status: ["todo", "doing", "blocked", "done"],
       user_role: ["admin", "member"],
     },

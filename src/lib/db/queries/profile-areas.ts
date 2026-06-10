@@ -1,19 +1,15 @@
 import { createServer } from "@/lib/db/client";
-import { type TaskArea } from "@/lib/utils/areas";
-
-// Constantes/types puros vivem em @/lib/utils/areas (importável por client
-// components). Re-export aqui pra não quebrar importadores de servidor.
-export { ALL_AREAS, AREA_LABELS, type TaskArea } from "@/lib/utils/areas";
+import type { AreaOption } from "@/lib/utils/areas";
 
 export type ProfileWithAreas = {
   id: string;
   name: string | null;
-  areas: TaskArea[];
+  areas: AreaOption[];
 };
 
 /**
- * Profiles `member` e suas áreas. Admin vê todas as áreas implicitamente
- * (can_see_area curto-circuita is_admin), então não entra aqui.
+ * Profiles `member` e suas áreas (id+name). Admin enxerga todas as áreas
+ * implicitamente (user_in_area curto-circuita is_admin), então não entra aqui.
  */
 export async function listProfilesWithAreas(): Promise<ProfileWithAreas[]> {
   const supabase = await createServer();
@@ -22,16 +18,28 @@ export async function listProfilesWithAreas(): Promise<ProfileWithAreas[]> {
     .select(
       `
       id, name,
-      areas:profile_areas!fk_profile_areas_profile_id (area)
+      areas:profile_areas!fk_profile_areas_profile_id (
+        area:areas!fk_profile_areas_area_id ( id, name )
+      )
       `,
     )
     .eq("role", "member")
     .order("name", { ascending: true });
   if (error) throw new Error(`listProfilesWithAreas: ${error.message}`);
 
-  return (data ?? []).map((p) => ({
+  type Row = {
+    id: string;
+    name: string | null;
+    areas:
+      | Array<{ area: AreaOption | AreaOption[] | null }>
+      | null;
+  };
+
+  return ((data ?? []) as Row[]).map((p) => ({
     id: p.id,
     name: p.name,
-    areas: ((p.areas ?? []) as Array<{ area: TaskArea }>).map((a) => a.area),
+    areas: (p.areas ?? [])
+      .map((r) => (Array.isArray(r.area) ? (r.area[0] ?? null) : r.area))
+      .filter((a): a is AreaOption => a != null),
   }));
 }

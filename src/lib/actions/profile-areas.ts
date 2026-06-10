@@ -8,7 +8,7 @@ import { createServer } from "@/lib/db/client";
 
 const schema = z.object({
   profile_id: z.string().uuid("Perfil inválido."),
-  area: z.enum(["cs", "financeiro", "juridico"], { message: "Área inválida." }),
+  area_id: z.string().uuid("Área inválida."),
 });
 
 type Input = z.infer<typeof schema>;
@@ -30,7 +30,7 @@ export async function addProfileAreaAction(
   const supabase = await createServer();
   const { error } = await supabase.from("profile_areas").insert({
     profile_id: parsed.data.profile_id,
-    area: parsed.data.area,
+    area_id: parsed.data.area_id,
     created_by: adminCheck.data.user.id,
   });
   // 23505 = já tem a área; idempotente.
@@ -59,7 +59,7 @@ export async function removeProfileAreaAction(
     .from("profile_areas")
     .delete()
     .eq("profile_id", parsed.data.profile_id)
-    .eq("area", parsed.data.area);
+    .eq("area_id", parsed.data.area_id);
   if (error) return dbErr(error, "removeProfileArea");
 
   revalidatePath("/admin/areas");

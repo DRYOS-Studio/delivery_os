@@ -2,15 +2,17 @@ import { createServer } from "@/lib/db/client";
 import type { Database } from "@/lib/db/types";
 
 export type TaskStatus = Database["public"]["Enums"]["task_status"];
-export type TaskArea = Database["public"]["Enums"]["task_area"];
 
 export type TaskAssignee = { id: string; name: string };
+/** Área da tarefa (FK areas) embedada pra exibição. null = tarefa de entrega. */
+export type TaskAreaRef = { id: string; name: string };
 
 export type TaskRow = {
   id: string;
   frenteId: string | null;
   operationId: string;
-  area: TaskArea | null;
+  areaId: string | null;
+  area: TaskAreaRef | null;
   title: string;
   description: string | null;
   status: TaskStatus;
@@ -32,7 +34,8 @@ type TaskJoinedRow = {
   id: string;
   frente_id: string | null;
   operation_id: string;
-  area: TaskArea | null;
+  area_id: string | null;
+  area: TaskAreaRef | TaskAreaRef[] | null;
   title: string;
   description: string | null;
   status: TaskStatus;
@@ -60,7 +63,8 @@ function mapRow(row: TaskJoinedRow): TaskRow {
     id: row.id,
     frenteId: row.frente_id,
     operationId: row.operation_id,
-    area: row.area,
+    areaId: row.area_id,
+    area: pickOne(row.area),
     title: row.title,
     description: row.description,
     status: row.status,
@@ -78,10 +82,11 @@ function mapRow(row: TaskJoinedRow): TaskRow {
 }
 
 const TASK_SELECT = `
-  id, frente_id, operation_id, area, title, description, status, parent_task_id,
+  id, frente_id, operation_id, area_id, title, description, status, parent_task_id,
   start_date, due_date, tags,
   quick_win_id, sla_incident_id,
   created_at, updated_at, completed_at,
+  area:areas!fk_tasks_area_id ( id, name ),
   assignees:task_assignees ( person:persons!fk_task_assignees_person_id (id, name) )
 `;
 
@@ -149,7 +154,7 @@ export async function listAreaTasksByOperation(
     .from("tasks")
     .select(TASK_SELECT)
     .eq("operation_id", operationId)
-    .not("area", "is", null)
+    .not("area_id", "is", null)
     .order("status", { ascending: true })
     .order("due_date", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: false });
@@ -231,10 +236,11 @@ function pickOne<T>(v: ToOne<T>): T | null {
 function crossFrenteSelect(inner: boolean): string {
   const join = inner ? "task_assignees!inner" : "task_assignees";
   return `
-    id, frente_id, operation_id, area, title, description, status, parent_task_id,
+    id, frente_id, operation_id, area_id, title, description, status, parent_task_id,
     start_date, due_date, tags,
     quick_win_id, sla_incident_id,
     created_at, updated_at, completed_at,
+    area:areas!fk_tasks_area_id ( id, name ),
     assignees:${join} ( person:persons!fk_task_assignees_person_id (id, name) ),
     frente:frentes!fk_tasks_frente_id ( name ),
     operation:operations!fk_tasks_operation_id (
@@ -252,7 +258,8 @@ function mapCrossFrenteRow(row: CrossFrenteJoinedRow): CrossFrenteTaskRow {
     id: row.id,
     frenteId: row.frente_id,
     operationId: row.operation_id,
-    area: row.area,
+    areaId: row.area_id,
+    area: pickOne(row.area),
     title: row.title,
     description: row.description,
     status: row.status,

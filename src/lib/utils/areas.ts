@@ -1,15 +1,5 @@
-import type { Database } from "@/lib/db/types";
+// Tipo puro de área pra UI (client-safe, sem import de servidor).
+// As áreas agora são dinâmicas (tabela `areas`) — carregadas via
+// @/lib/db/queries/areas (listAreas). Não há mais enum/lista fixa.
 
-// Constantes puras de área (CS/Financeiro/Jurídico). Módulo SEM import de
-// servidor (next/headers) — pode ser importado por client components.
-// As queries de servidor ficam em @/lib/db/queries/profile-areas.
-
-export type TaskArea = Database["public"]["Enums"]["task_area"];
-
-export const ALL_AREAS: readonly TaskArea[] = ["cs", "financeiro", "juridico"];
-
-export const AREA_LABELS: Record<TaskArea, string> = {
-  cs: "CS",
-  financeiro: "Financeiro",
-  juridico: "Jurídico",
-};
+export type AreaOption = { id: string; name: string };
