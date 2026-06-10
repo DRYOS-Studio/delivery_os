@@ -41,6 +41,27 @@ type FormShape = {
 };
 
 export function AreaTaskForm(props: Props): React.JSX.Element {
+  // Estado alcançável (todas as áreas arquivadas): sem opção pra criar.
+  // Guard antes de qualquer hook (props estáveis → contagem de hooks consistente).
+  if (props.mode === "create" && props.areas.length === 0) {
+    return (
+      <div className="bg-card border border-line rounded p-7 text-center space-y-3 max-w-2xl">
+        <p className="font-body text-sm text-mute">
+          Nenhuma área cadastrada. Crie uma área em{" "}
+          <Link href="/admin/areas" className="text-oak underline">
+            Áreas
+          </Link>{" "}
+          antes de criar uma tarefa de área.
+        </p>
+        <Link href={`/operations/${props.operationId}`}>
+          <Button variant="ghost" type="button">
+            Voltar
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
   const router = useRouter();
   const isEdit = props.mode === "edit";
   const [generalError, setGeneralError] = useState<string | null>(null);
