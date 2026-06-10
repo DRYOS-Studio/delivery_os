@@ -33,6 +33,7 @@ import {
 import { canWriteOperation } from "@/lib/db/queries/operation-members";
 import { getOperation } from "@/lib/db/queries/operations";
 import { listPublicLinksByOperation } from "@/lib/db/queries/publicLinks";
+import { canCreateAreaTaskInOperation } from "@/lib/db/queries/areas";
 import { listActiveQuickWinCatalog } from "@/lib/db/queries/quick-win-catalog";
 import { listQuickWinsByOperation } from "@/lib/db/queries/quick-wins";
 import { listAreaTasksByOperation } from "@/lib/db/queries/tasks";
@@ -110,6 +111,7 @@ export default async function Page({
     quickWinCatalogItems,
     areaTasks,
     canWrite,
+    canCreateAreaTask,
   ] = await Promise.all([
     getOperation(id),
     getBriefingFreshness(id),
@@ -129,6 +131,7 @@ export default async function Page({
     listActiveQuickWinCatalog(),
     listAreaTasksByOperation(id),
     canWriteOperation(id),
+    canCreateAreaTaskInOperation(id),
   ]);
   if (!op) notFound();
 
@@ -270,6 +273,7 @@ export default async function Page({
           tasks={areaTasks}
           operationId={op.id}
           isAdmin={isAdmin}
+          canCreate={canCreateAreaTask}
         />
       )}
 
