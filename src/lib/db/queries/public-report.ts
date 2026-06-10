@@ -84,6 +84,8 @@ async function fetchUpcomingTasks(
       frente:frentes!fk_tasks_frente_id (operation_id, archived_at)
       `,
     )
+    // Tarefa de área é interna — NUNCA vaza em link público (invariante).
+    .is("area", null)
     .neq("status", "done")
     .gte("due_date", today)
     .order("due_date", { ascending: true })
