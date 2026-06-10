@@ -73,3 +73,17 @@ export async function countOperationMembers(
   if (error) throw error;
   return count ?? 0;
 }
+
+/**
+ * Pode ESCREVER nesta operação = admin OU operation_member (exatamente
+ * `can_see_operation`). NÃO inclui acesso de área (`can_read_operation`), que é
+ * read-only. Usado pra esconder controles de escrita de quem só lê via área.
+ */
+export async function canWriteOperation(operationId: string): Promise<boolean> {
+  const supabase = await createServer();
+  const { data, error } = await supabase.rpc("can_see_operation", {
+    op_id: operationId,
+  });
+  if (error) throw new Error(`canWriteOperation: ${error.message}`);
+  return data === true;
+}

@@ -35,23 +35,27 @@ function truncate(s: string, max: number): string {
 export function FrentesListSection({
   frentes,
   operationId,
+  canWrite = true,
 }: {
   frentes: FrenteListItem[];
   operationId: string;
+  canWrite?: boolean;
 }) {
   return (
     <section className="mb-9">
       <div className="flex items-center gap-2 mb-4">
         <h2 className="font-display text-lg text-ink font-semibold">Frentes</h2>
         <Pill variant="neutral">{frentes.length}</Pill>
-        <div className="ml-auto">
-          <Link href={`/operations/${operationId}/frentes/new`}>
-            <Button variant="sage" size="sm">
-              <Plus className="w-3.5 h-3.5" strokeWidth={1.75} />
-              Nova Frente
-            </Button>
-          </Link>
-        </div>
+        {canWrite && (
+          <div className="ml-auto">
+            <Link href={`/operations/${operationId}/frentes/new`}>
+              <Button variant="sage" size="sm">
+                <Plus className="w-3.5 h-3.5" strokeWidth={1.75} />
+                Nova Frente
+              </Button>
+            </Link>
+          </div>
+        )}
       </div>
 
       {frentes.length === 0 ? (
@@ -59,12 +63,14 @@ export function FrentesListSection({
           <p className="font-body text-sm text-mute mb-4">
             Nenhuma Frente nesta Operação.
           </p>
-          <Link href={`/operations/${operationId}/frentes/new`}>
-            <Button variant="sage" size="sm">
-              <Plus className="w-3.5 h-3.5" strokeWidth={1.75} />
-              Criar primeira Frente
-            </Button>
-          </Link>
+          {canWrite && (
+            <Link href={`/operations/${operationId}/frentes/new`}>
+              <Button variant="sage" size="sm">
+                <Plus className="w-3.5 h-3.5" strokeWidth={1.75} />
+                Criar primeira Frente
+              </Button>
+            </Link>
+          )}
         </div>
       ) : (
         <div className="bg-card border border-line rounded shadow-sm overflow-hidden">

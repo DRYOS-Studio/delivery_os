@@ -30,6 +30,7 @@ import {
   listAvailableVillains,
   listVillainsByOperation,
 } from "@/lib/db/queries/operation-villains";
+import { canWriteOperation } from "@/lib/db/queries/operation-members";
 import { getOperation } from "@/lib/db/queries/operations";
 import { listPublicLinksByOperation } from "@/lib/db/queries/publicLinks";
 import { listActiveQuickWinCatalog } from "@/lib/db/queries/quick-win-catalog";
@@ -108,6 +109,7 @@ export default async function Page({
     villainNarratives,
     quickWinCatalogItems,
     areaTasks,
+    canWrite,
   ] = await Promise.all([
     getOperation(id),
     getBriefingFreshness(id),
@@ -126,6 +128,7 @@ export default async function Page({
     listVillainNarratives(id, currentPeriod.yyyymm),
     listActiveQuickWinCatalog(),
     listAreaTasksByOperation(id),
+    canWriteOperation(id),
   ]);
   if (!op) notFound();
 
@@ -201,7 +204,11 @@ export default async function Page({
       )}
 
       {tab === "frentes" && (
-        <FrentesListSection frentes={op.frentes} operationId={op.id} />
+        <FrentesListSection
+          frentes={op.frentes}
+          operationId={op.id}
+          canWrite={canWrite}
+        />
       )}
 
       {tab === "briefing" && (
@@ -233,6 +240,7 @@ export default async function Page({
           decisions={decisions}
           operationId={op.id}
           meetingAttachmentCounts={meetingAttachmentCounts}
+          canWrite={canWrite}
         />
       )}
 
@@ -253,6 +261,7 @@ export default async function Page({
             resolution_hours: op.resolutionHours,
           }}
           operationId={op.id}
+          canWrite={canWrite}
         />
       )}
 
