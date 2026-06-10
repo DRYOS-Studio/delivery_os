@@ -1,6 +1,6 @@
 ---
 name: dryos-design-system
-description: Design system v2 do DRYOS Delivery — tokens de cor, tipografia, componentes (Pill, Card, Avatar, Icon, KpiCard, OperationCard, VillainCard, Hero), padrões de layout e modo escuro. Carregar SEMPRE antes de criar componentes UI, telas novas, gráficos, ou qualquer coisa visual. Define o que é canônico e o que está proibido visualmente.
+description: Design system v2 do DRYOS Delivery — tokens de cor, tipografia, componentes (Pill, Card, Avatar, Icon, KpiCard, OperationCard, VillainCard, MultiSelect, Hero), padrões de layout e modo escuro. Carregar SEMPRE antes de criar componentes UI, telas novas, gráficos, ou qualquer coisa visual. Define o que é canônico e o que está proibido visualmente.
 ---
 
 # DRYOS Design System v2
@@ -446,6 +446,50 @@ const view = normalizeCatalogView(viewRaw);
 **Quando aplicar:** páginas de catálogo administrativo (lista pode crescer >15 entradas). Listagens curtas de domínio (Frentes da Op, Quick Wins recentes) não precisam — usam só Card ou Row dedicado por contexto.
 
 **Convenção dos Rows companheiros:** cada Card de catálogo tem um sibling `*Row` (ex: `VillainCard` / `VillainRow`, `ProductCard` / `ProductRow`, `QuickWinCatalogCard` / `QuickWinCatalogRow`). O Row usa grid `[2rem_1fr_auto]`: ícone 32px à esquerda, nome + metadados (pills/mono) wrap no meio, ações admin à direita. Wrapper externo `divide-y divide-line` sobre `Card` faz as bordas entre rows. Admin actions usam o mesmo `Archive*Button` do Card pra manter UX consistente.
+
+---
+
+### MultiSelect
+
+Seletor múltiplo canônico (client component). Campo fechado mostrando os escolhidos como **chips removíveis**; ao abrir, um dropdown com **campo de busca** no topo + lista de **checkboxes**. Fecha em click-outside e ESC; ao abrir, foca a busca. Tailwind puro, sem libs externas (alinhado ao "Proibido" — sem Radix/headless, sem state global).
+
+```typescript
+// src/components/ui/MultiSelect.tsx
+export type MultiSelectOption = { id: string; name: string };
+
+type MultiSelectProps = {
+  options: MultiSelectOption[];
+  value: string[];
+  onChange: (ids: string[]) => void;
+  placeholder?: string;   // texto quando vazio (ex: '— sem responsável')
+  disabled?: boolean;
+  id?: string;            // liga ao <label htmlFor>
+  emptyText?: string;     // quando options.length === 0
+};
+```
+
+Estrutura visual: campo é um `<button>` (`bg-card border border-line rounded`, `min-h-[38px]`, `aria-haspopup="listbox"` + `aria-expanded`) com chips `bg-surface text-ink-soft rounded-pill` (cada um com `×` em `role="button"` que faz `stopPropagation`) e `ChevronDown` que rotaciona 180° no aberto. Dropdown: `absolute z-20 mt-1 w-full bg-card border border-line rounded shadow-md`; busca com ícone `Search` 14px; lista `max-h-52 overflow-y-auto` com `role="listbox" aria-multiselectable`. Check marcado = quadrado `bg-oak border-oak text-white` com ícone `Check`; desmarcado = `border-line`.
+
+Padrão de uso (com react-hook-form `Controller`):
+
+```tsx
+<Controller
+  control={control}
+  name="assignee_person_ids"
+  render={({ field }) => (
+    <MultiSelect
+      id="assignee_person_ids"
+      options={assignees}
+      value={field.value}
+      onChange={field.onChange}
+      disabled={isSubmitting}
+      placeholder="— sem responsável"
+    />
+  )}
+/>
+```
+
+**Quando aplicar:** qualquer campo de seleção N:N num form (responsáveis de Task, participantes, tags com catálogo). Substitui a anti-pill de checkboxes empilhados, que estourava o layout. Para seleção **única**, continuar com `<select>` nativo (ex: status, frente, tarefa-pai) — MultiSelect é só pra múltiplos.
 
 ---
 
