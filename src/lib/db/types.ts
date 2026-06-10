@@ -1403,6 +1403,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_read_operation: { Args: { op_id: string }; Returns: boolean }
       can_see_area: {
         Args: { a: Database["public"]["Enums"]["task_area"] }
         Returns: boolean

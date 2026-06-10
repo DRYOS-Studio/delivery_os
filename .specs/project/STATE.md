@@ -9,6 +9,12 @@ Anteriormente: `operation-members` — COMPLETE (issue #80, PRs #81 + #82 + #83)
 
 ## Recent Decisions (Last 60 days)
 
+### AD-013: Tarefas de área (CS/Financeiro/Jurídico) — escopo global + opção B read-only (2026-06-10)
+
+**Decision:** Tarefas transversais por área, no nível da Operação. `tasks` vira XOR — entrega (`area NULL` + Frente, visível à Operação) OU área (`area` setada + `frente_id NULL`, visível a admin + `profile_areas` da área, **escopo global**). Após red-team (`the-fool`) no PR #110: (opção **B**, read-only) a área passa a **ler** Operação/Cliente/Pessoa das suas tarefas via `can_read_operation` aplicado só nos SELECT de `operations`/`clients`/`persons` — escrita continua só `can_see_operation`. `area` imutável após criação (trigger); responsável só pessoa interna (RLS); `/public` filtra `area IS NULL`; KPI de entrega do dashboard exclui área.
+**Reason:** Usuário precisa de tarefas que não sejam "de conhecimento total da Operação". Global porque CS/Fin/Jur são back-office da carteira inteira. Read-only na opção B pra não dar à área poder de escrita em operação que não é dela (furo que o the-fool pegou).
+**Trade-off:** Membro de área lê o contexto (op/cliente/responsável) das suas tarefas mas NÃO o resto da operação (frentes/decisões) — se quiserem "leitor pleno da operação", estender `can_read_operation` às demais tabelas. Ex-membro de área cujo row em `profile_areas` não foi removido mantém acesso global (furo #4 → fechar com remove + audit no PR2). Migrations `20260610140000/140001/140002`. PR #110 = backend; PR2 = admin de áreas; PR3 = UI.
+
 ### AD-012: Subtarefa é hierarquia de 1 nível, CASCADE, sem rollup de status (2026-06-10)
 
 **Decision:** Relação entre tarefas = subtarefas (pai→filho), NÃO dependências. `tasks.parent_task_id` self-FK `ON DELETE CASCADE`. Trigger `enforce_task_parent` trava em 1 nível (sem subtarefa-de-subtarefa) e exige mesma Frente. Pai e filhas têm status independentes — sem rollup; UI mostra só "m/n subtarefas".

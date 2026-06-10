@@ -74,6 +74,8 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     supabase
       .from("tasks")
       .select("id", { count: "exact", head: true })
+      // KPI de entrega: exclui tarefas de área (back-office transversal).
+      .is("area", null)
       .in("status", ["todo", "doing", "blocked"]),
   ]);
 
