@@ -6,12 +6,8 @@ import {
   addProfileAreaAction,
   removeProfileAreaAction,
 } from "@/lib/actions/profile-areas";
-import {
-  ALL_AREAS,
-  AREA_LABELS,
-  type ProfileWithAreas,
-  type TaskArea,
-} from "@/lib/db/queries/profile-areas";
+import { type ProfileWithAreas } from "@/lib/db/queries/profile-areas";
+import { ALL_AREAS, AREA_LABELS, type TaskArea } from "@/lib/utils/areas";
 import { cn } from "@/lib/utils/cn";
 
 type Props = { profiles: ProfileWithAreas[] };

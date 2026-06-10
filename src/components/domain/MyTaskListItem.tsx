@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { StatusCycleButton } from "@/components/domain/StatusCycleButton";
 import { Pill, type PillVariant } from "@/components/ui/Pill";
-import { AREA_LABELS } from "@/lib/db/queries/profile-areas";
+import { AREA_LABELS } from "@/lib/utils/areas";
 import type { CrossFrenteTaskRow } from "@/lib/db/queries/tasks";
 
 type Props = {
