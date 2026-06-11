@@ -387,7 +387,7 @@ Múltiplos links por Operação, revogáveis individualmente. Sem auth: quem tem
 
 Trigger `set_public_links_updated_at` + index `idx_public_links_operation_created`.
 
-Rota pública: `/public/[token]` (fora do `(app)`, sem auth). Download de anexo público: `/public/[token]/attachments/[aid]/download` com tripla validação (token válido + attachment pertence à op + meeting visibility=cliente se aplicável).
+Rota pública: `/public/[token]` (fora do `(app)`, sem auth). O resolver do token (`getPublicLinkByToken`) é o ponto único de validade: null pra revogado, expirado (`expires_at`, `<` estrito) ou operação arquivada. Download de anexo público: `/public/[token]/attachments/[aid]/download` com validação quádrupla (token válido + attachment pertence à op + attachment visibility=cliente + meeting visibility=cliente se aplicável), 404 uniforme.
 
 ---
 

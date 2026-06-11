@@ -42,7 +42,6 @@ export function PublicHero({
         <Pill variant={STATUS_VARIANT[op.status]}>
           {STATUS_LABEL[op.status]}
         </Pill>
-        {op.archivedAt && <Pill variant="neutral">Arquivada</Pill>}
         {(op.responseHours !== null || op.resolutionHours !== null) && (
           <Pill variant="oak">
             SLA: resp {formatHours(op.responseHours)} · res{" "}

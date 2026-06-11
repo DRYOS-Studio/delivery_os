@@ -18,15 +18,26 @@ export function AttachmentVisibilityToggle({
   const isInternal = visibility === "interno";
 
   async function handleToggle() {
-    setBusy(true);
     const next = isInternal ? "cliente" : "interno";
+    // Tornar visível ao cliente é ato de exposição no link público — confirma.
+    if (
+      next === "cliente" &&
+      !window.confirm(
+        "Tornar este anexo visível ao cliente no link público?",
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
     const result = await setAttachmentVisibilityAction(attachmentId, next);
     if (result.ok) {
       router.refresh();
     } else {
       window.alert(`Erro: ${result.error}`);
-      setBusy(false);
     }
+    // Reset sempre: diferente do delete, a row persiste após o refresh —
+    // busy preso deixaria o botão morto até reload.
+    setBusy(false);
   }
 
   return (

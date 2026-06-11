@@ -40,9 +40,12 @@ export async function uploadAttachmentAction(
     mime_type: file.type || "application/octet-stream",
     description: ((formData.get("description") as string | null) ?? "").trim(),
     meeting_id: ((formData.get("meeting_id") as string | null) ?? "").trim(),
-    visibility:
-      ((formData.get("visibility") as string | null) ?? "").trim() ||
-      "cliente",
+    // typeof guard: FormDataEntryValue pode ser File — cast cego + .trim() viraria
+    // throw (Inv. 13). Garbage string o Zod rejeita.
+    visibility: (() => {
+      const raw = formData.get("visibility");
+      return (typeof raw === "string" ? raw.trim() : "") || "cliente";
+    })(),
   });
   if (!parsed.success) {
     const first = parsed.error.issues[0];

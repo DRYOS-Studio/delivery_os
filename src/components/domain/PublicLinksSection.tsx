@@ -3,7 +3,10 @@ import { RevokePublicLinkButton } from "@/components/domain/RevokePublicLinkButt
 import { Card } from "@/components/ui/Card";
 import { CopyButton } from "@/components/ui/CopyButton";
 import { Pill } from "@/components/ui/Pill";
-import type { PublicLinkListItem } from "@/lib/db/queries/publicLinks";
+import {
+  isLinkExpired,
+  type PublicLinkListItem,
+} from "@/lib/db/queries/publicLinks";
 import { formatDateBR, relativeFromNow } from "@/lib/utils/date";
 
 export function PublicLinksSection({
@@ -17,7 +20,9 @@ export function PublicLinksSection({
   baseUrl: string;
   isAdmin?: boolean;
 }): React.JSX.Element {
-  const activeCount = links.filter((l) => l.revokedAt === null).length;
+  const activeCount = links.filter(
+    (l) => l.revokedAt === null && !isLinkExpired(l.expiresAt),
+  ).length;
   return (
     <section className="mb-9">
       <div className="flex items-center gap-2 mb-4">
@@ -66,10 +71,7 @@ function PublicLinkRow({
   isAdmin?: boolean;
 }) {
   const isRevoked = link.revokedAt !== null;
-  // Expirado só quando JÁ passou; ambos os lados em epoch (ISO não ordena como string).
-  const isExpired =
-    link.expiresAt !== null &&
-    new Date(link.expiresAt).getTime() < Date.now();
+  const isExpired = isLinkExpired(link.expiresAt);
   // Precedência: Revogado > Expirado > Ativo — nunca duas pills de estado.
   const isInactive = isRevoked || isExpired;
   let statusPill = <Pill variant="sage">Ativo</Pill>;

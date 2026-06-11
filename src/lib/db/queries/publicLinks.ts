@@ -55,6 +55,13 @@ export async function touchPublicLinkAccess(linkId: string): Promise<void> {
   }
 }
 
+// Expirado só quando JÁ passou (igualdade exata = válido); ambos os lados em epoch —
+// ISO com offset não ordena como string. Único ponto com essa semântica: usado pelo
+// resolver (enforcement) e pela UI de admin (display) pra nunca divergirem.
+export function isLinkExpired(expiresAt: string | null): boolean {
+  return expiresAt !== null && new Date(expiresAt).getTime() < Date.now();
+}
+
 // Server-only. Usa createAdmin pra bypassar RLS — chamado pela rota pública sem auth.
 // Ponto único de validade do link: retorna null se revogado, expirado ou com a
 // operação arquivada — página e rota de download checam só `!link`.
@@ -72,13 +79,7 @@ export async function getPublicLinkByToken(
   if (error) throw new Error(`getPublicLinkByToken: ${error.message}`);
   if (!data) return null;
   if (data.revoked_at !== null) return null;
-  // Expirado só quando JÁ passou (igualdade exata = válido); ambos os lados em epoch.
-  if (
-    data.expires_at !== null &&
-    new Date(data.expires_at).getTime() < Date.now()
-  ) {
-    return null;
-  }
+  if (isLinkExpired(data.expires_at)) return null;
   const operation = Array.isArray(data.operation)
     ? (data.operation[0] ?? null)
     : data.operation;

@@ -4,6 +4,10 @@ import { AttachmentVisibilityToggle } from "@/components/domain/AttachmentVisibi
 import { DeleteAttachmentButton } from "@/components/domain/DeleteAttachmentButton";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
+import {
+  VISIBILITY_LABEL,
+  VISIBILITY_VARIANT,
+} from "@/lib/constants/visibility";
 import type { AttachmentListItem } from "@/lib/db/queries/attachments";
 import { relativeFromNow } from "@/lib/utils/date";
 import { formatBytes, mimeCategory } from "@/lib/utils/file";
@@ -91,7 +95,9 @@ function AttachmentRow({
           </a>
           <Pill variant="neutral">{cat.label}</Pill>
           {attachment.visibility === "interno" && (
-            <Pill variant="neutral">Interno</Pill>
+            <Pill variant={VISIBILITY_VARIANT.interno}>
+              {VISIBILITY_LABEL.interno}
+            </Pill>
           )}
         </div>
         {attachment.description && (

@@ -10,7 +10,6 @@ export type PublicOperationView = {
   clientName: string;
   productLine: Database["public"]["Enums"]["product_line"];
   status: Database["public"]["Enums"]["operation_status"];
-  archivedAt: string | null;
   responseHours: number | null;
   resolutionHours: number | null;
   frentes: Array<{
@@ -32,7 +31,7 @@ export async function getOperationPublicView(
     .from("operations")
     .select(
       `
-      id, name, product_line, status, archived_at,
+      id, name, product_line, status,
       response_hours, resolution_hours,
       client:clients!fk_operations_client_id (name),
       frentes!fk_frentes_operation_id (
@@ -63,7 +62,8 @@ export async function getOperationPublicView(
     clientName: data.client?.name ?? "—",
     productLine: data.product_line,
     status: data.status,
-    archivedAt: data.archived_at,
+    // archived_at deliberadamente FORA do view: operação arquivada nunca chega
+    // aqui — o resolver do token já retornou null (não reintroduzir o vazamento).
     responseHours: data.response_hours,
     resolutionHours: data.resolution_hours,
     frentes,
