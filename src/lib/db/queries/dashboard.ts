@@ -1,5 +1,5 @@
 import { createServer } from "@/lib/db/client";
-import { getOperationMonthlyCosts } from "@/lib/db/queries/operation-costs";
+import { getActiveOperationsMonthlyCostsTotal } from "@/lib/db/queries/operation-costs";
 import { STALENESS_THRESHOLDS } from "@/lib/utils/staleness";
 
 export type DashboardSummary = {
@@ -45,6 +45,9 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     externalCountRes,
     openAllocsRes,
     openTasksRes,
+    // 3 queries fixas independente de K operações (audit #9) — antes era
+    // 3 queries seriais × K, com scan org-wide de allocations por chamada.
+    monthlyCostsTotal,
   ] = await Promise.all([
     supabase
       .from("operations")
@@ -77,6 +80,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
       // KPI de entrega: exclui tarefas de área (back-office transversal).
       .is("area_id", null)
       .in("status", ["todo", "doing", "blocked"]),
+    getActiveOperationsMonthlyCostsTotal(),
   ]);
 
   if (opsRes.error)
@@ -124,14 +128,6 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
   ).length;
   const frentesStale = frentes.length - frentesHealthy;
 
-  const activeOpIds = active.map((o) => o.id).filter((x): x is string => !!x);
-  const monthlyCosts = await Promise.all(
-    activeOpIds.map((opId) => getOperationMonthlyCosts(opId)),
-  );
-  const monthlyCostsTotal = monthlyCosts.reduce(
-    (sum, b) => sum + b.totalMonthly,
-    0,
-  );
   const monthlyMarginTotal = mrrTotal - monthlyCostsTotal;
 
   return {

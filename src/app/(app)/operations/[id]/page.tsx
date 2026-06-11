@@ -17,15 +17,22 @@ import { getOperationMonthlyCosts } from "@/lib/db/queries/operation-costs";
 import { computeMargin, type MarginResult } from "@/lib/utils/margin";
 import {
   countAttachmentsByMeeting,
+  countOperationAttachments,
   listAttachmentsByOperation,
 } from "@/lib/db/queries/attachments";
 import { getBriefingFreshness } from "@/lib/db/queries/briefings";
-import { listDecisionsByOperation } from "@/lib/db/queries/decisions";
+import {
+  countDecisionsByOperation,
+  listDecisionsByOperation,
+} from "@/lib/db/queries/decisions";
 import {
   countOpenIncidents,
   listIncidentsByOperation,
 } from "@/lib/db/queries/incidents";
-import { listMeetingsByOperation } from "@/lib/db/queries/meetings";
+import {
+  countMeetingsByOperation,
+  listMeetingsByOperation,
+} from "@/lib/db/queries/meetings";
 import {
   listAvailableVillains,
   listVillainsByOperation,
@@ -36,7 +43,10 @@ import { listPublicLinksByOperation } from "@/lib/db/queries/publicLinks";
 import { canCreateAreaTaskInOperation } from "@/lib/db/queries/areas";
 import { listActiveQuickWinCatalog } from "@/lib/db/queries/quick-win-catalog";
 import { listQuickWinsByOperation } from "@/lib/db/queries/quick-wins";
-import { listAreaTasksByOperation } from "@/lib/db/queries/tasks";
+import {
+  countAreaTasksByOperation,
+  listAreaTasksByOperation,
+} from "@/lib/db/queries/tasks";
 import { listVillainNarratives } from "@/lib/db/queries/villain-narratives";
 import { relativeFromNow } from "@/lib/utils/date";
 import { getCurrentPeriod } from "@/lib/utils/period";
@@ -81,6 +91,114 @@ function normalizeTab(
     : "visao";
 }
 
+// Conteúdo pesado por tab — só a tab ativa busca (audit #14). Badges NUNCA
+// derivam destas listas (vêm dos counts head:true do shell — listas de
+// meetings/decisions têm limit 20 e fariam o badge flip-flopar entre tabs).
+type TabContent = {
+  meetings: Awaited<ReturnType<typeof listMeetingsByOperation>>;
+  decisions: Awaited<ReturnType<typeof listDecisionsByOperation>>;
+  meetingAttachmentCounts: Awaited<ReturnType<typeof countAttachmentsByMeeting>>;
+  attachments: Awaited<ReturnType<typeof listAttachmentsByOperation>>;
+  incidents: Awaited<ReturnType<typeof listIncidentsByOperation>>;
+  operationVillains: Awaited<ReturnType<typeof listVillainsByOperation>>;
+  availableVillains: Awaited<ReturnType<typeof listAvailableVillains>>;
+  quickWins: Awaited<ReturnType<typeof listQuickWinsByOperation>>;
+  villainNarratives: Awaited<ReturnType<typeof listVillainNarratives>>;
+  quickWinCatalogItems: Awaited<ReturnType<typeof listActiveQuickWinCatalog>>;
+  areaTasks: Awaited<ReturnType<typeof listAreaTasksByOperation>>;
+  publicLinks: Awaited<ReturnType<typeof listPublicLinksByOperation>>;
+  baseUrl: string;
+};
+
+function emptyTabContent(): TabContent {
+  return {
+    meetings: [],
+    decisions: [],
+    meetingAttachmentCounts: new Map(),
+    attachments: [],
+    incidents: [],
+    operationVillains: [],
+    availableVillains: [],
+    quickWins: [],
+    villainNarratives: {},
+    quickWinCatalogItems: [],
+    areaTasks: [],
+    publicLinks: [],
+    baseUrl: "",
+  };
+}
+
+async function loadTabContent(
+  tab: OperationTabKey,
+  id: string,
+  yyyymm: string,
+): Promise<TabContent> {
+  const base = emptyTabContent();
+  switch (tab) {
+    case "visao": {
+      const [
+        operationVillains,
+        availableVillains,
+        quickWins,
+        villainNarratives,
+        quickWinCatalogItems,
+      ] = await Promise.all([
+        listVillainsByOperation(id),
+        listAvailableVillains(id),
+        listQuickWinsByOperation(id),
+        listVillainNarratives(id, yyyymm),
+        listActiveQuickWinCatalog(),
+      ]);
+      return {
+        ...base,
+        operationVillains,
+        availableVillains,
+        quickWins,
+        villainNarratives,
+        quickWinCatalogItems,
+      };
+    }
+    case "eventos": {
+      const [meetings, decisions, meetingAttachmentCounts] = await Promise.all([
+        listMeetingsByOperation(id),
+        listDecisionsByOperation(id),
+        countAttachmentsByMeeting(id),
+      ]);
+      return { ...base, meetings, decisions, meetingAttachmentCounts };
+    }
+    case "anexos": {
+      const attachments = await listAttachmentsByOperation(id, "none");
+      return { ...base, attachments };
+    }
+    case "sla": {
+      const incidents = await listIncidentsByOperation(id);
+      return { ...base, incidents };
+    }
+    case "interno": {
+      const areaTasks = await listAreaTasksByOperation(id);
+      return { ...base, areaTasks };
+    }
+    case "publico": {
+      const [publicLinks, baseUrl] = await Promise.all([
+        listPublicLinksByOperation(id),
+        getBaseUrl(),
+      ]);
+      return { ...base, publicLinks, baseUrl };
+    }
+    // Tabs sem query própria: frentes (op.frentes), briefing e custos (shell).
+    case "frentes":
+    case "briefing":
+    case "custos":
+      return base;
+    default: {
+      // Exhaustiveness: tab nova no union sem case aqui = erro de compile —
+      // sem isso ela renderizaria vazia em silêncio (defaults do base).
+      const _exhaustive: never = tab;
+      return _exhaustive;
+    }
+  }
+}
+
 export default async function Page({
   params,
   searchParams,
@@ -91,63 +209,74 @@ export default async function Page({
   const { id } = await params;
   if (!UUID_RE.test(id)) notFound();
 
-  const profile = await getProfile();
-  const isAdmin = profile?.role === "admin";
-
   const currentPeriod = getCurrentPeriod();
+
+  // Onda 1 — gates (isAdmin, showAreaTab, notFound cedo) + TUDO que depende só
+  // de `id` (counts de badge, gates de escrita): não há razão pra serializar
+  // atrás do profile. getProfile já era uma onda serial antes (audit #14).
   const [
+    profile,
     op,
-    briefingFreshness,
-    meetings,
-    decisions,
-    attachments,
-    meetingAttachmentCounts,
-    publicLinks,
-    baseUrl,
-    incidents,
-    openIncidentsCount,
-    operationVillains,
-    availableVillains,
-    quickWins,
-    costsBreakdown,
-    villainNarratives,
-    quickWinCatalogItems,
-    areaTasks,
-    canWrite,
     canCreateAreaTask,
+    areaTasksCount,
+    briefingFreshness,
+    canWrite,
+    meetingsCount,
+    decisionsCount,
+    attachmentsCount,
+    openIncidentsCount,
+    { tab: tabRaw },
   ] = await Promise.all([
+    getProfile(),
     getOperation(id),
-    getBriefingFreshness(id),
-    listMeetingsByOperation(id),
-    listDecisionsByOperation(id),
-    listAttachmentsByOperation(id, "none"),
-    countAttachmentsByMeeting(id),
-    listPublicLinksByOperation(id),
-    getBaseUrl(),
-    listIncidentsByOperation(id),
-    countOpenIncidents(id),
-    listVillainsByOperation(id),
-    listAvailableVillains(id),
-    listQuickWinsByOperation(id),
-    getOperationMonthlyCosts(id),
-    listVillainNarratives(id, currentPeriod.yyyymm),
-    listActiveQuickWinCatalog(),
-    listAreaTasksByOperation(id),
-    canWriteOperation(id),
     canCreateAreaTaskInOperation(id),
+    countAreaTasksByOperation(id),
+    getBriefingFreshness(id),
+    canWriteOperation(id),
+    countMeetingsByOperation(id),
+    countDecisionsByOperation(id),
+    countOperationAttachments(id),
+    countOpenIncidents(id),
+    searchParams,
   ]);
   if (!op) notFound();
 
+  const isAdmin = profile?.role === "admin";
   // Aba "Área / Interno" só pra quem tem acesso de área: vê tarefa de área OU
   // pode criar (admin / membro de área com concessão). Some pro resto.
-  const showAreaTab = areaTasks.length > 0 || canCreateAreaTask;
+  const showAreaTab = areaTasksCount > 0 || canCreateAreaTask;
 
-  const { tab: tabRaw } = await searchParams;
   const tab = normalizeTab(tabRaw, isAdmin, showAreaTab);
 
-  const margin: MarginResult | null = isAdmin
-    ? computeMargin(op.monthlyRecurringRevenue, costsBreakdown.totalMonthly)
-    : null;
+  // Onda 2 — só o que depende dos gates: custos (precisa de isAdmin; NUNCA
+  // roda pra member — antes rodava e o resultado era descartado; pra admin
+  // roda em qualquer tab porque alimenta a margin do hero e o badge) e o
+  // conteúdo da tab ativa (precisa do tab normalizado).
+  const [costsBreakdown, tabContent] = await Promise.all([
+    isAdmin ? getOperationMonthlyCosts(id) : null,
+    loadTabContent(tab, id, currentPeriod.yyyymm),
+  ]);
+
+  const {
+    meetings,
+    decisions,
+    meetingAttachmentCounts,
+    attachments,
+    incidents,
+    operationVillains,
+    availableVillains,
+    quickWins,
+    villainNarratives,
+    quickWinCatalogItems,
+    areaTasks,
+    publicLinks,
+    baseUrl,
+  } = tabContent;
+
+  const margin: MarginResult | null =
+    isAdmin && costsBreakdown
+      ? computeMargin(op.monthlyRecurringRevenue, costsBreakdown.totalMonthly)
+      : null;
 
   const baseTabs: TabDef<OperationTabKey>[] = [
     { key: "visao", label: "Visão geral" },
@@ -156,19 +285,21 @@ export default async function Page({
     {
       key: "eventos",
       label: "Reuniões & Decisões",
-      count: meetings.length + decisions.length,
+      // Counts head:true uncapped — a lista tem limit 20; badge passa a
+      // mostrar o total real (antes era capped em 40).
+      count: meetingsCount + decisionsCount,
     },
-    { key: "anexos", label: "Anexos", count: attachments.length },
+    { key: "anexos", label: "Anexos", count: attachmentsCount },
     { key: "sla", label: "SLA", count: openIncidentsCount },
   ];
   if (showAreaTab) {
     baseTabs.push({
       key: "interno",
       label: "Área / Interno",
-      count: areaTasks.length,
+      count: areaTasksCount,
     });
   }
-  if (isAdmin) {
+  if (isAdmin && costsBreakdown) {
     baseTabs.push({
       key: "custos",
       label: "Custos",
@@ -251,13 +382,24 @@ export default async function Page({
       )}
 
       {tab === "eventos" && (
-        <MeetingsDecisionsTimeline
-          meetings={meetings}
-          decisions={decisions}
-          operationId={op.id}
-          meetingAttachmentCounts={meetingAttachmentCounts}
-          canWrite={canWrite}
-        />
+        <>
+          <MeetingsDecisionsTimeline
+            meetings={meetings}
+            decisions={decisions}
+            operationId={op.id}
+            meetingAttachmentCounts={meetingAttachmentCounts}
+            canWrite={canWrite}
+          />
+          {/* Badge é o total real (count); as listas têm limit 20 cada — sem
+              esta nota, badge > itens visíveis parece dado perdido. */}
+          {meetingsCount + decisionsCount >
+            meetings.length + decisions.length && (
+            <p className="font-mono text-[10px] uppercase tracking-wider text-mute mt-2">
+              Mostrando os {meetings.length + decisions.length} registros mais
+              recentes de {meetingsCount + decisionsCount}
+            </p>
+          )}
+        </>
       )}
 
       {tab === "anexos" && (
@@ -290,7 +432,7 @@ export default async function Page({
         />
       )}
 
-      {tab === "custos" && isAdmin && (
+      {tab === "custos" && isAdmin && costsBreakdown && (
         <CostsTab operationId={op.id} breakdown={costsBreakdown} />
       )}
 

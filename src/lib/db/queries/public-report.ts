@@ -169,23 +169,27 @@ export async function listPublicTeam(
 ): Promise<TeamPerson[]> {
   const admin = createAdmin();
   const today = todayISO();
+  // Filtro por operação SERVER-SIDE via `!inner` — antes escaneava TODAS as
+  // allocations do org a cada view do link público (audit #10).
   const { data, error } = await admin
     .from("allocations")
     .select(
       `
-      person_id, start_date, end_date,
-      frente:frentes!fk_allocations_frente_id (operation_id, archived_at),
+      person_id, end_date,
+      frente:frentes!fk_allocations_frente_id!inner (operation_id, archived_at),
       person:persons!fk_allocations_person_id (
         id, name, kind, specialty, external_role, archived_at
       )
       `,
     )
-    .lte("start_date", today);
+    .eq("frente.operation_id", operationId)
+    .is("frente.archived_at", null)
+    .lte("start_date", today)
+    .or(`end_date.is.null,end_date.gt.${today}`);
   if (error) throw new Error(`listPublicTeam: ${error.message}`);
 
   type Row = {
     person_id: string;
-    start_date: string;
     end_date: string | null;
     frente:
       | { operation_id: string; archived_at: string | null }
@@ -214,6 +218,8 @@ export async function listPublicTeam(
   const rows = (data ?? []) as Row[];
   const seen = new Map<string, TeamPerson>();
   for (const r of rows) {
+    // Defesa em profundidade: os filtros server-side acima são o isolamento
+    // real; estes guards só impedem que regressão de embed vire leak.
     if (r.end_date !== null && r.end_date <= today) continue;
     const frente = Array.isArray(r.frente) ? r.frente[0] : r.frente;
     if (!frente || frente.operation_id !== operationId) continue;
@@ -251,10 +257,10 @@ export async function getReportContext(
   operationId: string,
   period: Period = getCurrentPeriod(),
 ): Promise<ReportContext | null> {
-  const timing = await fetchOperationTiming(operationId);
-  if (!timing) return null;
-
+  // Timing dentro do Promise.all — era uma onda serial própria antes do batch
+  // (audit #11). Todas as chamadas dependem só de operationId.
   const [
+    timing,
     villains,
     narrativesByVillainId,
     quickWins,
@@ -263,6 +269,7 @@ export async function getReportContext(
     nextMoves,
     team,
   ] = await Promise.all([
+    fetchOperationTiming(operationId),
     listPublicVillains(operationId),
     listVillainNarratives(operationId, period.yyyymm),
     listPublicQuickWinsByPeriod(operationId, period.yyyymm),
@@ -271,6 +278,7 @@ export async function getReportContext(
     listPublicNextMoves(operationId, 4),
     listPublicTeam(operationId),
   ]);
+  if (!timing) return null;
 
   const activeVillainsCount = villains.filter(
     (v) => v.villain.archivedAt === null,

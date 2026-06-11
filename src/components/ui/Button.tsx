@@ -20,6 +20,19 @@ const SIZES: Record<ButtonSize, string> = {
   md: "px-3.5 py-2 text-[13px]",
 };
 
+// Receita de botão pra elementos que não podem ser <button> (ex: <Link>
+// estilizado como botão em not-found). Fonte única — nunca copiar as classes.
+export function buttonClassName(
+  variant: ButtonVariant = "primary",
+  size: ButtonSize = "md",
+): string {
+  return cn(
+    "inline-flex items-center gap-2 rounded font-medium transition-colors",
+    VARIANTS[variant],
+    SIZES[size],
+  );
+}
+
 export function Button({
   variant = "primary",
   size = "md",

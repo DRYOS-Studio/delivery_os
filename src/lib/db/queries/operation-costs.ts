@@ -106,6 +106,12 @@ type PersonInJoin = {
   archived_at: string | null;
 };
 
+type FrenteInJoin = {
+  id: string;
+  operation_id: string;
+  archived_at: string | null;
+};
+
 type AllocJoin = {
   id: string;
   capacity_weekly_pct: number | string;
@@ -113,10 +119,7 @@ type AllocJoin = {
   monthly_cost: number | string | null;
   end_date: string | null;
   person: PersonInJoin | PersonInJoin[] | null;
-  frente:
-    | { id: string; operation_id: string; archived_at: string | null }
-    | Array<{ id: string; operation_id: string; archived_at: string | null }>
-    | null;
+  frente: FrenteInJoin | FrenteInJoin[] | null;
 };
 
 function pickOne<T>(v: T | T[] | null): T | null {
@@ -124,37 +127,16 @@ function pickOne<T>(v: T | T[] | null): T | null {
   return Array.isArray(v) ? (v[0] ?? null) : v;
 }
 
-export async function getOperationMonthlyCosts(
+// Matemática do breakdown — função pura compartilhada pelo caminho single-op
+// e pelo agregado do dashboard: paridade de KPI por construção. Os guards de
+// frente/pessoa replicam os filtros server-side (defesa em profundidade contra
+// regressão de embed, padrão do tema 2).
+function computeBreakdown(
   operationId: string,
-): Promise<OperationCostBreakdown> {
-  const supabase = await createServer();
-  const today = todayISO();
-
-  const opRes = await supabase
-    .from("operations")
-    .select("monthly_fixed_cost")
-    .eq("id", operationId)
-    .maybeSingle();
-  if (opRes.error)
-    throw new Error(
-      `getOperationMonthlyCosts.operation: ${opRes.error.message}`,
-    );
-  const fixedCost = Number(opRes.data?.monthly_fixed_cost ?? 0);
-
-  const costsRes = await supabase
-    .from("operation_costs")
-    .select("*")
-    .eq("operation_id", operationId)
-    .lte("started_at", today)
-    .or(`ended_at.is.null,ended_at.gte.${today}`)
-    .order("started_at", { ascending: false });
-  if (costsRes.error)
-    throw new Error(
-      `getOperationMonthlyCosts.costs: ${costsRes.error.message}`,
-    );
-  const adHocItems = (costsRes.data ?? []).map((r) =>
-    mapCost(r as RawCostRow),
-  );
+  fixedCost: number,
+  adHocItems: OperationCostRow[],
+  allocRows: AllocJoin[],
+): OperationCostBreakdown {
   const adHocMonthly = adHocItems
     .filter((c) => c.recurrence === "mensal")
     .reduce((s, c) => s + c.amount, 0);
@@ -162,26 +144,8 @@ export async function getOperationMonthlyCosts(
     .filter((c) => c.recurrence === "unica")
     .reduce((s, c) => s + c.amount, 0);
 
-  const allocRes = await supabase
-    .from("allocations")
-    .select(
-      `
-      id, capacity_weekly_pct, weekly_hours, monthly_cost, end_date,
-      person:persons!fk_allocations_person_id(
-        id, name, hourly_rate, monthly_compensation, contracted_weekly_hours, archived_at
-      ),
-      frente:frentes!fk_allocations_frente_id(id, operation_id, archived_at)
-      `,
-    )
-    .or(`end_date.is.null,end_date.gt.${today}`);
-  if (allocRes.error)
-    throw new Error(
-      `getOperationMonthlyCosts.allocations: ${allocRes.error.message}`,
-    );
-
-  const rows = (allocRes.data ?? []) as unknown as AllocJoin[];
   const allocations: AllocationCost[] = [];
-  for (const a of rows) {
+  for (const a of allocRows) {
     const frente = pickOne(a.frente);
     const person = pickOne(a.person);
     if (!frente || frente.operation_id !== operationId) continue;
@@ -248,10 +212,7 @@ export async function getOperationMonthlyCosts(
       monthlyCost: monthly,
     });
   }
-  const allocationsTotal = allocations.reduce(
-    (s, x) => s + x.monthlyCost,
-    0,
-  );
+  const allocationsTotal = allocations.reduce((s, x) => s + x.monthlyCost, 0);
 
   return {
     fixedCost,
@@ -262,4 +223,148 @@ export async function getOperationMonthlyCosts(
     allocationsTotal,
     totalMonthly: fixedCost + adHocMonthly + allocationsTotal,
   };
+}
+
+const ALLOC_SELECT_FIELDS = `
+  id, capacity_weekly_pct, weekly_hours, monthly_cost, end_date,
+  person:persons!fk_allocations_person_id(
+    id, name, hourly_rate, monthly_compensation, contracted_weekly_hours, archived_at
+  )
+`;
+
+export async function getOperationMonthlyCosts(
+  operationId: string,
+): Promise<OperationCostBreakdown> {
+  const supabase = await createServer();
+  const today = todayISO();
+
+  // 3 queries paralelas, allocations filtradas pela operação NO SERVIDOR
+  // (antes: seriais + scan da tabela inteira filtrado em JS).
+  // Sem filtro de operação arquivada aqui: quem decide visibilidade é o caller
+  // (op page já 404a arquivada) — preserva o comportamento atual.
+  const [opRes, costsRes, allocRes] = await Promise.all([
+    supabase
+      .from("operations")
+      .select("monthly_fixed_cost")
+      .eq("id", operationId)
+      .maybeSingle(),
+    supabase
+      .from("operation_costs")
+      .select("*")
+      .eq("operation_id", operationId)
+      .lte("started_at", today)
+      .or(`ended_at.is.null,ended_at.gte.${today}`)
+      .order("started_at", { ascending: false }),
+    supabase
+      .from("allocations")
+      .select(
+        `${ALLOC_SELECT_FIELDS},
+        frente:frentes!fk_allocations_frente_id!inner(id, operation_id, archived_at)`,
+      )
+      .eq("frente.operation_id", operationId)
+      .is("frente.archived_at", null)
+      .or(`end_date.is.null,end_date.gt.${today}`),
+  ]);
+  if (opRes.error)
+    throw new Error(
+      `getOperationMonthlyCosts.operation: ${opRes.error.message}`,
+    );
+  if (costsRes.error)
+    throw new Error(
+      `getOperationMonthlyCosts.costs: ${costsRes.error.message}`,
+    );
+  if (allocRes.error)
+    throw new Error(
+      `getOperationMonthlyCosts.allocations: ${allocRes.error.message}`,
+    );
+
+  const fixedCost = Number(opRes.data?.monthly_fixed_cost ?? 0);
+  const adHocItems = (costsRes.data ?? []).map((r) =>
+    mapCost(r as RawCostRow),
+  );
+  const allocRows = (allocRes.data ?? []) as unknown as AllocJoin[];
+
+  return computeBreakdown(operationId, fixedCost, adHocItems, allocRows);
+}
+
+// Soma de custo mensal de TODAS as operações ativas em 3 queries fixas
+// (independente de K) com payload constante — filtro de "operação ativa" via
+// join embedado, nunca `.in(K uuids)`. Substitui o N+1 do dashboard
+// (3 queries seriais × K operações; audit #9).
+export async function getActiveOperationsMonthlyCostsTotal(): Promise<number> {
+  const supabase = await createServer();
+  const today = todayISO();
+
+  const [opsRes, costsRes, allocRes] = await Promise.all([
+    supabase
+      .from("operations")
+      .select("id, monthly_fixed_cost")
+      .is("archived_at", null),
+    supabase
+      .from("operation_costs")
+      .select(
+        "*, operation:operations!fk_operation_costs_operation_id!inner(archived_at)",
+      )
+      .is("operation.archived_at", null)
+      // O agregado só usa custos mensais (totalMonthly não inclui `unica`) —
+      // não trafegar o histórico de custos pontuais do org inteiro.
+      .eq("recurrence", "mensal")
+      .lte("started_at", today)
+      .or(`ended_at.is.null,ended_at.gte.${today}`),
+    supabase
+      .from("allocations")
+      .select(
+        `${ALLOC_SELECT_FIELDS},
+        frente:frentes!fk_allocations_frente_id!inner(
+          id, operation_id, archived_at,
+          operation:operations!fk_frentes_operation_id!inner(archived_at)
+        )`,
+      )
+      .is("frente.archived_at", null)
+      .is("frente.operation.archived_at", null)
+      .or(`end_date.is.null,end_date.gt.${today}`),
+  ]);
+  if (opsRes.error)
+    throw new Error(
+      `getActiveOperationsMonthlyCostsTotal.operations: ${opsRes.error.message}`,
+    );
+  if (costsRes.error)
+    throw new Error(
+      `getActiveOperationsMonthlyCostsTotal.costs: ${costsRes.error.message}`,
+    );
+  if (allocRes.error)
+    throw new Error(
+      `getActiveOperationsMonthlyCostsTotal.allocations: ${allocRes.error.message}`,
+    );
+
+  const costsByOp = new Map<string, OperationCostRow[]>();
+  for (const r of costsRes.data ?? []) {
+    const cost = mapCost(r as RawCostRow);
+    const list = costsByOp.get(cost.operationId) ?? [];
+    list.push(cost);
+    costsByOp.set(cost.operationId, list);
+  }
+
+  const allocsByOp = new Map<string, AllocJoin[]>();
+  for (const raw of (allocRes.data ?? []) as unknown as AllocJoin[]) {
+    const frente = pickOne(raw.frente);
+    if (!frente) continue;
+    const list = allocsByOp.get(frente.operation_id) ?? [];
+    list.push(raw);
+    allocsByOp.set(frente.operation_id, list);
+  }
+
+  // Itera sobre o resultado de `operations` (não sobre as rows agrupadas):
+  // op ativa sem costs/allocations contribui com o monthly_fixed_cost.
+  let total = 0;
+  for (const op of opsRes.data ?? []) {
+    const breakdown = computeBreakdown(
+      op.id,
+      Number(op.monthly_fixed_cost ?? 0),
+      costsByOp.get(op.id) ?? [],
+      allocsByOp.get(op.id) ?? [],
+    );
+    total += breakdown.totalMonthly;
+  }
+  return total;
 }
