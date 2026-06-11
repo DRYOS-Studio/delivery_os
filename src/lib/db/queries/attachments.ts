@@ -3,6 +3,9 @@ import type { Database } from "@/lib/db/types";
 
 export type AttachmentRow = Database["public"]["Tables"]["attachments"]["Row"];
 
+export type AttachmentVisibility =
+  Database["public"]["Enums"]["attachment_visibility"];
+
 export type AttachmentListItem = {
   id: string;
   filename: string;
@@ -11,11 +14,12 @@ export type AttachmentListItem = {
   description: string | null;
   createdAt: string;
   meetingId: string | null;
+  visibility: AttachmentVisibility;
   uploaderEmail: string | null;
 };
 
 const ATTACHMENT_FIELDS =
-  "id, filename, mime_type, size_bytes, description, created_at, meeting_id, uploaded_by";
+  "id, filename, mime_type, size_bytes, description, created_at, meeting_id, visibility, uploaded_by";
 
 async function resolveUploaderEmails(
   ids: ReadonlyArray<string>,
@@ -66,6 +70,7 @@ export async function listAttachmentsByOperation(
     description: r.description,
     createdAt: r.created_at,
     meetingId: r.meeting_id,
+    visibility: r.visibility,
     uploaderEmail: r.uploaded_by
       ? (emails.get(r.uploaded_by) ?? null)
       : null,
@@ -97,6 +102,7 @@ export async function listAttachmentsByMeeting(
     description: r.description,
     createdAt: r.created_at,
     meetingId: r.meeting_id,
+    visibility: r.visibility,
     uploaderEmail: r.uploaded_by
       ? (emails.get(r.uploaded_by) ?? null)
       : null,

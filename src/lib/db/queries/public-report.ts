@@ -76,18 +76,23 @@ async function fetchUpcomingTasks(
 ): Promise<NextMoveItem[]> {
   const admin = createAdmin();
   const today = todayISO();
+  // Filtro por operação SERVER-SIDE, antes do limit — com `!inner`, o filtro no
+  // embed poda as rows pai no PostgREST. Sem isso, o limit(20) era global e
+  // tarefas da operação sumiam silenciosamente do relatório (audit #3).
   const { data, error } = await admin
     .from("tasks")
     .select(
       `
       id, title, due_date, status,
-      frente:frentes!fk_tasks_frente_id (operation_id, archived_at)
+      frente:frentes!fk_tasks_frente_id!inner (operation_id, archived_at)
       `,
     )
     // Tarefa de área é interna — NUNCA vaza em link público (invariante 15).
     .is("area_id", null)
     .neq("status", "done")
     .gte("due_date", today)
+    .eq("frente.operation_id", operationId)
+    .is("frente.archived_at", null)
     .order("due_date", { ascending: true })
     .limit(20);
   if (error) throw new Error(`fetchUpcomingTasks: ${error.message}`);
@@ -103,6 +108,8 @@ async function fetchUpcomingTasks(
   const rows = (data ?? []) as Row[];
   return rows
     .filter((r) => {
+      // Defesa em profundidade: o `!inner` acima é o isolamento real; este guard
+      // só impede que uma regressão futura de embed vire leak cross-tenant.
       const f = Array.isArray(r.frente) ? r.frente[0] : r.frente;
       return (
         f !== null &&

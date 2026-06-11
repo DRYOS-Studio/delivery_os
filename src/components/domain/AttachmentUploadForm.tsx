@@ -4,6 +4,7 @@ import { Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { VISIBILITY_LABEL } from "@/lib/constants/visibility";
 import { uploadAttachmentAction } from "@/lib/actions/attachments";
 import { formatBytes } from "@/lib/utils/file";
 import { MAX_ATTACHMENT_BYTES } from "@/lib/validators/attachment";
@@ -107,6 +108,34 @@ export function AttachmentUploadForm({
           placeholder="Ata da reunião, brief inicial, contrato..."
           className="w-full bg-bg border border-line rounded px-3 py-1.5 text-sm text-ink-soft placeholder:text-mute-soft focus:outline-none focus:border-line-strong disabled:opacity-50"
         />
+      </div>
+
+      <div className="space-y-1">
+        <label
+          htmlFor={`vis-${meetingId ?? "op"}-${operationId}`}
+          className="block font-mono text-[10px] text-mute uppercase tracking-wide"
+        >
+          Visibilidade
+        </label>
+        <select
+          id={`vis-${meetingId ?? "op"}-${operationId}`}
+          name="visibility"
+          defaultValue="cliente"
+          disabled={busy}
+          className="w-full bg-bg border border-line rounded px-3 py-1.5 text-sm text-ink-soft focus:outline-none focus:border-line-strong disabled:opacity-50"
+        >
+          {/* Anexo de meeting não é listado no link público (só baixável com a
+              meeting 'cliente') — a promessa "aparece no link" vale só no nível
+              da operação. */}
+          <option value="cliente">
+            {meetingId
+              ? `${VISIBILITY_LABEL.cliente} — baixável pelo cliente`
+              : `${VISIBILITY_LABEL.cliente} — aparece no link público`}
+          </option>
+          <option value="interno">
+            {VISIBILITY_LABEL.interno} — só o time vê
+          </option>
+        </select>
       </div>
 
       {error && (

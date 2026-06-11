@@ -10,6 +10,7 @@ import { sanitizeFilename } from "@/lib/utils/file";
 import {
   attachmentUploadSchema,
   MAX_ATTACHMENT_BYTES,
+  setAttachmentVisibilitySchema,
 } from "@/lib/validators/attachment";
 
 const BUCKET = "attachments";
@@ -39,6 +40,12 @@ export async function uploadAttachmentAction(
     mime_type: file.type || "application/octet-stream",
     description: ((formData.get("description") as string | null) ?? "").trim(),
     meeting_id: ((formData.get("meeting_id") as string | null) ?? "").trim(),
+    // typeof guard: FormDataEntryValue pode ser File — cast cego + .trim() viraria
+    // throw (Inv. 13). Garbage string o Zod rejeita.
+    visibility: (() => {
+      const raw = formData.get("visibility");
+      return (typeof raw === "string" ? raw.trim() : "") || "cliente";
+    })(),
   });
   if (!parsed.success) {
     const first = parsed.error.issues[0];
@@ -83,6 +90,7 @@ export async function uploadAttachmentAction(
       mime_type: data.mime_type,
       size_bytes: data.size_bytes,
       description: data.description ?? null,
+      visibility: data.visibility,
       uploaded_by: userId,
     })
     .select("id")
@@ -111,6 +119,42 @@ export async function uploadAttachmentAction(
     );
   }
   return ok({ id: row.id, operationId });
+}
+
+export async function setAttachmentVisibilityAction(
+  attachmentId: string,
+  visibility: string,
+): Promise<ActionResult<{ id: string }>> {
+  const userResult = await requireUserAction();
+  if (!userResult.ok) return userResult;
+
+  const parsed = setAttachmentVisibilitySchema.safeParse({
+    attachment_id: attachmentId,
+    visibility,
+  });
+  if (!parsed.success) {
+    return err("Dados inválidos.", "validation_failed");
+  }
+
+  const supabase = await createServer();
+  // .select() obrigatório: RLS que filtra a row vira update de 0 rows SEM erro —
+  // sem ele a action retornaria ok num no-op (toast de sucesso falso).
+  const { data: row, error } = await supabase
+    .from("attachments")
+    .update({ visibility: parsed.data.visibility })
+    .eq("id", parsed.data.attachment_id)
+    .select("id, operation_id, meeting_id")
+    .maybeSingle();
+  if (error) return dbErr(error, "setAttachmentVisibilityAction");
+  if (!row) return err("Anexo não encontrado.", "not_found");
+
+  revalidatePath(`/operations/${row.operation_id}`);
+  if (row.meeting_id) {
+    revalidatePath(
+      `/operations/${row.operation_id}/meetings/${row.meeting_id}/edit`,
+    );
+  }
+  return ok({ id: row.id });
 }
 
 export async function deleteAttachmentAction(

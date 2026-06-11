@@ -205,6 +205,7 @@ export type Database = {
           storage_path: string
           updated_at: string
           uploaded_by: string | null
+          visibility: Database["public"]["Enums"]["attachment_visibility"]
         }
         Insert: {
           created_at?: string
@@ -218,6 +219,7 @@ export type Database = {
           storage_path: string
           updated_at?: string
           uploaded_by?: string | null
+          visibility?: Database["public"]["Enums"]["attachment_visibility"]
         }
         Update: {
           created_at?: string
@@ -231,6 +233,7 @@ export type Database = {
           storage_path?: string
           updated_at?: string
           uploaded_by?: string | null
+          visibility?: Database["public"]["Enums"]["attachment_visibility"]
         }
         Relationships: [
           {
@@ -1551,6 +1554,7 @@ export type Database = {
     }
     Enums: {
       allocation_role: "responsavel" | "executor" | "aprovador" | "plantao"
+      attachment_visibility: "interno" | "cliente"
       cost_recurrence: "mensal" | "unica"
       decision_visibility: "interno" | "cliente"
       frente_cycle_type: "a" | "b" | "c" | "d" | "e"
@@ -1699,6 +1703,7 @@ export const Constants = {
   public: {
     Enums: {
       allocation_role: ["responsavel", "executor", "aprovador", "plantao"],
+      attachment_visibility: ["interno", "cliente"],
       cost_recurrence: ["mensal", "unica"],
       decision_visibility: ["interno", "cliente"],
       frente_cycle_type: ["a", "b", "c", "d", "e"],
@@ -1723,3 +1728,4 @@ export const Constants = {
     },
   },
 } as const
+

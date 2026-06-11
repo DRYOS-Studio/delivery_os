@@ -3,7 +3,10 @@ import { RevokePublicLinkButton } from "@/components/domain/RevokePublicLinkButt
 import { Card } from "@/components/ui/Card";
 import { CopyButton } from "@/components/ui/CopyButton";
 import { Pill } from "@/components/ui/Pill";
-import type { PublicLinkListItem } from "@/lib/db/queries/publicLinks";
+import {
+  isLinkExpired,
+  type PublicLinkListItem,
+} from "@/lib/db/queries/publicLinks";
 import { formatDateBR, relativeFromNow } from "@/lib/utils/date";
 
 export function PublicLinksSection({
@@ -17,7 +20,9 @@ export function PublicLinksSection({
   baseUrl: string;
   isAdmin?: boolean;
 }): React.JSX.Element {
-  const activeCount = links.filter((l) => l.revokedAt === null).length;
+  const activeCount = links.filter(
+    (l) => l.revokedAt === null && !isLinkExpired(l.expiresAt),
+  ).length;
   return (
     <section className="mb-9">
       <div className="flex items-center gap-2 mb-4">
@@ -66,6 +71,18 @@ function PublicLinkRow({
   isAdmin?: boolean;
 }) {
   const isRevoked = link.revokedAt !== null;
+  const isExpired = isLinkExpired(link.expiresAt);
+  // Precedência: Revogado > Expirado > Ativo — nunca duas pills de estado.
+  const isInactive = isRevoked || isExpired;
+  let statusPill = <Pill variant="sage">Ativo</Pill>;
+  if (isRevoked) statusPill = <Pill variant="critical">Revogado</Pill>;
+  else if (isExpired) statusPill = <Pill variant="critical">Expirado</Pill>;
+  let expirySuffix = "";
+  if (!isRevoked && link.expiresAt) {
+    expirySuffix = isExpired
+      ? ` · Expirado ${relativeFromNow(link.expiresAt)}`
+      : ` · Expira em ${formatDateBR(link.expiresAt)}`;
+  }
   return (
     <li className="bg-card border border-line rounded px-4 py-3 space-y-2">
       <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -76,20 +93,16 @@ function PublicLinkRow({
                 {link.label}
               </span>
             )}
-            {isRevoked ? (
-              <Pill variant="critical">Revogado</Pill>
-            ) : (
-              <Pill variant="sage">Ativo</Pill>
-            )}
+            {statusPill}
           </div>
           <p
-            className={`font-mono text-xs ${isRevoked ? "text-mute-soft line-through" : "text-ink-soft"} truncate`}
+            className={`font-mono text-xs ${isInactive ? "text-mute-soft line-through" : "text-ink-soft"} truncate`}
           >
             {url}
           </p>
         </div>
         <div className="flex items-center gap-1">
-          {!isRevoked && <CopyButton text={url} label="Copiar URL" />}
+          {!isInactive && <CopyButton text={url} label="Copiar URL" />}
           {!isRevoked && isAdmin && (
             <RevokePublicLinkButton linkId={link.id} label={link.label} />
           )}
@@ -104,6 +117,7 @@ function PublicLinkRow({
         {isRevoked && link.revokedAt
           ? ` · Revogado ${relativeFromNow(link.revokedAt)}`
           : ""}
+        {expirySuffix}
       </p>
     </li>
   );
