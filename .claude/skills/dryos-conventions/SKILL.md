@@ -276,10 +276,20 @@ A visibilidade do app é gated por Operação. **Toda tabela com `operation_id` 
 - **Tabela com `operation_id` direto:** `USING (public.can_see_operation(operation_id))`.
 - **Tabela-neta (via frente):** `USING (EXISTS (SELECT 1 FROM frentes f WHERE f.id = <tabela>.frente_id AND public.can_see_operation(f.operation_id)))`.
 - **Tabela indireta (clients/persons):** `USING (public.is_admin() OR EXISTS(...))` via operações visíveis.
-- **Catálogos globais** (`villains`, `service_products`, `quick_win_catalog`): **NÃO scoped** — abertos a `authenticated`. São universo de marca, não dado de cliente.
+- **Catálogos globais** (`villains`, `service_products`, `quick_win_catalog`): **NÃO scoped** no SELECT — leitura aberta a `authenticated` (universo de marca, não dado de cliente). **Escrita é `is_admin()`** (INSERT/UPDATE) e **DELETE não tem policy** (archive-only via `archived_at`, Inv. 06) — desde `20260611040158_rls_hardening` (#127).
 - **Mutação:** policies `*_scoped_<cmd>` separadas por comando (select/insert/update/delete). Tabelas só-admin (clients/persons/diagnostics) usam `is_admin()` no insert/update/delete.
 - **Gotcha:** RLS é PERMISSIVE por padrão → múltiplas policies pro mesmo comando são **OR'd**. Ao reescrever, **DROP todas as policies antigas** (`authenticated_full_access`, `<tabela>_authenticated_*`) senão a aberta anula o scoping.
 - **Naming:** `<tabela>_scoped_select|insert|update|delete`. UI admin de atribuição em `/operations/[id]/settings/members`.
+- **Storage (`storage.objects`):** policies espelham o RLS da tabela `attachments` — prefixo `<operation_id>/` parseado com **CASE + regex de UUID antes do cast** (cast cru estoura exceção por linha; o planner pode reordenar AND, então o guard PRECISA ser CASE), gated por `can_see_operation`. Path malformado = deny-all. Sem policy UPDATE (move/copy dessincronizam `attachments.storage_path`).
+
+### Grants de função (pattern desde #127 / `20260611040158`)
+
+- O default ACL **global** do `postgres` revoga EXECUTE de PUBLIC e concede a `service_role` — **função nova criada por migration nasce `{postgres=X, service_role=X}`**: sem EXECUTE de anon, authenticated ou PUBLIC (validado empiricamente com função-probe).
+- Helper de RLS novo (SECURITY DEFINER chamado em policy): **precisa** de `GRANT EXECUTE ON FUNCTION ... TO authenticated` explícito na migration, senão toda policy que o chama falha com "permission denied for function" pra membros (as migrations de helpers já seguem isso).
+- Função de trigger/event trigger: **nenhum grant** — trigger dispara com o privilégio do dono, EXECUTE do caller é irrelevante.
+- RPC pública deliberada (não existe hoje): grant explícito a `anon` com justificativa na migration.
+- **Gotcha 1:** `REVOKE FROM anon` em função existente é no-op se `PUBLIC` mantém o grant implícito de criação — anon herda via PUBLIC. Revogar dos dois.
+- **Gotcha 2:** `ALTER DEFAULT PRIVILEGES IN SCHEMA ... REVOKE` **não remove** o built-in PUBLIC EXECUTE (entrada por-schema só ADICIONA grants — nota da doc do Postgres). Só a entrada **global** (sem `IN SCHEMA`) substitui o built-in.
 
 ### Migrations
 
