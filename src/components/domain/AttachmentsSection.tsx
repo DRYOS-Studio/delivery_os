@@ -1,5 +1,6 @@
 import { File, FileBox, FileText, Image as ImageIcon } from "lucide-react";
 import { AttachmentUploadForm } from "@/components/domain/AttachmentUploadForm";
+import { AttachmentVisibilityToggle } from "@/components/domain/AttachmentVisibilityToggle";
 import { DeleteAttachmentButton } from "@/components/domain/DeleteAttachmentButton";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
@@ -89,6 +90,9 @@ function AttachmentRow({
             {attachment.filename}
           </a>
           <Pill variant="neutral">{cat.label}</Pill>
+          {attachment.visibility === "interno" && (
+            <Pill variant="neutral">Interno</Pill>
+          )}
         </div>
         {attachment.description && (
           <p className="text-xs text-mute mt-0.5 line-clamp-1">
@@ -101,6 +105,10 @@ function AttachmentRow({
           {attachment.uploaderEmail && <> · {attachment.uploaderEmail}</>}
         </p>
       </div>
+      <AttachmentVisibilityToggle
+        attachmentId={attachment.id}
+        visibility={attachment.visibility}
+      />
       {isAdmin && (
         <DeleteAttachmentButton
           attachmentId={attachment.id}

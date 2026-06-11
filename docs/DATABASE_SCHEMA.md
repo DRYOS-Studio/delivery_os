@@ -356,6 +356,7 @@ Bucket `attachments` privado. Path no formato `<operation_id>/<uuid>-<filename_s
 | `mime_type` | text NOT NULL | |
 | `size_bytes` | bigint NOT NULL | CHECK > 0 AND ≤ 10485760 (10MB) |
 | `description` | text | opcional, max 500 chars (Zod) |
+| `visibility` | attachment_visibility NOT NULL DEFAULT 'cliente' | controla SÓ a superfície pública; interno nunca aparece/baixa no `/public`. Regra composta: anexo `cliente` E (se meeting, meeting `cliente`) — diverge de decisions (independente) de propósito |
 | `uploaded_by` | uuid → auth.users (SET NULL) | |
 | `created_at`, `updated_at` | timestamptz | |
 
@@ -364,6 +365,8 @@ Triggers `set_attachments_updated_at`. Indexes: `idx_attachments_operation_creat
 **Storage bucket** `attachments` (privado): policies authenticated SELECT/INSERT/DELETE **escopadas por operação** (`20260611040158_rls_hardening`) — o prefixo `<operation_id>/` do path é parseado com guard de UUID (CASE; path malformado = deny-all) e gated por `can_see_operation` (membro/admin; área NÃO lê storage — AD-014). Sem UPDATE — substituir = delete + upload. DELETE direto via SQL é bloqueado pra todos pelo trigger de plataforma `storage.protect_delete` (o caminho real é a Storage API, onde a policy aplica).
 
 Download via `/api/attachments/[id]/download` Route Handler → signed URL TTL 5min.
+
+**Nota (comportamento deliberado, registrado em 2026-06-11):** anexo de meeting `cliente` em meeting `cliente` é **baixável mas não listado** no link público — `listPublicAttachments` filtra `meeting_id IS NULL` e nenhuma superfície pública renderiza link de anexo de meeting. Não é leak: o download exige token válido + aid + dupla visibility `cliente`. Não "redescobrir" em auditoria futura.
 
 ---
 
@@ -732,6 +735,7 @@ Index dedup: `(operation_id, event_type, subject_id, sent_at DESC)`.
 | 20260610150001 | areas_enum_to_fk | 2026-06-10 (via MCP, AD-014) — enum `task_area`→FK `area_id` em tasks/profile_areas; funções `area_can_reach_operation`/`is_area_granted`/`user_in_area`; `can_read_operation`/`can_see_task` reescritas; drop `task_area` |
 | 20260610150002 | area_grants_rls | 2026-06-10 (via MCP, AD-014) — SELECT de ~12 tabelas operation-scoped ampliado p/ leitura por concessão; decisions/meetings só `cliente` pra área |
 | 20260611040158 | rls_hardening | 2026-06-11 (via MCP, AD-015, issue #127) — storage policies escopadas por operação; catálogos escrita `is_admin()` + DELETE sem policy; `SET search_path` em 6 funções; `rls_auto_enable`/`ensure_rls` versionados; REVOKE anon/PUBLIC + `ALTER DEFAULT PRIVILEGES` |
+| 20260611130334 | attachment_visibility | 2026-06-11 (via MCP, AD-016, issue #129) — enum `attachment_visibility` + `attachments.visibility` default `cliente` (controle da superfície pública) |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações

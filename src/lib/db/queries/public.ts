@@ -144,6 +144,8 @@ export async function listPublicAttachments(
     .select("id, filename, mime_type, size_bytes, description, created_at")
     .eq("operation_id", operationId)
     .is("meeting_id", null)
+    // Anexo interno nunca aparece no link público (princípio 05).
+    .eq("visibility", "cliente")
     .order("created_at", { ascending: false });
   if (error) throw new Error(`listPublicAttachments: ${error.message}`);
   if (!data) return [];

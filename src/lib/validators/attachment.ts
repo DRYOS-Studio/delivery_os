@@ -12,6 +12,8 @@ const optionalUuid = z.preprocess(
   z.string().uuid().optional(),
 );
 
+export const attachmentVisibilitySchema = z.enum(["interno", "cliente"]);
+
 export const attachmentUploadSchema = z.object({
   filename: z
     .string()
@@ -26,6 +28,12 @@ export const attachmentUploadSchema = z.object({
   mime_type: z.string().min(1).max(200),
   description: optionalText,
   meeting_id: optionalUuid,
+  visibility: attachmentVisibilitySchema.default("cliente"),
+});
+
+export const setAttachmentVisibilitySchema = z.object({
+  attachment_id: z.string().uuid(),
+  visibility: attachmentVisibilitySchema,
 });
 
 export type AttachmentUploadInput = z.input<typeof attachmentUploadSchema>;

@@ -15,9 +15,9 @@ export async function GET(
     return new NextResponse("Not found", { status: 404 });
   }
 
-  // 1. Validate token
+  // 1. Validate token (revogado/expirado/operação arquivada → null)
   const link = await getPublicLinkByToken(token);
-  if (!link || link.revokedAt !== null) {
+  if (!link) {
     return new NextResponse("Not found", { status: 404 });
   }
 
@@ -25,7 +25,7 @@ export async function GET(
   const admin = createAdmin();
   const { data: attachment, error: attErr } = await admin
     .from("attachments")
-    .select("id, operation_id, meeting_id, storage_path, filename")
+    .select("id, operation_id, meeting_id, storage_path, filename, visibility")
     .eq("id", aid)
     .maybeSingle();
   if (attErr || !attachment) {
@@ -37,7 +37,13 @@ export async function GET(
     return new NextResponse("Not found", { status: 404 });
   }
 
-  // 4. If attached to a meeting, validate meeting visibility
+  // 4. Visibility própria do anexo — interno nunca sai no público.
+  // 404 (não 403): status distinto seria oráculo de existência sem auth.
+  if (attachment.visibility !== "cliente") {
+    return new NextResponse("Not found", { status: 404 });
+  }
+
+  // 5. If attached to a meeting, validate meeting visibility (regra composta: E)
   if (attachment.meeting_id !== null) {
     const { data: meeting, error: mErr } = await admin
       .from("meetings")
@@ -45,11 +51,11 @@ export async function GET(
       .eq("id", attachment.meeting_id)
       .maybeSingle();
     if (mErr || !meeting || meeting.visibility !== "cliente") {
-      return new NextResponse("Forbidden", { status: 403 });
+      return new NextResponse("Not found", { status: 404 });
     }
   }
 
-  // 5. Generate signed URL
+  // 6. Generate signed URL
   const { data: signed, error: sErr } = await admin.storage
     .from("attachments")
     .createSignedUrl(attachment.storage_path, SIGNED_URL_TTL_SECONDS, {

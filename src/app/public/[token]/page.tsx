@@ -56,7 +56,7 @@ export default async function Page({
   if (!UUID_RE.test(token)) notFound();
 
   const link = await getPublicLinkByToken(token);
-  if (!link || link.revokedAt !== null) notFound();
+  if (!link) notFound();
 
   await touchPublicLinkAccess(link.id);
 

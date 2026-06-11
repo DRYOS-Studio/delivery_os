@@ -109,6 +109,25 @@ export function AttachmentUploadForm({
         />
       </div>
 
+      <div className="space-y-1">
+        <label
+          htmlFor={`vis-${meetingId ?? "op"}-${operationId}`}
+          className="block font-mono text-[10px] text-mute uppercase tracking-wide"
+        >
+          Visibilidade
+        </label>
+        <select
+          id={`vis-${meetingId ?? "op"}-${operationId}`}
+          name="visibility"
+          defaultValue="cliente"
+          disabled={busy}
+          className="w-full bg-bg border border-line rounded px-3 py-1.5 text-sm text-ink-soft focus:outline-none focus:border-line-strong disabled:opacity-50"
+        >
+          <option value="cliente">Cliente — aparece no link público</option>
+          <option value="interno">Interno — só o time vê</option>
+        </select>
+      </div>
+
       {error && (
         <div className="bg-critical-bg border border-critical text-critical text-xs rounded px-3 py-2">
           {error}
