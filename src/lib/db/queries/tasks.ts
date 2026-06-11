@@ -165,6 +165,24 @@ export async function listAreaTasksByOperation(
     .sort((a, b) => (a.status === "done" ? 1 : 0) - (b.status === "done" ? 1 : 0));
 }
 
+/**
+ * Count das tarefas de área de uma Operação — gate `showAreaTab` + badge da
+ * op page sem buscar a lista inteira (#131). Mesmos filtros declarativos da
+ * lista acima (RLS idêntica, sem pós-filtro JS): count e lista nunca divergem.
+ */
+export async function countAreaTasksByOperation(
+  operationId: string,
+): Promise<number> {
+  const supabase = await createServer();
+  const { count, error } = await supabase
+    .from("tasks")
+    .select("id", { count: "exact", head: true })
+    .eq("operation_id", operationId)
+    .not("area_id", "is", null);
+  if (error) throw new Error(`countAreaTasksByOperation: ${error.message}`);
+  return count ?? 0;
+}
+
 export async function getTask(id: string): Promise<TaskRow | null> {
   const supabase = await createServer();
   const { data, error } = await supabase

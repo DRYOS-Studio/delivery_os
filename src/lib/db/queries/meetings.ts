@@ -59,6 +59,20 @@ export async function listMeetingsByOperation(
   }));
 }
 
+// Badge da tab Eventos (op page): count uncapped — a lista acima tem limit 20,
+// derivar badge de lista.length flip-flopa quando há >20 registros (#131).
+export async function countMeetingsByOperation(
+  operationId: string,
+): Promise<number> {
+  const supabase = await createServer();
+  const { count, error } = await supabase
+    .from("meetings")
+    .select("id", { count: "exact", head: true })
+    .eq("operation_id", operationId);
+  if (error) throw new Error(`countMeetingsByOperation: ${error.message}`);
+  return count ?? 0;
+}
+
 export async function getMeeting(
   id: string,
 ): Promise<MeetingWithAttendees | null> {

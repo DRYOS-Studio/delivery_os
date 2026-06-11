@@ -109,6 +109,21 @@ export async function listAttachmentsByMeeting(
   }));
 }
 
+// Badge da tab Anexos (op page). Mesma semântica de listAttachmentsByOperation
+// com meetingFilter "none": só anexos de nível operação (meeting_id IS NULL).
+export async function countOperationAttachments(
+  operationId: string,
+): Promise<number> {
+  const supabase = await createServer();
+  const { count, error } = await supabase
+    .from("attachments")
+    .select("id", { count: "exact", head: true })
+    .eq("operation_id", operationId)
+    .is("meeting_id", null);
+  if (error) throw new Error(`countOperationAttachments: ${error.message}`);
+  return count ?? 0;
+}
+
 export async function countAttachmentsByMeeting(
   operationId: string,
 ): Promise<Map<string, number>> {

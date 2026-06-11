@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { after } from "next/server";
 import { PublicAchievementsList } from "@/components/domain/PublicAchievementsList";
 import { PublicAttachmentsList } from "@/components/domain/PublicAttachmentsList";
 import { PublicFrentesList } from "@/components/domain/PublicFrentesList";
@@ -58,7 +59,11 @@ export default async function Page({
   const link = await getPublicLinkByToken(token);
   if (!link) notFound();
 
-  await touchPublicLinkAccess(link.id);
+  // Touch fora do caminho de resposta (audit #11) — agendado SÓ após o resolve
+  // OK; link que o resolver negou nunca registra acesso. `after()` executa
+  // mesmo se um notFound() posterior disparar (janela aceita, ver spec #131).
+  // Semântica deliberada: last_accessed_at = page view (download não toca).
+  after(() => touchPublicLinkAccess(link.id));
 
   const period = getCurrentPeriod();
 

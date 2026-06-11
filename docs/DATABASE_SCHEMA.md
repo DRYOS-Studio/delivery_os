@@ -1,6 +1,6 @@
 # Database Schema
 
-**Última análise**: 2026-06-11 (rls-hardening — issue #127, AD-015)
+**Última análise**: 2026-06-11 (perf-queries — issue #131, AD-017)
 **Projeto Supabase**: `Delivery OS` (`tmsaucxoeqpfluzwrwkc`)
 **Schema**: `public`
 
@@ -736,6 +736,7 @@ Index dedup: `(operation_id, event_type, subject_id, sent_at DESC)`.
 | 20260610150002 | area_grants_rls | 2026-06-10 (via MCP, AD-014) — SELECT de ~12 tabelas operation-scoped ampliado p/ leitura por concessão; decisions/meetings só `cliente` pra área |
 | 20260611040158 | rls_hardening | 2026-06-11 (via MCP, AD-015, issue #127) — storage policies escopadas por operação; catálogos escrita `is_admin()` + DELETE sem policy; `SET search_path` em 6 funções; `rls_auto_enable`/`ensure_rls` versionados; REVOKE anon/PUBLIC + `ALTER DEFAULT PRIVILEGES` |
 | 20260611130334 | attachment_visibility | 2026-06-11 (via MCP, AD-016, issue #129) — enum `attachment_visibility` + `attachments.visibility` default `cliente` (controle da superfície pública) |
+| 20260611155226 | hot_fk_indexes | 2026-06-11 (via MCP, AD-017, issue #131) — índices nos 5 FKs quentes (`frentes.operation_id`, `allocations.frente_id`/`person_id`, `operations.client_id`, `persons.client_id`); FKs frios (`created_by` etc.) deliberadamente sem índice |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações

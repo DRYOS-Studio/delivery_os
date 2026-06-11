@@ -1,8 +1,24 @@
 "use client";
 
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { Pill } from "@/components/ui/Pill";
 import { cn } from "@/lib/utils/cn";
+
+// Feedback pontual de navegação pendente no tab clicado (sem loading.tsx:
+// boundary ancestral flasharia skeleton full-page a cada troca de tab).
+// Só aparece com prefetch={false} — rota prefetched pula o pending state.
+function TabPendingIndicator() {
+  const { pending } = useLinkStatus();
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "inline-block w-1.5 h-1.5 rounded-full bg-oak transition-opacity",
+        pending ? "opacity-100 animate-pulse" : "opacity-0 w-0",
+      )}
+    />
+  );
+}
 
 export type TabDef<K extends string = string> = {
   key: K;
@@ -35,7 +51,9 @@ export function TabsNav<K extends string>({
             <Link
               key={t.key}
               href={href}
-              prefetch
+              // prefetch full aqui disparava ~9 re-execuções da page em
+              // background por visita E suprimia o pending do useLinkStatus.
+              prefetch={false}
               scroll={false}
               className={cn(
                 "inline-flex items-center gap-2 px-3 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors snap-start",
@@ -48,6 +66,7 @@ export function TabsNav<K extends string>({
               {display !== undefined && (
                 <Pill variant={isActive ? "oak" : "neutral"}>{display}</Pill>
               )}
+              <TabPendingIndicator />
             </Link>
           );
         })}
