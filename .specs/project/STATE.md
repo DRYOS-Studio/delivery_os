@@ -133,6 +133,21 @@ Anteriormente: `operation-members` — COMPLETE (issue #80, PRs #81 + #82 + #83)
 
 _None._
 
+## Pendências da auditoria AUDIT-2026-06-11
+
+Os 3 temas priorizados estão COMPLETE e mergeados: RLS hardening (PR #128, AD-015), superfície pública (PR #130, AD-016), perf de queries (PR #132, AD-017) — cobrem os 3 high + os 7 mediums de perf. Os achados abaixo ficaram **conscientemente fora de escopo** e seguem abertos (registrados, sem trabalho iniciado). Cada um vira um tema novo de `/tlc-pipeline` quando priorizado. Detalhe e evidência (file:line) em `docs/audits/AUDIT-2026-06-11.md`.
+
+| # | Sev | Tema | Recomendação resumida |
+|---|-----|------|------------------------|
+| 16 | medium | Security headers | Produção só tem HSTS — falta CSP, X-Frame-Options/frame-ancestors, nosniff, Referrer-Policy. Bloco `headers()` no `next.config.ts`, prioridade na superfície `/public` |
+| 17 | medium | Dep vuln | `next` depende de `postcss` vulnerável (2 moderate no `npm audit`). Bump do `next` pra release corrigida |
+| 18 | medium | DS tokens | Cores hardcoded fora dos tokens (`text-[#5C8866]`, gradiente `#2a4d39`, defaults em charts) em `PublicVillainsList`, `PublicReportHero`, `HorizontalBarChart`, `Sparkline`. Promover mid-tone a token ou derivar |
+| 19 | medium | RLS / dado comercial | `operations` SELECT ampliado a `can_read_operation` expõe a linha inteira (preço, recorrência) a QUALQUER área com concessão, não só Financeiro. View sem colunas comerciais p/ leitura de área, OU aceitar+documentar o trade-off |
+| 21 | medium | Perf | `listTasks` (visão cross-frente) sem `.limit()` com embed de 3 níveis; tabs done/all degradam primeiro. Paginação (`.range()`) ou cap |
+| — | low | Higiene | `resolveEmails` = N chamadas Auth API por render ×4 (resolver via tabela `profiles`); `listProfiles` sequencial; advisors `auth_rls_initplan` ×4 + `multiple_permissive_policies` ×3; leaked-password-protection desabilitada; índices nunca usados ×7; token público em path de URL; cron sem comparação constant-time + `e.message` no 500; exports mortos; doc drift (CLAUDE.md princípio 9 diz 5 Pills, real são 6) |
+
+Follow-ups técnicos levantados durante o tema de perf (não são achados da auditoria, mas vizinhos): allocation com `start_date` futuro entra no custo (mudar altera KPI — decidir como domínio); `todayISO()` UTC nas queries vs local-tz nos forms `CostForm`/`QuickWinForm` (divergência de "hoje" entre 21h-00h BRT — consolidar em `utils/date`); tab eventos sem paginação (limit 20 + caption por enquanto); `(app)/not-found.tsx` com chrome interno (hoje a 404 logada é a global).
+
 ## Resolved Blockers
 
 ### B-002: Docker Desktop unable to start ✅ RESOLVED 2026-05-15
