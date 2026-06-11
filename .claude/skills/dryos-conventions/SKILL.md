@@ -284,11 +284,12 @@ A visibilidade do app é gated por Operação. **Toda tabela com `operation_id` 
 
 ### Grants de função (pattern desde #127 / `20260611040158`)
 
-- O schema `public` tem `ALTER DEFAULT PRIVILEGES ... REVOKE EXECUTE ON FUNCTIONS FROM anon` **e** `FROM PUBLIC` — **função nova nasce sem EXECUTE de anon/PUBLIC**.
-- Helper de RLS novo (SECURITY DEFINER chamado em policy): precisa de `GRANT EXECUTE ON FUNCTION ... TO authenticated` explícito na migration (as migrations de helpers já seguem isso).
+- O default ACL **global** do `postgres` revoga EXECUTE de PUBLIC e concede a `service_role` — **função nova criada por migration nasce `{postgres=X, service_role=X}`**: sem EXECUTE de anon, authenticated ou PUBLIC (validado empiricamente com função-probe).
+- Helper de RLS novo (SECURITY DEFINER chamado em policy): **precisa** de `GRANT EXECUTE ON FUNCTION ... TO authenticated` explícito na migration, senão toda policy que o chama falha com "permission denied for function" pra membros (as migrations de helpers já seguem isso).
 - Função de trigger/event trigger: **nenhum grant** — trigger dispara com o privilégio do dono, EXECUTE do caller é irrelevante.
 - RPC pública deliberada (não existe hoje): grant explícito a `anon` com justificativa na migration.
-- **Gotcha:** `REVOKE FROM anon` é no-op se `PUBLIC` ainda tem o grant implícito de criação — anon herda via PUBLIC. Revogar dos dois.
+- **Gotcha 1:** `REVOKE FROM anon` em função existente é no-op se `PUBLIC` mantém o grant implícito de criação — anon herda via PUBLIC. Revogar dos dois.
+- **Gotcha 2:** `ALTER DEFAULT PRIVILEGES IN SCHEMA ... REVOKE` **não remove** o built-in PUBLIC EXECUTE (entrada por-schema só ADICIONA grants — nota da doc do Postgres). Só a entrada **global** (sem `IN SCHEMA`) substitui o built-in.
 
 ### Migrations
 

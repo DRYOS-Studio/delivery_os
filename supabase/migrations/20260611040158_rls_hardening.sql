@@ -124,13 +124,19 @@ REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION public.create_profile_for_new_user() FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM authenticated;
 
--- Fecha a recorrência nos dois níveis: o grant explícito de anon vinha do
--- default ACL do postgres, e o implícito viria de PUBLIC. Função futura criada
--- por migration nasce sem EXECUTE de anon/PUBLIC — helper de RLS novo precisa
--- do GRANT EXECUTE TO authenticated explícito (padrão que as migrations de
--- helpers já seguem); função de trigger não precisa de grant nenhum.
-ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE EXECUTE ON FUNCTIONS FROM anon;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
+-- Fecha a recorrência (validado empiricamente com função-probe no banco):
+-- o EXECUTE de anon/authenticated em função nova vem do default BUILT-IN do
+-- Postgres (PUBLIC=X), não de grant explícito. Entrada de default privileges
+-- POR-SCHEMA não remove o built-in — só adiciona grants (nota da doc do PG) —
+-- então `IN SCHEMA public REVOKE` é no-op pra isso; só a entrada GLOBAL
+-- substitui o built-in. Resultado: função futura criada como postgres (o
+-- caminho das migrations) nasce {postgres=X, service_role=X} — sem
+-- PUBLIC/anon/authenticated. Helper de RLS novo precisa do GRANT EXECUTE TO
+-- authenticated explícito (padrão que TODAS as migrations de helpers já seguem:
+-- 20260526190001, 20260610140000/140001/140002/150001); função de trigger não
+-- precisa de grant nenhum.
+ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
+ALTER DEFAULT PRIVILEGES GRANT EXECUTE ON FUNCTIONS TO service_role;
 
 -- ============================================================
 -- 4. STORAGE: policies escopadas por operação (Inv. 11/12)
