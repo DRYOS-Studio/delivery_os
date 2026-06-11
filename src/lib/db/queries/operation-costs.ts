@@ -306,6 +306,9 @@ export async function getActiveOperationsMonthlyCostsTotal(): Promise<number> {
         "*, operation:operations!fk_operation_costs_operation_id!inner(archived_at)",
       )
       .is("operation.archived_at", null)
+      // O agregado só usa custos mensais (totalMonthly não inclui `unica`) —
+      // não trafegar o histórico de custos pontuais do org inteiro.
+      .eq("recurrence", "mensal")
       .lte("started_at", today)
       .or(`ended_at.is.null,ended_at.gte.${today}`),
     supabase

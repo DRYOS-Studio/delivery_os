@@ -481,6 +481,11 @@ docs: update prd with villain decisions
 - Fontes via `next/font` (sem `<link>` Google Fonts no html)
 - Suspense boundaries em queries longas
 - Não busca dado no client se pode buscar no server
+- **Badge/count de tab ou nav vem de query `count: "exact", head: true` — nunca de `lista.length`.** Listas têm `limit` (meetings/decisions = 20); badge derivado de lista capped flip-flopa quando o total passa do cap (#131, BLOCKER do gate de design).
+- **`loading.tsx` só em segmento cuja page (e descendentes) NÃO lê `searchParams`.** Navegação same-page com searchParams diferente re-dispara o boundary — skeleton full-page a cada clique de tab (`?tab=`) ou filtro (`?q=`, `?view=`). Verificar com `grep -rln searchParams <segmento>` antes de criar o arquivo. Feedback de pending nessas páginas = `useLinkStatus` no link (ver TabsNav).
+- **Tab-nav usa `prefetch={false}`.** `<Link prefetch>` (full) em N tabs dispara N prefetches de rota dinâmica por visita — cada um re-executa a page inteira no servidor — e suprime o pending state do `useLinkStatus` (rota prefetched pula o pending). (#131)
+- **Agregado multi-linha filtra server-side via embed `!inner`, com payload constante.** Filtro de "operação ativa" via `operation.archived_at=is.null` no embed (funciona aninhado 2 níveis, validado contra PostgREST), não `.in(lista_de_ids)` — lista na URL cresce com K e estoura query string. Guard JS redundante permanece como defesa em profundidade (padrão do tema 2).
+- **Helpers de leitura per-request (`getUser`/`getProfile`) vivem em `React.cache()`, e derivados DELEGAM ao cacheado.** `getProfile` chama `getUser()` cacheado, não `supabase.auth.getUser()` direto — senão são 2 entradas de cache e o dedup não acontece. `require*` ficam FORA do wrapper (redirect/erro não se memoiza).
 
 ### Acessibilidade
 

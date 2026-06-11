@@ -185,9 +185,17 @@ async function loadTabContent(
       ]);
       return { ...base, publicLinks, baseUrl };
     }
-    // "frentes" (op.frentes), "briefing" e "custos" (shell) não têm query própria.
-    default:
+    // Tabs sem query própria: frentes (op.frentes), briefing e custos (shell).
+    case "frentes":
+    case "briefing":
+    case "custos":
       return base;
+    default: {
+      // Exhaustiveness: tab nova no union sem case aqui = erro de compile —
+      // sem isso ela renderizaria vazia em silêncio (defaults do base).
+      const _exhaustive: never = tab;
+      return _exhaustive;
+    }
   }
 }
 
@@ -203,14 +211,33 @@ export default async function Page({
 
   const currentPeriod = getCurrentPeriod();
 
-  // Onda 1 — gates: tudo que normalizeTab precisa (isAdmin, showAreaTab) e o
-  // notFound cedo. getProfile já era uma onda serial antes; agora ela é
-  // paralela e carrega os gates junto (audit #14).
-  const [profile, op, canCreateAreaTask, areaTasksCount] = await Promise.all([
+  // Onda 1 — gates (isAdmin, showAreaTab, notFound cedo) + TUDO que depende só
+  // de `id` (counts de badge, gates de escrita): não há razão pra serializar
+  // atrás do profile. getProfile já era uma onda serial antes (audit #14).
+  const [
+    profile,
+    op,
+    canCreateAreaTask,
+    areaTasksCount,
+    briefingFreshness,
+    canWrite,
+    meetingsCount,
+    decisionsCount,
+    attachmentsCount,
+    openIncidentsCount,
+    { tab: tabRaw },
+  ] = await Promise.all([
     getProfile(),
     getOperation(id),
     canCreateAreaTaskInOperation(id),
     countAreaTasksByOperation(id),
+    getBriefingFreshness(id),
+    canWriteOperation(id),
+    countMeetingsByOperation(id),
+    countDecisionsByOperation(id),
+    countOperationAttachments(id),
+    countOpenIncidents(id),
+    searchParams,
   ]);
   if (!op) notFound();
 
@@ -219,30 +246,14 @@ export default async function Page({
   // pode criar (admin / membro de área com concessão). Some pro resto.
   const showAreaTab = areaTasksCount > 0 || canCreateAreaTask;
 
-  const { tab: tabRaw } = await searchParams;
   const tab = normalizeTab(tabRaw, isAdmin, showAreaTab);
 
-  // Onda 2 — shell (counts de badge + gates de escrita + custos se admin) +
-  // conteúdo da tab ativa. Custos NUNCA roda pra member (antes rodava e o
-  // resultado era descartado); pra admin roda inteiro em qualquer tab porque
-  // alimenta a margin do hero e o badge da tab custos.
-  const [
-    briefingFreshness,
-    canWrite,
-    meetingsCount,
-    decisionsCount,
-    attachmentsCount,
-    openIncidentsCount,
-    costsBreakdown,
-    tabContent,
-  ] = await Promise.all([
-    getBriefingFreshness(id),
-    canWriteOperation(id),
-    countMeetingsByOperation(id),
-    countDecisionsByOperation(id),
-    countOperationAttachments(id),
-    countOpenIncidents(id),
-    isAdmin ? getOperationMonthlyCosts(id) : Promise.resolve(null),
+  // Onda 2 — só o que depende dos gates: custos (precisa de isAdmin; NUNCA
+  // roda pra member — antes rodava e o resultado era descartado; pra admin
+  // roda em qualquer tab porque alimenta a margin do hero e o badge) e o
+  // conteúdo da tab ativa (precisa do tab normalizado).
+  const [costsBreakdown, tabContent] = await Promise.all([
+    isAdmin ? getOperationMonthlyCosts(id) : null,
     loadTabContent(tab, id, currentPeriod.yyyymm),
   ]);
 
@@ -371,13 +382,24 @@ export default async function Page({
       )}
 
       {tab === "eventos" && (
-        <MeetingsDecisionsTimeline
-          meetings={meetings}
-          decisions={decisions}
-          operationId={op.id}
-          meetingAttachmentCounts={meetingAttachmentCounts}
-          canWrite={canWrite}
-        />
+        <>
+          <MeetingsDecisionsTimeline
+            meetings={meetings}
+            decisions={decisions}
+            operationId={op.id}
+            meetingAttachmentCounts={meetingAttachmentCounts}
+            canWrite={canWrite}
+          />
+          {/* Badge é o total real (count); as listas têm limit 20 cada — sem
+              esta nota, badge > itens visíveis parece dado perdido. */}
+          {meetingsCount + decisionsCount >
+            meetings.length + decisions.length && (
+            <p className="font-mono text-[10px] uppercase tracking-wider text-mute mt-2">
+              Mostrando os {meetings.length + decisions.length} registros mais
+              recentes de {meetingsCount + decisionsCount}
+            </p>
+          )}
+        </>
       )}
 
       {tab === "anexos" && (

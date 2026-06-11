@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/ui/Button";
+
 // Superfície pública: erro neutro, sem chrome interno, sem detalhe técnico.
 export default function PublicError({
   reset,
@@ -15,13 +17,7 @@ export default function PublicError({
       <p className="text-sm text-mute mb-6">
         Tente de novo em instantes. Se persistir, fale com o time DRYOS.
       </p>
-      <button
-        type="button"
-        onClick={reset}
-        className="inline-flex items-center rounded font-medium transition-colors bg-ink text-bg hover:bg-oak px-3.5 py-2 text-[13px]"
-      >
-        Tentar de novo
-      </button>
+      <Button onClick={reset}>Tentar de novo</Button>
     </div>
   );
 }

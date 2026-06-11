@@ -45,6 +45,9 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     externalCountRes,
     openAllocsRes,
     openTasksRes,
+    // 3 queries fixas independente de K operações (audit #9) — antes era
+    // 3 queries seriais × K, com scan org-wide de allocations por chamada.
+    monthlyCostsTotal,
   ] = await Promise.all([
     supabase
       .from("operations")
@@ -77,6 +80,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
       // KPI de entrega: exclui tarefas de área (back-office transversal).
       .is("area_id", null)
       .in("status", ["todo", "doing", "blocked"]),
+    getActiveOperationsMonthlyCostsTotal(),
   ]);
 
   if (opsRes.error)
@@ -124,9 +128,6 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
   ).length;
   const frentesStale = frentes.length - frentesHealthy;
 
-  // 3 queries fixas independente de K operações (audit #9) — antes era
-  // 3 queries seriais × K, com scan org-wide de allocations por chamada.
-  const monthlyCostsTotal = await getActiveOperationsMonthlyCostsTotal();
   const monthlyMarginTotal = mrrTotal - monthlyCostsTotal;
 
   return {

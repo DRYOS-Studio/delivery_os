@@ -175,7 +175,7 @@ export async function listPublicTeam(
     .from("allocations")
     .select(
       `
-      person_id, start_date, end_date,
+      person_id, end_date,
       frente:frentes!fk_allocations_frente_id!inner (operation_id, archived_at),
       person:persons!fk_allocations_person_id (
         id, name, kind, specialty, external_role, archived_at
@@ -190,7 +190,6 @@ export async function listPublicTeam(
 
   type Row = {
     person_id: string;
-    start_date: string;
     end_date: string | null;
     frente:
       | { operation_id: string; archived_at: string | null }
@@ -219,6 +218,8 @@ export async function listPublicTeam(
   const rows = (data ?? []) as Row[];
   const seen = new Map<string, TeamPerson>();
   for (const r of rows) {
+    // Defesa em profundidade: os filtros server-side acima são o isolamento
+    // real; estes guards só impedem que regressão de embed vire leak.
     if (r.end_date !== null && r.end_date <= today) continue;
     const frente = Array.isArray(r.frente) ? r.frente[0] : r.frente;
     if (!frente || frente.operation_id !== operationId) continue;

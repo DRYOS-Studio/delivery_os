@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { buttonClassName } from "@/components/ui/Button";
 
 // 404 global. Copy neutra de propósito: também é o que um visitante externo vê
 // em URL pública malformada fora do shape /public/[token] — nada de informação
@@ -16,10 +17,7 @@ export default function NotFound() {
         <p className="text-sm text-mute mb-6">
           O endereço não existe ou não está mais disponível.
         </p>
-        <Link
-          href="/"
-          className="inline-flex items-center rounded font-medium transition-colors bg-ink text-bg hover:bg-oak px-3.5 py-2 text-[13px]"
-        >
+        <Link href="/" className={buttonClassName()}>
           Ir para o início
         </Link>
       </div>

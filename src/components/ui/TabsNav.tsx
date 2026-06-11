@@ -7,15 +7,15 @@ import { cn } from "@/lib/utils/cn";
 // Feedback pontual de navegação pendente no tab clicado (sem loading.tsx:
 // boundary ancestral flasharia skeleton full-page a cada troca de tab).
 // Só aparece com prefetch={false} — rota prefetched pula o pending state.
+// Posicionado absoluto: não vira item de flex (sem espaço fantasma do gap)
+// e aparecer/sumir não desloca os tabs vizinhos.
 function TabPendingIndicator() {
   const { pending } = useLinkStatus();
+  if (!pending) return null;
   return (
     <span
       aria-hidden
-      className={cn(
-        "inline-block w-1.5 h-1.5 rounded-full bg-oak transition-opacity",
-        pending ? "opacity-100 animate-pulse" : "opacity-0 w-0",
-      )}
+      className="absolute top-1.5 right-0.5 w-1.5 h-1.5 rounded-full bg-oak animate-pulse"
     />
   );
 }
@@ -56,7 +56,7 @@ export function TabsNav<K extends string>({
               prefetch={false}
               scroll={false}
               className={cn(
-                "inline-flex items-center gap-2 px-3 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors snap-start",
+                "relative inline-flex items-center gap-2 px-3 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors snap-start",
                 isActive
                   ? "border-ink text-ink"
                   : "border-transparent text-mute hover:text-ink",
