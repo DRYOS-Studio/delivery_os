@@ -49,7 +49,7 @@
 ## Constraints
 
 - Timeline: 5 semanas (cronograma em ROADMAP.md). Solo dev (Rafael).
-- Technical: TypeScript estrito sem `any`. RLS em toda tabela. Status acionável validado no banco. Pills coloridas como sistema canônico de status (5 cores, sem expansão deliberada).
+- Technical: TypeScript estrito sem `any`. RLS em toda tabela. Status acionável validado no banco. Pills coloridas como sistema canônico de status (6 cores, sem expansão deliberada).
 - Resources: Bitwarden Teams (~US$ 4/usuário/mês), Tally (free), Discord (free), Supabase free/pro, Vercel free/pro.
 
 ## Documentos canônicos

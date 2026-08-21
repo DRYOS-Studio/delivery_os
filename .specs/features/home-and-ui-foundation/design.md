@@ -52,7 +52,7 @@ graph TD
 | Tailwind 4 | Classes diretas; sem `tailwind.config.ts`. Tokens já no `@theme inline` |
 | Next 16 | Server Components default; `'use client'` só onde precisa (`usePathname`) |
 | RLS | Já habilitado; user autenticado pode SELECT em tudo |
-| Mockup canônico | `docs/mockup-v2.html` (na verdade arquivo `dryos-delivery-mockup-v2.html` na raiz) — referência visual; **não inventar** desvio |
+| Mockup canônico | `docs/mockup-v2.html` — referência visual; **não inventar** desvio |
 
 ---
 

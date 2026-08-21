@@ -40,7 +40,7 @@ Toda decisão de design e código passa por estes filtros antes de virar PR:
 6. **Os 7 vilões são universo de marca.** Sem custom por cliente. Seed do banco, nunca delete (apenas archive).
 7. **Não substituir o que funciona fora.** Toggl, GitHub, Discord, Cockpit ficam fora.
 8. **Cream papel é padrão.** Modo escuro replica o tratamento Core do site (preto + sage).
-9. **Pills coloridas são o sistema canônico de status.** 5 cores cobrem tudo (neutra, oak, sage, warning, critical). Adicionar nova é decisão deliberada, não improviso.
+9. **Pills coloridas são o sistema canônico de status.** 6 cores cobrem tudo (neutra, oak, sage, ok, warning, critical). Adicionar nova é decisão deliberada, não improviso.
 10. **Ícones são funcionais, nunca decorativos.** Lucide React, stroke 1.75.
 11. **Hierarquia tipográfica calibrada.** Funnel Display 600-700 só pra hero/KPIs/nomes. Onest 500-600 em 14-16px no resto.
 
@@ -317,7 +317,18 @@ A pasta `docs/` é a **referência viva** do sistema. Serve dois públicos: o ti
 | Componente DS novo ou variante de Pill nova | `.claude/skills/dryos-design-system/SKILL.md` |
 | Convenção de código nova | `.claude/skills/dryos-conventions/SKILL.md` |
 
-Os arquivos `docs/architecture/*` e `docs/workflows/*` não existem hoje — criar conforme a área correspondente ganhar peso (provavelmente a partir da semana 2/3 do MVP).
+Estado real do que existe hoje em `docs/`:
+
+| Arquivo | Estado |
+|---|---|
+| `docs/prd.md` | vivo — canônico de domínio, princípios, escopo |
+| `docs/mockup-v2.html` | vivo — canônico visual |
+| `docs/DATABASE_SCHEMA.md` | vivo — catálogo de tabelas por módulo |
+| `docs/workflows/tarefas.md` | vivo — único workflow escrito |
+| `docs/audits/AUDIT-<data>.md` | registro datado — **não editar**, é a foto daquele dia |
+| `docs/architecture/*` | **não existe** — criar conforme a área ganhar peso |
+
+Registro datado (`docs/audits/`, `.specs/features/*`) não se reconcilia com o código: era verdade na data e o valor dele é justamente isso. Doc vivo que divergiu do código é bug e se corrige.
 
 ### Como o agente deve agir
 
@@ -402,4 +413,4 @@ Em caso de dúvida sobre uma decisão de design ou modelo, **consulta o PRD ante
 
 ---
 
-`— Última revisão: maio 2026`
+`— Última revisão: agosto 2026`

@@ -1,7 +1,7 @@
 # link-publico-narrativa Specification
 
 **Issue:** [#67](https://github.com/rafaelemeth/delivery_os/issues/67)
-**Mockup canônico:** `dryos-delivery-mockup-v2.html` → section `#screen-public` (linhas 3053–3295)
+**Mockup canônico:** `docs/mockup-v2.html` → section `#screen-public` (linhas 3053–3295)
 
 ## Problem Statement
 
@@ -216,7 +216,7 @@ Esta feature transforma a aba "Visão" do link público no relatório mensal nar
 ## Success Criteria
 
 - [ ] Abrir `/public/[token]` de qualquer Operação ativa mostra as 6 seções na ordem do mockup
-- [ ] Layout fiel ao `dryos-delivery-mockup-v2.html#screen-public` em light e dark mode
+- [ ] Layout fiel ao `docs/mockup-v2.html#screen-public` em light e dark mode
 - [ ] Admin consegue editar narrativa de qualquer vilão em < 30s e ver refletido no link público
 - [ ] Hero stat de QWs do mês confere com count manual no banco
 - [ ] Tabs Frentes/Reuniões/Anexos/SLA continuam funcionando como drill-down (zero regressão)
