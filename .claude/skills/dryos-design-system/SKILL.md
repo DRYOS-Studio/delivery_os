@@ -217,7 +217,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 ### Pill (status canônico)
 
-Pill é o sistema canônico de status. Cinco variantes. **Não criar nova variante sem aprovação.**
+Pill é o sistema canônico de status. Seis variantes. **Não criar nova variante sem aprovação.**
 
 ```typescript
 // src/components/ui/Pill.tsx

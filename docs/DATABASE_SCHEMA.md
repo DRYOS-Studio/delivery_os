@@ -393,7 +393,7 @@ Rota pública: `/public/[token]` (fora do `(app)`, sem auth). O resolver do toke
 
 ### `sla_incidents` — incidente operacional com timestamps
 
-SLA prometido vive em `operations.response_hours/resolution_hours`. Breach calculado em runtime via helper `utils/sla.ts`.
+SLA prometido vive em `operations.response_hours/resolution_hours`. Breach calculado em runtime via helper `src/lib/utils/sla.ts`.
 
 | Coluna | Tipo | Notas |
 |---|---|---|

@@ -51,7 +51,7 @@ DRYOS Delivery resolve essas três dores e nada mais. Não tenta substituir Togg
 
 `— 08` **Cream papel é padrão.** Modo escuro replica o tratamento da seção Core do site.
 
-`— 09` **Pills coloridas são o sistema canônico de status.** Toda situação vira pill com cor funcional. Cinco cores cobrem todos os estados (neutro, oak/marca, sage/positivo, warning, critical). Novos estados precisam caber numa cor existente; adicionar nova cor é decisão deliberada de design system, não improviso.
+`— 09` **Pills coloridas são o sistema canônico de status.** Toda situação vira pill com cor funcional. Seis cores cobrem todos os estados (neutro, oak/marca, sage/positivo, ok, warning, critical). Novos estados precisam caber numa cor existente; adicionar nova cor é decisão deliberada de design system, não improviso.
 
 `— 10` **Ícones são funcionais, nunca decorativos.** Todo ícone descreve uma natureza (entidade, ação, status). Lucide-style, stroke 1.75, cor oak por padrão.
 
@@ -211,7 +211,7 @@ Cada item: título do problema + sub mono + pill colorida indicando estado.
 
 Mesma alma da marca DRYOS — fontes editoriais, paleta oak/cream/sage, em-dashes em labels mono — mas com vocabulário de produto SaaS de qualidade (Linear/Vercel/Stripe). Mais legível em uso intenso, com hierarquia tipográfica calibrada.
 
-**Referência canônica:** `dryos-delivery-mockup-v2.html`
+**Referência canônica:** `docs/mockup-v2.html`
 
 ### Cores
 
@@ -406,7 +406,7 @@ Mitigação: o sistema não deixa salvar Frente com status genérico. Validaçã
 Mitigação: popular com 8-12 tipos no go-live, baseado no histórico dos últimos meses da DRYOS. Revisar mensalmente nos primeiros 6 meses.
 
 **Risco: criar pills de status novas a cada situação que surge.**
-Mitigação: princípio `— 09`. Novo estado tem que caber em uma das 5 cores existentes. Adicionar nova cor é decisão deliberada documentada no Catálogo, não improviso de PR.
+Mitigação: princípio `— 09`. Novo estado tem que caber em uma das 6 cores existentes. Adicionar nova cor é decisão deliberada documentada no Catálogo, não improviso de PR.
 
 ---
 
@@ -438,7 +438,7 @@ Mitigação: princípio `— 09`. Novo estado tem que caber em uma das 5 cores e
 
 **Link público** — view filtrada e somente leitura da Operação, acessível via token, sem login. Apresenta o relatório de vilões e quick wins em formato de produto premium.
 
-**Pill** — elemento visual canônico de status no DRYOS Delivery. Cinco variantes funcionais cobrem todos os estados do sistema.
+**Pill** — elemento visual canônico de status no DRYOS Delivery. Seis variantes funcionais cobrem todos os estados do sistema.
 
 ---
 
@@ -466,9 +466,9 @@ Decisões deliberadas tomadas durante a conversa de design, registradas pra cont
 
 10. **Form builder externo via Tally.** Construir próprio fica explicitamente fora do escopo.
 
-11. **Linguagem visual v2 (produto contemporâneo) é a oficial.** Cards com radius, pills coloridas, ícones funcionais, sage como cor de ação. v1 editorial puro foi descartada como linguagem principal. Mockup `dryos-delivery-mockup-v2.html` é a referência canônica.
+11. **Linguagem visual v2 (produto contemporâneo) é a oficial.** Cards com radius, pills coloridas, ícones funcionais, sage como cor de ação. v1 editorial puro foi descartada como linguagem principal. Mockup `docs/mockup-v2.html` é a referência canônica.
 
-12. **Pills coloridas são sistema canônico de status.** Cinco cores cobrem tudo. Novos estados cabem nelas; expansão de cores é decisão deliberada, não improviso.
+12. **Pills coloridas são sistema canônico de status.** Seis cores cobrem tudo. Novos estados cabem nelas; expansão de cores é decisão deliberada, não improviso.
 
 13. **Ambiente de construção é Claude Code, não Lovable.** Schema modelado antes da UI, types do Supabase, MCP conectado, git versionado.
 

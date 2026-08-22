@@ -375,7 +375,7 @@ SELECT
 - [ ] Click "Catálogo" / "Painel" → respectivos placeholders
 - [ ] Logout pela Sidebar funciona → cai em `/login`
 - [ ] Após push + merge: produção (`https://delivery-os-phi.vercel.app/`) idem
-- [ ] Visual confere com `dryos-delivery-mockup-v2.html` (cores, pills, tipografia)
+- [ ] Visual confere com `docs/mockup-v2.html` (cores, pills, tipografia)
 
 ---
 
