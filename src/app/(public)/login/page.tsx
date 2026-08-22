@@ -1,4 +1,5 @@
 import { LoginForm } from "@/components/auth/LoginForm";
+import { safeRedirectPath } from "@/lib/utils/safe-redirect";
 
 type SearchParams = Promise<{ redirectTo?: string; error?: string }>;
 
@@ -8,10 +9,7 @@ export default async function LoginPage({
   searchParams: SearchParams;
 }) {
   const { redirectTo, error } = await searchParams;
-  const safeRedirectTo =
-    typeof redirectTo === "string" && redirectTo.startsWith("/")
-      ? redirectTo
-      : "/";
+  const safeRedirectTo = safeRedirectPath(redirectTo);
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-bg p-7">
