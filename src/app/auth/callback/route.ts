@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { createServer } from "@/lib/db/client";
+import { safeRedirectPath } from "@/lib/utils/safe-redirect";
 
 export async function GET(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const next = url.searchParams.get("next");
-  const safeNext = next && next.startsWith("/") ? next : "/";
+  const safeNext = safeRedirectPath(next);
 
   if (!code) {
     return NextResponse.redirect(

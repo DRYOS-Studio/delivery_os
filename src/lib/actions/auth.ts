@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { type ActionResult, err, ok } from "@/lib/actions/_types";
 import { createServer } from "@/lib/db/client";
+import { safeRedirectPath } from "@/lib/utils/safe-redirect";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -22,10 +23,7 @@ export async function signInWithPasswordAction(
 
   const email = rawEmail.trim().toLowerCase();
   const password = rawPassword;
-  const redirectTo =
-    typeof rawRedirectTo === "string" && rawRedirectTo.startsWith("/")
-      ? rawRedirectTo
-      : "/";
+  const redirectTo = safeRedirectPath(rawRedirectTo);
 
   const supabase = await createServer();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
