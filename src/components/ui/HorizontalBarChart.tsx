@@ -64,7 +64,7 @@ export function HorizontalBarChart({
   data,
   format = "raw",
   height = 240,
-  color = "#5C8866",
+  color = "var(--color-sage-deep)",
   emptyLabel = "Sem dados",
 }: Props) {
   if (data.length === 0) {

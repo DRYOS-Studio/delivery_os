@@ -84,8 +84,12 @@ export function PublicVillainsList({
                     className="h-full rounded-pill transition-all"
                     style={{
                       width: `${item.progressPct}%`,
+                      // Mesma expressão de VillainProgressBar.tsx:20. O
+                      // utilitário `from-oak to-sage` também funcionaria, mas o
+                      // Tailwind 4 interpola gradiente em oklab — os extremos
+                      // ficariam iguais e o meio da barra mudaria.
                       background:
-                        "linear-gradient(90deg, #1F3A2A 0%, #93B596 100%)",
+                        "linear-gradient(90deg, var(--color-oak) 0%, var(--color-sage) 100%)",
                     }}
                   />
                 </div>
@@ -93,7 +97,7 @@ export function PublicVillainsList({
 
               <div className="flex sm:flex-col items-center justify-center text-center bg-surface rounded p-4 sm:p-5 gap-3 sm:gap-0 col-span-full lg:col-span-1">
                 <div
-                  className="font-display font-bold leading-none sm:mb-1.5 text-[#5C8866]"
+                  className="font-display font-bold leading-none sm:mb-1.5 text-sage-deep"
                   style={{
                     fontSize: "2.5rem",
                     letterSpacing: "-0.035em",
