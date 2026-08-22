@@ -10,7 +10,7 @@ type Props = {
 
 export function Sparkline({
   data,
-  color = "#5C8866",
+  color = "var(--color-sage-deep)",
   height = 40,
 }: Props): React.JSX.Element {
   const chartData = data.map((value, i) => ({ i, value }));

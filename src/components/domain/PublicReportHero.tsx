@@ -40,7 +40,11 @@ export function PublicReportHero({
     <section
       className="relative rounded-lg overflow-hidden mb-10 px-8 py-12 sm:px-12 sm:py-14 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-8 items-center"
       style={{
-        background: "linear-gradient(135deg, #1F3A2A 0%, #2a4d39 100%)",
+        // `#2a4d39` não tem token equivalente: é o segundo stop deste gradiente
+        // e nada mais no DS usa esse valor. O DS descreve o hero canônico como
+        // oak sólido + gradiente sage radial (SKILL.md), então este linear de
+        // dois stops é uma divergência de design — decisão do Rafael, não chore.
+        background: "linear-gradient(135deg, var(--color-oak) 0%, #2a4d39 100%)",
       }}
     >
       <div
@@ -59,7 +63,7 @@ export function PublicReportHero({
           className="inline-flex items-center gap-1.5 mb-5 px-3 py-1 rounded-pill font-mono text-[10px] uppercase tracking-wider"
           style={{
             background: "rgba(147, 181, 150, 0.2)",
-            color: "#93B596",
+            color: "var(--color-sage)",
           }}
         >
           <Zap className="w-3.5 h-3.5" strokeWidth={1.75} />
@@ -103,7 +107,7 @@ export function PublicReportHero({
           style={{
             fontSize: "3rem",
             letterSpacing: "-0.035em",
-            color: "#93B596",
+            color: "var(--color-sage)",
           }}
         >
           {data.qwCountCurrent}
