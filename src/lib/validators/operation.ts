@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  WEBHOOK_URL_PROBLEM_MESSAGE,
+  checkWebhookUrl,
+} from "@/lib/notifications/webhook-url";
 
 const emptyToUndefined = (v: unknown) => (v === "" ? undefined : v);
 
@@ -80,7 +84,19 @@ export const operationSchema = z
     ),
     notification_webhook_url: z.preprocess(
       emptyToUndefined,
-      z.string().url("URL inválida.").max(500, "URL muito longa.").optional(),
+      z
+        .string()
+        .max(500, "URL muito longa.")
+        .superRefine((v, ctx) => {
+          const problem = checkWebhookUrl(v);
+          if (problem) {
+            ctx.addIssue({
+              code: "custom",
+              message: WEBHOOK_URL_PROBLEM_MESSAGE[problem],
+            });
+          }
+        })
+        .optional(),
     ),
   })
   .refine(

@@ -661,7 +661,7 @@ Index dedup: `(operation_id, event_type, subject_id, sent_at DESC)`.
 - INSERT: admin-only via policy (Server Actions); cron usa `createAdmin()` (service-role bypassa RLS).
 - Member não vê — notificações são internas.
 
-**Coluna relacionada:** `operations.notification_webhook_url` (text NULL) — URL n8n por Operação; NULL = no-op silencioso.
+**Coluna relacionada:** `operations.notification_webhook_url` (text NULL) — URL n8n por Operação; NULL = no-op silencioso. Destino é validado por `checkWebhookUrl` (`src/lib/notifications/webhook-url.ts`) **duas vezes**: no validator da Operação (escrita) e no `dispatch` (envio) — só `https`, porta 443, host público, e o `fetch` não segue redirect. O destino é arbitrário de propósito (é o n8n do cliente), então não há allowlist de host. DNS rebinding segue descoberto — precisa de validação no connect.
 
 **Dispatcher:** `src/lib/notifications/dispatcher.ts` POSTa + loga aqui em uma transação lógica (POST → registra status). Timeout 10s. Nunca lança — notificação não pode quebrar fluxo principal.
 

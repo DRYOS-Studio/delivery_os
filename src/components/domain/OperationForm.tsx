@@ -498,7 +498,7 @@ export function OperationForm(props: Props): React.JSX.Element {
           label="Webhook de notificação (n8n)"
           htmlFor="notification_webhook_url"
           error={errors.notification_webhook_url?.message}
-          hint="URL pra onde DRYOS posta eventos (Frente parada, SLA estourado). Deixe em branco pra desligar."
+          hint="URL pra onde DRYOS posta eventos (Frente parada, SLA estourado). Precisa ser https em domínio público. Deixe em branco pra desligar."
         >
           <input
             id="notification_webhook_url"
