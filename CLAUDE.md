@@ -2,6 +2,11 @@
 
 Sistema operacional interno da DRYOS para gerir entrega de Core, Sparks e Studio. Conecta Proposta → Implantação → Operação contínua → Renovação, com narrativa dos 7 vilões da marca.
 
+**Dois nomes, de propósito.** `DRYOS Delivery` é o sistema — repo, docs,
+`package.json`. `DRYOS Studio` é a marca que o usuário vê na interface desde o
+PR #70 (`layout.tsx` title, login, layout público, MobileShell). Não é deriva
+de documentação: não "corrija" um pro outro.
+
 **Documento canônico:** `docs/prd.md`
 **Referência visual canônica:** `docs/mockup-v2.html`
 

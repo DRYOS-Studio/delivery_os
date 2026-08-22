@@ -8,6 +8,10 @@ Não é um app público: acesso por login (Supabase Auth), com uma única
 superfície aberta — o relatório do cliente em `/public/[token]`, servido por
 token revogável.
 
+Na interface o produto se apresenta como **DRYOS Studio** — é a marca que o
+usuário vê (PR #70). `DRYOS Delivery` é o sistema: repo, docs, `package.json`.
+Os dois convivem de propósito; não "corrija" um pro outro.
+
 ## Stack
 
 | Camada | Escolha |
