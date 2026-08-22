@@ -72,9 +72,19 @@ Combina com `?filter=open|done|all`. Criar direto daqui em `/tasks/new`
 (`TaskQuickCreateForm`, cascade Operação → Frente; Quick Win e incidente SLA
 ficam fora — dependem da Operação e moram no form por Frente).
 
-⚠️ `listTasks` não filtra `area_id` nem `parent_task_id` e **não tem `.limit()`**
-— `/tasks` mistura entrega, área e subtarefa, e a tab "Todas" degrada primeiro
-(achado #21 da auditoria, aberto).
+⚠️ `listTasks` continua sem filtrar `area_id` nem `parent_task_id` — `/tasks`
+mistura entrega, área e subtarefa de propósito (é a visão agregada).
+
+O teto é `TASKS_PAGE_LIMIT` (200, em `queries/tasks.ts`). Quando o total de
+`countTasks` passa do que veio, o `TasksList` mostra "Mostrando 200 de N".
+Não há paginação por página ainda — o corte é um teto só.
+
+A ordenação inteira mora no banco: com teto, reordenar em JS depois do fetch
+reordenaria só a fatia trazida. Na aba **Todas**, `completed_at` entra como
+chave primária (nulos primeiro), o que coloca aberta antes de concluída — o
+trigger `manage_task_completed_at` garante que ele é `NULL` exatamente
+enquanto a tarefa não é `done`. Efeito colateral aceito: nessa aba, tarefa
+concluída ordena por **data de conclusão**, não por prazo.
 
 ## Tarefa de área
 

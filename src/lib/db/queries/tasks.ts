@@ -288,6 +288,12 @@ function mapCrossFrenteRow(row: CrossFrenteJoinedRow): CrossFrenteTaskRow {
  * Lista tasks agregadas de todas as Frentes visíveis (RLS aplica o gating por
  * Operação). `assigneePersonId` undefined = todas; informado = só daquela pessoa.
  */
+/**
+ * Teto de linhas do `/tasks`. A página compara `tasks.length` com o total de
+ * `countTasks` pra sinalizar truncamento — não há paginação por página ainda.
+ */
+export const TASKS_PAGE_LIMIT = 200;
+
 export async function listTasks(
   filter: TaskListFilter,
   assigneePersonId?: string,
@@ -302,19 +308,26 @@ export async function listTasks(
   if (filter === "open") query = query.in("status", OPEN_STATUSES);
   else if (filter === "done") query = query.eq("status", "done");
 
+  // Ordenação toda no banco: com teto, reordenar em JS depois do fetch
+  // reordenaria só a fatia trazida, não o conjunto.
+  //
+  // Em "todas", `completed_at` entra como chave primária com nulos primeiro —
+  // o trigger `manage_task_completed_at` garante que ele é NULL exatamente
+  // enquanto a tarefa não está `done`, então isso é "aberta antes de
+  // concluída". Nas abas "open"/"done" todas as linhas têm a mesma
+  // done-ness, então a chave seria inerte e fica de fora.
+  if (filter === "all") {
+    query = query.order("completed_at", { ascending: true, nullsFirst: true });
+  }
+
   const { data, error } = await query
     .order("due_date", { ascending: true, nullsFirst: false })
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(TASKS_PAGE_LIMIT);
   if (error) throw new Error(`listTasks: ${error.message}`);
   if (!data) return [];
 
-  return (data as unknown as CrossFrenteJoinedRow[])
-    .map(mapCrossFrenteRow)
-    .sort((a, b) => {
-      const aDone = a.status === "done" ? 1 : 0;
-      const bDone = b.status === "done" ? 1 : 0;
-      return aDone - bDone;
-    });
+  return (data as unknown as CrossFrenteJoinedRow[]).map(mapCrossFrenteRow);
 }
 
 export async function countTasks(

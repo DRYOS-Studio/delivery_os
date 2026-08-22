@@ -1,7 +1,11 @@
 import { MyTaskListItem } from "@/components/domain/MyTaskListItem";
 import { TasksToolbar } from "@/components/domain/TasksToolbar";
 import type { InternalPersonItem } from "@/lib/db/queries/persons";
-import type { CrossFrenteTaskRow, TaskListFilter } from "@/lib/db/queries/tasks";
+import {
+  TASKS_PAGE_LIMIT,
+  type CrossFrenteTaskRow,
+  type TaskListFilter,
+} from "@/lib/db/queries/tasks";
 
 type Props = {
   tasks: CrossFrenteTaskRow[];
@@ -37,6 +41,10 @@ export function TasksList({
   myPersonId,
 }: Props) {
   const showAssignee = selectedAssignee === "all";
+  // `counts` vem de countTasks (total real, sem teto); `tasks` já vem cortado
+  // em TASKS_PAGE_LIMIT. A diferença é o que a lista não está mostrando.
+  const total = counts[filter];
+  const truncated = total > tasks.length;
 
   return (
     <section>
@@ -64,6 +72,12 @@ export function TasksList({
                 showAssignee={showAssignee}
               />
             ))}
+            {truncated && (
+              <li className="text-xs text-mute font-mono">
+                Mostrando {TASKS_PAGE_LIMIT} de {total}. Refine por responsável
+                ou aba pra ver o resto.
+              </li>
+            )}
           </ul>
         </div>
       )}
