@@ -47,3 +47,4 @@ supabase/.branches/
 graphify-out/
 
 .claude/worktrees/
+.claude/settings.json
