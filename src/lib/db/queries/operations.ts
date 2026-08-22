@@ -278,7 +278,7 @@ export async function getOperation(id: string): Promise<OperationDetail | null> 
         actionable_status, actionable_status_since,
         responsible_person_id, archived_at, created_at,
         responsible:persons!fk_frentes_responsible_person_id(name),
-        tasks(id, status)
+        tasks(id, status, parent_task_id)
       )
       `,
     )
@@ -292,10 +292,17 @@ export async function getOperation(id: string): Promise<OperationDetail | null> 
     .filter((f) => f.archived_at === null)
     .sort((a, b) => a.created_at.localeCompare(b.created_at))
     .map((f) => {
-      const tasksList = (f as unknown as { tasks?: Array<{ status: string }> })
-        .tasks ?? [];
+      const tasksList =
+        (
+          f as unknown as {
+            tasks?: Array<{ status: string; parent_task_id: string | null }>;
+          }
+        ).tasks ?? [];
+      // Subtarefa não conta: mesma regra do header do detalhe da Frente
+      // (app/operations/[id]/frentes/[fid]/page.tsx). Contar as duas coisas
+      // fazia a mesma Frente mostrar números diferentes nas duas telas.
       const openTasksCount = tasksList.filter(
-        (t) => t.status !== "done",
+        (t) => t.parent_task_id === null && t.status !== "done",
       ).length;
       return {
         id: f.id,

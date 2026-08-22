@@ -195,19 +195,6 @@ export async function getTask(id: string): Promise<TaskRow | null> {
   return mapRow(data as unknown as TaskJoinedRow);
 }
 
-export async function countOpenTasksByFrente(
-  frenteId: string,
-): Promise<number> {
-  const supabase = await createServer();
-  const { count, error } = await supabase
-    .from("tasks")
-    .select("id", { count: "exact", head: true })
-    .eq("frente_id", frenteId)
-    .in("status", ["todo", "doing", "blocked"]);
-  if (error) throw new Error(`countOpenTasksByFrente: ${error.message}`);
-  return count ?? 0;
-}
-
 export async function countAllOpenTasks(): Promise<number> {
   const supabase = await createServer();
   const { count, error } = await supabase

@@ -37,8 +37,8 @@ Tarefa órfã de *Frente* existe e é normal: é a tarefa de área.
 O caminho padrão pela Operação: `/operations` → clique na Operação → section
 **Frentes** → clique no nome da Frente (oak) ou em **Abrir →**.
 
-Cada linha de Frente exibe uma Pill com contagem de tarefas não-concluídas —
-`sage` quando há alguma, `neutral` quando é 0.
+Cada linha de Frente exibe uma Pill com contagem de tarefas não-concluídas de
+top-level (subtarefa não conta) — `sage` quando há alguma, `neutral` quando é 0.
 
 > **Editar Frente** não fica na linha. A ação vive dentro do detail page, no
 > `FrenteMetaCard` ("Editar Frente →"). Clicar abre; editar é ação interna.
@@ -135,17 +135,19 @@ Nos forms é checkbox múltiplo; na lista por Frente vira grupo de avatares; em
 
 | Superfície | O que conta | Origem |
 |---|---|---|
-| Pill na linha da Frente (`/operations/[id]`) | todas as não-`done` da Frente, **incluindo subtarefa** | `queries/operations.ts:297` |
+| Pill na linha da Frente (`/operations/[id]`) | só top-level (`parent_task_id` null), não-`done` | `queries/operations.ts:305` |
 | Header do detalhe da Frente | só top-level (`parentTaskId` null) | `frentes/[fid]/page.tsx:48` |
 | Badge do nav "Tasks" | minhas abertas | `countMyOpenTasks` |
 | Card "Tarefas abertas" (`/admin/dashboard`) | abertas nas Frentes não-arquivadas, admin-only | `countAllOpenTasks` |
 
-A divergência entre as duas primeiras é real: a mesma Frente pode mostrar "5
-tarefas" na lista da Operação e "3 abertas" no próprio header. Não é
-documentação desatualizada, é o código de hoje.
+As duas primeiras usam a mesma regra: **subtarefa não conta**. Até a issue
+#136 divergiam — a lista somava subtarefa e o header não, então a mesma Frente
+mostrava "5 tarefas" numa tela e "3 abertas" na outra.
 
-`countOpenTasksByFrente` (`queries/tasks.ts:198`) não tem consumidor — código
-morto, deixado no lugar de propósito (não é escopo deste doc removê-lo).
+As duas últimas contam por allowlist (`OPEN_STATUSES`) em vez de `!== "done"`.
+Hoje é equivalente, porque `task_status` é exatamente
+`todo | doing | blocked | done` — se um status novo entrar, as duas formas
+divergem.
 
 ## Onde a tarefa aparece — e onde não
 
