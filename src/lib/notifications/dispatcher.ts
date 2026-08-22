@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/db/types";
 import type { NotificationPayload, SubjectKind } from "./types";
+import { checkWebhookUrl } from "./webhook-url";
 
 const TIMEOUT_MS = 10_000;
 
@@ -28,17 +29,32 @@ export async function dispatch(
   let status = 0;
   let errMsg: string | null = null;
 
-  try {
-    const res = await fetch(input.webhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(input.payload),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    });
-    status = res.status;
-    if (!res.ok) errMsg = `HTTP ${res.status}`;
-  } catch (e) {
-    errMsg = e instanceof Error ? e.message : "unknown error";
+  // Revalida no envio, não só na escrita: o validator é UX, este é o limite.
+  // A URL pode ter entrado por outro caminho (SQL direto, migration, seed).
+  const problem = checkWebhookUrl(input.webhookUrl);
+  if (problem) {
+    errMsg = `blocked destination (${problem})`;
+  } else {
+    try {
+      const res = await fetch(input.webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input.payload),
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+        // Sem seguir redirect: um webhook legítimo não redireciona, e seguir
+        // deixaria um host público pivotar pra 169.254.169.254 depois de já
+        // ter passado pelo checkWebhookUrl.
+        redirect: "manual",
+      });
+      status = res.status;
+      if (status >= 300 && status < 400) {
+        errMsg = `HTTP ${status} (redirect não seguido)`;
+      } else if (!res.ok) {
+        errMsg = `HTTP ${res.status}`;
+      }
+    } catch (e) {
+      errMsg = e instanceof Error ? e.message : "unknown error";
+    }
   }
 
   // Loga sempre, mesmo em falha. Status 0 = timeout/rede.
