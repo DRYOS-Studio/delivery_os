@@ -12,6 +12,26 @@ de documentação: não "corrija" um pro outro.
 
 ---
 
+## ⚠️ Afirmar sem LER o código é PROIBIDO
+
+**Plausível não é verificado, e "eu li" só vale se eu abri o arquivo.** Antes de afirmar um mecanismo,
+recomendar uma abordagem ou dar um critério por cumprido: **execute a coisa que prova** — a saída real
+do comando, do ORM, do teste. Quando não der para executar, diga que é **leitura, não verificação**.
+
+⛔ **E leitura tem PISO: abri o arquivo naquelas linhas e cito `arquivo:linha`**, de forma que qualquer
+um confira em 10 segundos. Afirmar a partir do nome, da assinatura, de um docblock que não abri, ou de
+algo que **eu mesmo** escrevi antes em outro documento **não é leitura — é palpite etiquetado**, e é
+pior que dizer "não sei", porque passa em revisão.
+
+- **Contagem e inventário exigem o comando, nunca a memória** — *"são 4 call-sites"*, *"os 3 sítios"*,
+  *"é o único `await` do bloco"* ⇒ `grep -n … | wc -l` colado.
+- **Afirmação anterior minha não é fonte** — comentário, ADR e doc envelhecem, e podem ter nascido
+  errados. Reconferir contra o **código**.
+- **Razão errada sob conclusão certa ainda é defeito** — é o que mais sobrevive a revisão, porque a
+  conclusão fecha e ninguém audita o porquê. É também o que vai copiado para a camada push.
+
+---
+
 ## ⚠️ Antes de qualquer mudança de código: carregue `tlc-spec-driven`
 
 **Toda mudança de código neste repo — feature, bug fix, refactor, chore — começa invocando a skill `tlc-spec-driven` antes de qualquer edit.**
