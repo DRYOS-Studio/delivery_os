@@ -3,6 +3,28 @@ import type { Database } from "@/lib/db/types";
 
 export type TaskStatus = Database["public"]["Enums"]["task_status"];
 
+/**
+ * Fonte única de "tarefa aberta". `Record<TaskStatus, boolean>` é exaustivo:
+ * adicionar um valor a `task_status` quebra o build aqui até alguém
+ * classificar o status como aberto ou não. Fail-closed por construção — não
+ * existe "default" implícito.
+ */
+const TASK_STATUS_OPEN: Record<TaskStatus, boolean> = {
+  todo: true,
+  doing: true,
+  blocked: true,
+  done: false,
+};
+
+/** Statuses considerados abertos, derivados do mapa — usado nos filtros `.in()`. */
+export const OPEN_STATUSES = (
+  Object.keys(TASK_STATUS_OPEN) as TaskStatus[]
+).filter((s) => TASK_STATUS_OPEN[s]);
+
+export function isOpenStatus(status: TaskStatus): boolean {
+  return TASK_STATUS_OPEN[status];
+}
+
 export type TaskAssignee = { id: string; name: string };
 /** Área da tarefa (FK areas) embedada pra exibição. null = tarefa de entrega. */
 export type TaskAreaRef = { id: string; name: string };
@@ -200,14 +222,12 @@ export async function countAllOpenTasks(): Promise<number> {
   const { count, error } = await supabase
     .from("tasks")
     .select("id", { count: "exact", head: true })
-    .in("status", ["todo", "doing", "blocked"]);
+    .in("status", OPEN_STATUSES);
   if (error) throw new Error(`countAllOpenTasks: ${error.message}`);
   return count ?? 0;
 }
 
 // ── Tasks: visão agregada cross-Frente, filtrável por assignee ─────────────
-
-const OPEN_STATUSES: TaskStatus[] = ["todo", "doing", "blocked"];
 
 export type TaskListFilter = "open" | "done" | "all";
 

@@ -145,8 +145,8 @@ Nos forms é checkbox múltiplo; na lista por Frente vira grupo de avatares; em
 
 | Superfície | O que conta | Origem |
 |---|---|---|
-| Pill na linha da Frente (`/operations/[id]`) | só top-level (`parent_task_id` null), não-`done` | `queries/operations.ts:305` |
-| Header do detalhe da Frente | só top-level (`parentTaskId` null) | `frentes/[fid]/page.tsx:48` |
+| Pill na linha da Frente (`/operations/[id]`) | só top-level (`parent_task_id` null), aberta | `queries/operations.ts:309` |
+| Header do detalhe da Frente | só top-level (`parentTaskId` null) | `frentes/[fid]/page.tsx:52` |
 | Badge do nav "Tasks" | minhas abertas | `countMyOpenTasks` |
 | Card "Tarefas abertas" (`/admin/dashboard`) | abertas nas Frentes não-arquivadas, admin-only | `countAllOpenTasks` |
 
@@ -154,10 +154,21 @@ As duas primeiras usam a mesma regra: **subtarefa não conta**. Até a issue
 #136 divergiam — a lista somava subtarefa e o header não, então a mesma Frente
 mostrava "5 tarefas" numa tela e "3 abertas" na outra.
 
-As duas últimas contam por allowlist (`OPEN_STATUSES`) em vez de `!== "done"`.
-Hoje é equivalente, porque `task_status` é exatamente
-`todo | doing | blocked | done` — se um status novo entrar, as duas formas
-divergem.
+**"Aberta" tem uma fonte única.** Não existe mais `!== "done"` espalhado: todas
+as superfícies derivam de `TASK_STATUS_OPEN`, um `Record<TaskStatus, boolean>`
+em `queries/tasks.ts` que classifica cada status do enum. Dele saem as duas
+formas de consumo:
+
+- `OPEN_STATUSES` — array pros filtros `.in("status", …)` das queries
+  (`listTasks` com `?filter=open`, `countTasks`, `countMyOpenTasks`,
+  `countAllOpenTasks`).
+- `isOpenStatus(status)` — predicado pros filtros em JS
+  (`frentes/[fid]/page.tsx`, `queries/operations.ts`).
+
+O guard é o próprio `tsc`: `Record<TaskStatus, boolean>` é exaustivo, então o
+próximo `ALTER TYPE task_status ADD VALUE` **quebra o build** até alguém
+classificar o status novo. Fail-closed por construção — status não classificado
+não vira "aberto" por acidente.
 
 ## Onde a tarefa aparece — e onde não
 

@@ -1,5 +1,6 @@
 import { createServer } from "@/lib/db/client";
 import type { Database } from "@/lib/db/types";
+import { isOpenStatus, type TaskStatus } from "@/lib/db/queries/tasks";
 
 type Op = Database["public"]["Tables"]["operations"]["Row"];
 type Frente = Database["public"]["Tables"]["frentes"]["Row"];
@@ -295,14 +296,17 @@ export async function getOperation(id: string): Promise<OperationDetail | null> 
       const tasksList =
         (
           f as unknown as {
-            tasks?: Array<{ status: string; parent_task_id: string | null }>;
+            tasks?: Array<{
+              status: TaskStatus;
+              parent_task_id: string | null;
+            }>;
           }
         ).tasks ?? [];
       // Subtarefa não conta: mesma regra do header do detalhe da Frente
       // (app/operations/[id]/frentes/[fid]/page.tsx). Contar as duas coisas
       // fazia a mesma Frente mostrar números diferentes nas duas telas.
       const openTasksCount = tasksList.filter(
-        (t) => t.parent_task_id === null && t.status !== "done",
+        (t) => t.parent_task_id === null && isOpenStatus(t.status),
       ).length;
       return {
         id: f.id,
