@@ -7,14 +7,18 @@ import { Button } from "@/components/ui/Button";
 import { getProfile, requireUser } from "@/lib/auth/server";
 import { getFrenteDetail } from "@/lib/db/queries/frentes";
 import { canWriteOperation } from "@/lib/db/queries/operation-members";
-import { listTasksByFrente, type TaskRow } from "@/lib/db/queries/tasks";
+import {
+  isOpenStatus,
+  listTasksByFrente,
+  type TaskRow,
+} from "@/lib/db/queries/tasks";
 
 type Filter = "open" | "done" | "all";
 
 function applyFilter(tasks: TaskRow[], filter: Filter): TaskRow[] {
   if (filter === "all") return tasks;
   if (filter === "done") return tasks.filter((t) => t.status === "done");
-  return tasks.filter((t) => t.status !== "done");
+  return tasks.filter((t) => isOpenStatus(t.status));
 }
 
 function normalizeFilter(raw: string | undefined): Filter {
@@ -46,7 +50,7 @@ export default async function Page({
   const filtered = applyFilter(tasks, filter);
   // Contagem de Frente exclui subtarefas pra não inflar o "abertas" do header.
   const topLevel = tasks.filter((t) => !t.parentTaskId);
-  const totalOpen = topLevel.filter((t) => t.status !== "done").length;
+  const totalOpen = topLevel.filter((t) => isOpenStatus(t.status)).length;
   const totalDone = topLevel.filter((t) => t.status === "done").length;
   const totalAll = topLevel.length;
 
