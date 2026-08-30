@@ -1,4 +1,8 @@
 import { createServer } from "@/lib/db/client";
+import {
+  ACTIVE_STATUSES,
+  isActiveStatus,
+} from "@/lib/utils/operation-status";
 import { getActiveOperationsMonthlyCostsTotal } from "@/lib/db/queries/operation-costs";
 import { STALENESS_THRESHOLDS } from "@/lib/utils/staleness";
 
@@ -51,7 +55,10 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
   ] = await Promise.all([
     supabase
       .from("operations")
-      .select("id, monthly_recurring_revenue, archived_at"),
+      .select(
+        "id, monthly_recurring_revenue, archived_at, status, client:clients!inner(archived_at)",
+      )
+      .is("client.archived_at", null),
     supabase
       .from("frentes")
       .select("actionable_status, updated_at")
@@ -111,13 +118,16 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     );
 
   const ops = opsRes.data ?? [];
-  const active = ops.filter((o) => !o.archived_at);
+  // ATIVA: não arquivada E status não-terminal (senão Operação cancelada segue somando MRR).
+  const active = ops.filter((o) => !o.archived_at && isActiveStatus(o.status));
   const mrrTotal = active.reduce(
     (sum, o) => sum + (o.monthly_recurring_revenue ?? 0),
     0,
   );
   const activeOperations = active.length;
-  const archivedOperations = ops.length - activeOperations;
+  // Direto, não por complemento: senão o card "Operações arquivadas" contaria as
+  // concluídas/canceladas que ainda não foram arquivadas.
+  const archivedOperations = ops.filter((o) => o.archived_at !== null).length;
 
   const frentes = frentesRes.data ?? [];
   const frentesHealthy = frentes.filter(
@@ -166,9 +176,11 @@ export async function getTopClientsByMRR(limit = 5): Promise<ClientMRR[]> {
   const { data, error } = await supabase
     .from("operations")
     .select(
-      "client_id, monthly_recurring_revenue, clients!inner(id, name)",
+      "client_id, monthly_recurring_revenue, status, clients!inner(id, name, archived_at)",
     )
-    .is("archived_at", null);
+    .is("archived_at", null)
+    .is("clients.archived_at", null)
+    .in("status", ACTIVE_STATUSES);
 
   if (error)
     throw new Error(`dashboard.getTopClientsByMRR: ${error.message}`);

@@ -1,4 +1,5 @@
 import { createServer } from "@/lib/db/client";
+import { ACTIVE_STATUSES } from "@/lib/utils/operation-status";
 import type { Database } from "@/lib/db/types";
 import { isOpenStatus, type TaskStatus } from "@/lib/db/queries/tasks";
 
@@ -25,8 +26,14 @@ export type OperationCardData = {
   teamSize: number;
 };
 
+/**
+ * `scope: "ativa"`  → agregados e grids (exclui status terminal).
+ * `scope: "visivel"` → listas de detalhe (Cliente, Pessoa): a Operação encerrada
+ *   PRECISA continuar aparecendo, senão o usuário não a alcança para arquivar.
+ * Os dois excluem Operação de Cliente arquivado.
+ */
 export async function getActiveOperations(
-  options: { clientId?: string } = {},
+  options: { clientId?: string; scope?: "ativa" | "visivel" } = {},
 ): Promise<OperationCardData[]> {
   const supabase = await createServer();
 
@@ -38,7 +45,7 @@ export async function getActiveOperations(
       name,
       status,
       product_line,
-      client:clients(name, slug),
+      client:clients!inner(name, slug, archived_at),
       frentes(
         id,
         name,
@@ -51,8 +58,12 @@ export async function getActiveOperations(
       `,
     )
     .is("archived_at", null)
-    .neq("status", "arquivada")
+    .is("client.archived_at", null)
     .order("created_at", { ascending: false });
+
+  if ((options.scope ?? "ativa") === "ativa") {
+    query = query.in("status", ACTIVE_STATUSES);
+  }
 
   if (options.clientId) {
     query = query.eq("client_id", options.clientId);
@@ -119,27 +130,41 @@ export type OperationListItem = {
   endDate: string | null;
   createdAt: string;
   activeFrentes: number;
+  archivedAt: string | null;
 };
 
+const LIST_SELECT = `
+  id, name, client_id, product_line, status, recurrence,
+  monthly_recurring_revenue, start_date, end_date, created_at, archived_at,
+  client:clients!inner(name, slug, archived_at),
+  frentes(id, archived_at, phase)
+`;
+
+/**
+ * Predicado VISÍVEL: `archived_at IS NULL` + Cliente dono não arquivado.
+ * **Sem filtro de status** — de propósito. Operação `concluida`/`cancelada` continua
+ * listada (com a pill do status) porque é por esta lista que se chega nela para
+ * arquivar; filtrar por status aqui recriaria o beco sem saída.
+ *
+ * `includeArchived` serve só a seção "Arquivados" de `/operations`. Os arquivados
+ * vêm na mesma query e a página separa em JS (padrão de catalog/products).
+ */
 export async function listOperations(
-  options: { search?: string | undefined } = {},
+  options: { search?: string | undefined; includeArchived?: boolean } = {},
 ): Promise<OperationListItem[]> {
   const supabase = await createServer();
   const search = options.search?.trim();
+  const includeArchived = options.includeArchived ?? false;
+
+  const base = () => {
+    const q = supabase.from("operations").select(LIST_SELECT);
+    return includeArchived ? q : q.is("archived_at", null);
+  };
 
   // Sem search: query direta com embed
   if (!search) {
-    const { data, error } = await supabase
-      .from("operations")
-      .select(
-        `
-        id, name, client_id, product_line, status, recurrence,
-        monthly_recurring_revenue, start_date, end_date, created_at,
-        client:clients(name, slug),
-        frentes(id, archived_at, phase)
-        `,
-      )
-      .is("archived_at", null)
+    const { data, error } = await base()
+      .is("client.archived_at", null)
       .order("created_at", { ascending: false });
     if (error) throw new Error(`listOperations: ${error.message}`);
     return (data ?? []).map(toListItem);
@@ -149,30 +174,12 @@ export async function listOperations(
   // 2 queries paralelas + dedupe.
   const escaped = search.replace(/[%_]/g, (m) => `\\${m}`);
   const [byOpName, byClientName] = await Promise.all([
-    supabase
-      .from("operations")
-      .select(
-        `
-        id, name, client_id, product_line, status, recurrence,
-        monthly_recurring_revenue, start_date, end_date, created_at,
-        client:clients(name, slug),
-        frentes(id, archived_at, phase)
-        `,
-      )
-      .is("archived_at", null)
+    base()
+      .is("client.archived_at", null)
       .ilike("name", `%${escaped}%`)
       .order("created_at", { ascending: false }),
-    supabase
-      .from("operations")
-      .select(
-        `
-        id, name, client_id, product_line, status, recurrence,
-        monthly_recurring_revenue, start_date, end_date, created_at,
-        client:clients!inner(name, slug),
-        frentes(id, archived_at, phase)
-        `,
-      )
-      .is("archived_at", null)
+    base()
+      .is("client.archived_at", null)
       .ilike("client.name", `%${escaped}%`)
       .order("created_at", { ascending: false }),
   ]);
@@ -201,6 +208,7 @@ type ListRow = {
   start_date: string | null;
   end_date: string | null;
   created_at: string;
+  archived_at: string | null;
   client: { name: string; slug: string } | null;
   frentes: { id: string; archived_at: string | null; phase: string }[] | null;
 };
@@ -223,6 +231,7 @@ function toListItem(row: ListRow): OperationListItem {
     endDate: row.end_date,
     createdAt: row.created_at,
     activeFrentes,
+    archivedAt: row.archived_at,
   };
 }
 
@@ -262,9 +271,16 @@ export type OperationDetail = {
   frentes: FrenteListItem[];
 };
 
-export async function getOperation(id: string): Promise<OperationDetail | null> {
+/**
+ * VISÍVEL. `includeArchived` existe para o restore: sem ele a action leria a Operação
+ * arquivada e receberia `not_found` em 100% dos casos.
+ */
+export async function getOperation(
+  id: string,
+  options: { includeArchived?: boolean } = {},
+): Promise<OperationDetail | null> {
   const supabase = await createServer();
-  const { data, error } = await supabase
+  const q = supabase
     .from("operations")
     .select(
       `
@@ -273,7 +289,7 @@ export async function getOperation(id: string): Promise<OperationDetail | null> 
       response_hours, resolution_hours,
       diagnostic_id, start_date, end_date, notification_webhook_url,
       created_at,
-      client:clients(id, name, slug),
+      client:clients!inner(id, name, slug, archived_at),
       frentes(
         id, name, cycle_type, domain, phase,
         actionable_status, actionable_status_since,
@@ -284,8 +300,11 @@ export async function getOperation(id: string): Promise<OperationDetail | null> 
       `,
     )
     .eq("id", id)
-    .is("archived_at", null)
-    .maybeSingle();
+    .is("client.archived_at", null);
+  const { data, error } = await (options.includeArchived
+    ? q
+    : q.is("archived_at", null)
+  ).maybeSingle();
   if (error) throw new Error(`getOperation: ${error.message}`);
   if (!data || !data.client) return null;
 
@@ -350,9 +369,13 @@ export async function countActiveOperations(): Promise<number> {
   const supabase = await createServer();
   const { count, error } = await supabase
     .from("operations")
-    .select("id", { count: "exact", head: true })
+    .select("id, client:clients!inner(archived_at)", {
+      count: "exact",
+      head: true,
+    })
     .is("archived_at", null)
-    .neq("status", "arquivada");
+    .is("client.archived_at", null)
+    .in("status", ACTIVE_STATUSES);
   if (error) throw new Error(`countActiveOperations: ${error.message}`);
   return count ?? 0;
 }
@@ -378,12 +401,13 @@ export async function listOperationsWithFrentes(): Promise<
     .select(
       `
       id, name,
-      client:clients!fk_operations_client_id (name),
+      client:clients!fk_operations_client_id!inner (name, archived_at),
       frentes (id, name, archived_at)
       `,
     )
     .is("archived_at", null)
-    .neq("status", "arquivada")
+    .is("client.archived_at", null)
+    .in("status", ACTIVE_STATUSES)
     .order("name", { ascending: true });
   if (error) throw new Error(`listOperationsWithFrentes: ${error.message}`);
   if (!data) return [];
