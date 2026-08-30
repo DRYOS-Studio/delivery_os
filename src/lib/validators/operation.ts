@@ -3,6 +3,7 @@ import {
   WEBHOOK_URL_PROBLEM_MESSAGE,
   checkWebhookUrl,
 } from "@/lib/notifications/webhook-url";
+import { WRITABLE_STATUSES } from "@/lib/utils/operation-status";
 
 const emptyToUndefined = (v: unknown) => (v === "" ? undefined : v);
 
@@ -68,7 +69,7 @@ export const operationSchema = z
       .trim()
       .min(1, "Nome obrigatório.")
       .max(160, "Nome muito longo (máx 160)."),
-    status: z.enum(["em_construcao", "em_operacao", "janela_critica"], {
+    status: z.enum(WRITABLE_STATUSES, {
       message: "Status inválido.",
     }),
     recurrence: recurrenceEnum,

@@ -1,25 +1,15 @@
 import { Pill } from "@/components/ui/Pill";
 import type { PublicOperationView } from "@/lib/db/queries/public";
 import { formatHours } from "@/lib/utils/sla";
+import {
+  statusLabel,
+  statusPillVariant,
+} from "@/lib/utils/operation-status";
 
 const PRODUCT_LABEL = {
   core: "Core",
   spark: "Spark",
   studio: "Studio",
-} as const;
-
-const STATUS_LABEL = {
-  em_construcao: "Em construção",
-  em_operacao: "Em operação",
-  janela_critica: "Janela crítica",
-  arquivada: "Arquivada",
-} as const;
-
-const STATUS_VARIANT = {
-  em_construcao: "neutral",
-  em_operacao: "sage",
-  janela_critica: "warning",
-  arquivada: "neutral",
 } as const;
 
 export function PublicHero({
@@ -39,8 +29,8 @@ export function PublicHero({
         <Pill variant="sage" showDot>
           {PRODUCT_LABEL[op.productLine]}
         </Pill>
-        <Pill variant={STATUS_VARIANT[op.status]}>
-          {STATUS_LABEL[op.status]}
+        <Pill variant={statusPillVariant(op.status)}>
+          {statusLabel(op.status)}
         </Pill>
         {(op.responseHours !== null || op.resolutionHours !== null) && (
           <Pill variant="oak">

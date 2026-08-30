@@ -4,25 +4,15 @@ import { Pill, type PillVariant } from "@/components/ui/Pill";
 import type { OperationCardData } from "@/lib/db/queries/operations";
 import { formatCycleTypeShort } from "@/lib/utils/cycle-type";
 import { formatDateShortBR } from "@/lib/utils/date";
+import {
+  statusLabel,
+  statusPillVariant,
+} from "@/lib/utils/operation-status";
 
 const PRODUCT_LINE_LABEL: Record<OperationCardData["productLine"], string> = {
   core: "Core",
   spark: "Spark",
   studio: "Studio",
-};
-
-const STATUS_LABEL: Record<OperationCardData["status"], string> = {
-  em_construcao: "Em construção",
-  em_operacao: "Em operação",
-  janela_critica: "Janela crítica",
-  arquivada: "Arquivada",
-};
-
-const STATUS_VARIANT: Record<OperationCardData["status"], PillVariant> = {
-  em_construcao: "neutral",
-  em_operacao: "sage",
-  janela_critica: "warning",
-  arquivada: "neutral",
 };
 
 export function OperationCard({ data }: { data: OperationCardData }) {
@@ -35,8 +25,8 @@ export function OperationCard({ data }: { data: OperationCardData }) {
           <Pill variant="oak" showDot>
             {PRODUCT_LINE_LABEL[data.productLine]}
           </Pill>
-          <Pill variant={STATUS_VARIANT[data.status]}>
-            {STATUS_LABEL[data.status]}
+          <Pill variant={statusPillVariant(data.status)}>
+            {statusLabel(data.status)}
           </Pill>
         </div>
 

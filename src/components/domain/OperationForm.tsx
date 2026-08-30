@@ -18,6 +18,7 @@ import {
   type OperationInput,
   type OperationOutput,
 } from "@/lib/validators/operation";
+import { selectableStatuses } from "@/lib/utils/operation-status";
 
 type ClientForSelect = { id: string; name: string };
 
@@ -44,6 +45,10 @@ const PRODUCT_LINE_LABEL: Record<"core" | "spark" | "studio", string> = {
   spark: "Spark",
   studio: "Studio",
 };
+
+const EDITABLE_STATUS_VALUES = new Set(
+  selectableStatuses("edit").map((o) => o.value),
+);
 
 function nameFromCombo(clientName: string, line: string): string {
   if (!clientName || !line) return "";
@@ -74,10 +79,12 @@ export function OperationForm(props: Props): React.JSX.Element {
         client_id: props.initialData.client.id,
         product_line: props.initialData.productLine,
         name: props.initialData.name,
-        status:
-          props.initialData.status === "arquivada"
-            ? "em_operacao"
-            : props.initialData.status,
+        // Só reescreve status não-selecionável (hoje só `arquivada`, legado). Generalizar
+        // isso para "todo status terminal" apagaria Concluída/Cancelada ao salvar — o ato
+        // de negócio que a feature existe para registrar.
+        status: EDITABLE_STATUS_VALUES.has(props.initialData.status)
+          ? props.initialData.status
+          : "em_operacao",
         recurrence: props.initialData.recurrence ?? undefined,
         monthly_recurring_revenue:
           props.initialData.monthlyRecurringRevenue ?? null,
@@ -201,13 +208,7 @@ export function OperationForm(props: Props): React.JSX.Element {
     }
   }
 
-  const allowedStatus: { value: OperationInput["status"]; label: string }[] = [
-    { value: "em_construcao", label: "Em construção" },
-    { value: "em_operacao", label: "Em operação" },
-    ...(isEdit
-      ? [{ value: "janela_critica" as const, label: "Janela crítica" }]
-      : []),
-  ];
+  const allowedStatus = selectableStatuses(isEdit ? "edit" : "create");
 
   return (
     <form

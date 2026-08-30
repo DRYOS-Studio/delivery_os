@@ -8,6 +8,7 @@ import {
   operationHasActiveFrentes,
 } from "@/lib/db/queries/operations";
 import { operationSchema } from "@/lib/validators/operation";
+import type { OperationStatus } from "@/lib/utils/operation-status";
 
 type PostgresError = { code?: string; message: string };
 
@@ -15,7 +16,7 @@ type CreateInput = {
   client_id: string;
   product_line: "core" | "spark" | "studio";
   name: string;
-  status: "em_construcao" | "em_operacao" | "janela_critica";
+  status: OperationStatus;
   recurrence: "mensal" | "trimestral" | "anual" | "unica" | null;
   monthly_recurring_revenue: number | null;
   monthly_fixed_cost: number | null;

@@ -8,6 +8,7 @@ import {
 } from "@/lib/utils/margin";
 import { formatMoneyBR } from "@/lib/utils/money";
 import { formatHours } from "@/lib/utils/sla";
+import { statusLabel } from "@/lib/utils/operation-status";
 
 const PRODUCT_LINE_LABEL: Record<OperationDetail["productLine"], string> = {
   core: "Core",
@@ -15,18 +16,15 @@ const PRODUCT_LINE_LABEL: Record<OperationDetail["productLine"], string> = {
   studio: "Studio",
 };
 
-const STATUS_LABEL: Record<OperationDetail["status"], string> = {
-  em_construcao: "Em construção",
-  em_operacao: "Em operação",
-  janela_critica: "Janela crítica",
-  arquivada: "Arquivada",
-};
-
 // classes overrides pra contraste no fundo oak
+// Overrides de contraste no fundo oak — local de propósito: são classes de tema
+// escuro do hero, não a variante canônica de Pill (essa vem de operation-status).
 const STATUS_PILL_DARK: Record<OperationDetail["status"], string> = {
   em_construcao: "bg-white/15 text-bg/90",
   em_operacao: "bg-sage-bg text-sage",
   janela_critica: "bg-warning-bg text-warning",
+  concluida: "bg-ok-bg text-ok",
+  cancelada: "bg-critical-bg text-critical",
   arquivada: "bg-white/15 text-bg/80",
 };
 
@@ -122,7 +120,7 @@ export function OperationHero({
           <span
             className={`inline-flex items-center gap-1.5 px-2 py-0.5 font-mono text-[10px] font-medium rounded-pill ${STATUS_PILL_DARK[op.status]}`}
           >
-            {STATUS_LABEL[op.status]}
+            {statusLabel(op.status)}
           </span>
           {briefingFreshness &&
             (briefingFreshness.hasBriefing ? (
