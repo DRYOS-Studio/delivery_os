@@ -2,6 +2,7 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 import { ClientsSearch } from "@/components/domain/ClientsSearch";
 import { ClientsTable } from "@/components/domain/ClientsTable";
+import { RestoreButton } from "@/components/domain/RestoreButton";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { getProfile } from "@/lib/auth/server";
@@ -19,11 +20,14 @@ export default async function Page({
 }) {
   const { q } = await searchParams;
   const [clients, total, profile] = await Promise.all([
-    listClients({ search: q }),
+    listClients({ search: q, includeArchived: true }),
     countActiveClients(),
     getProfile(),
   ]);
   const isAdmin = profile?.role === "admin";
+  // Separado em JS, não no banco: a query traz os dois (padrão de catalog/products).
+  const active = clients.filter((c) => c.archivedAt === null);
+  const archived = clients.filter((c) => c.archivedAt !== null);
 
   const subtitle = `${total} ${total === 1 ? "Cliente ativo" : "Clientes ativos"}`;
 
@@ -44,7 +48,34 @@ export default async function Page({
         }
       />
       <ClientsSearch initialQuery={q ?? ""} />
-      <ClientsTable clients={clients} hasSearch={!!q} isAdmin={isAdmin} />
+      <ClientsTable clients={active} hasSearch={!!q} isAdmin={isAdmin} />
+
+      {isAdmin && archived.length > 0 && (
+        <section className="mt-10">
+          <h2 className="font-display text-base text-ink font-semibold mb-3">
+            Arquivados
+            <span className="font-mono text-[10px] text-mute uppercase tracking-wide ml-2">
+              {archived.length}
+            </span>
+          </h2>
+          <div className="bg-card border border-line rounded divide-y divide-line">
+            {archived.map((c) => (
+              <div
+                key={c.id}
+                className="flex items-center justify-between px-4 py-3"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm text-ink-soft truncate">{c.name}</p>
+                  <p className="font-mono text-[10px] text-mute-soft">
+                    {c.slug}
+                  </p>
+                </div>
+                <RestoreButton kind="client" id={c.id} name={c.name} />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </>
   );
 }

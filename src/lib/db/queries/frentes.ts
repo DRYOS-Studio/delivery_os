@@ -134,3 +134,30 @@ export async function countHotCriticalFrentes(): Promise<number> {
   if (error) throw new Error(`countHotCriticalFrentes: ${error.message}`);
   return count ?? 0;
 }
+
+export type ArchivedFrente = { id: string; name: string; archivedAt: string };
+
+/**
+ * Alimenta a seção "Arquivadas" no detalhe da Operação. Sem essa superfície,
+ * `restoreFrenteAction` não teria invocador: `getFrente` e o embed de `getOperation`
+ * filtram Frente arquivada, então uma Frente arquivada pela cascata ficaria
+ * irrecuperável pelo produto.
+ */
+export async function listArchivedFrentesByOperation(
+  operationId: string,
+): Promise<ArchivedFrente[]> {
+  const supabase = await createServer();
+  const { data, error } = await supabase
+    .from("frentes")
+    .select("id, name, archived_at")
+    .eq("operation_id", operationId)
+    .not("archived_at", "is", null)
+    .order("archived_at", { ascending: false });
+  if (error)
+    throw new Error(`listArchivedFrentesByOperation: ${error.message}`);
+  return (data ?? []).map((f) => ({
+    id: f.id,
+    name: f.name,
+    archivedAt: f.archived_at as string,
+  }));
+}
