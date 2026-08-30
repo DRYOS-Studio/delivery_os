@@ -3,7 +3,7 @@ import { ClientForm } from "@/components/domain/ClientForm";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { getProfile } from "@/lib/auth/server";
 import {
-  clientHasActiveOperations,
+  countActiveOperationsByClient,
   getClient,
 } from "@/lib/db/queries/clients";
 
@@ -20,7 +20,8 @@ export default async function Page({
   const client = await getClient(id);
   if (!client) redirect("/clients");
 
-  const hasOps = await clientHasActiveOperations(id);
+  const activeOps = await countActiveOperationsByClient(id);
+  const hasOps = activeOps > 0;
   const profile = await getProfile();
   const isAdmin = profile?.role === "admin";
 
@@ -35,7 +36,7 @@ export default async function Page({
         canArchive={!hasOps}
         archiveBlockedReason={
           hasOps
-            ? "Encerre as Operações deste Cliente antes de arquivar."
+            ? `${activeOps} ${activeOps === 1 ? "Operação ainda ativa" : "Operações ainda ativas"} — encerre-${activeOps === 1 ? "a" : "as"} antes.`
             : null
         }
         isAdmin={isAdmin}

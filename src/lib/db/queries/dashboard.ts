@@ -55,10 +55,13 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
   ] = await Promise.all([
     supabase
       .from("operations")
+      // Traz TODAS e separa em JS. Filtrar `client.archived_at` na query faria as
+      // Operações de um Cliente arquivado sumirem também do card "Operações
+      // arquivadas" — que iria a 0 em vez de contá-las. A cláusula do Cliente
+      // pertence ao predicado ATIVA, não à contagem de arquivadas.
       .select(
         "id, monthly_recurring_revenue, archived_at, status, client:clients!inner(archived_at)",
-      )
-      .is("client.archived_at", null),
+      ),
     supabase
       .from("frentes")
       .select("actionable_status, updated_at")
@@ -125,7 +128,17 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
 
   const ops = opsRes.data ?? [];
   // ATIVA: não arquivada E status não-terminal (senão Operação cancelada segue somando MRR).
-  const active = ops.filter((o) => !o.archived_at && isActiveStatus(o.status));
+  const clienteArquivado = (o: (typeof ops)[number]): boolean => {
+    const c = o.client as
+      | { archived_at: string | null }
+      | { archived_at: string | null }[]
+      | null;
+    const one = Array.isArray(c) ? (c[0] ?? null) : c;
+    return one?.archived_at != null;
+  };
+  const active = ops.filter(
+    (o) => !o.archived_at && isActiveStatus(o.status) && !clienteArquivado(o),
+  );
   const mrrTotal = active.reduce(
     (sum, o) => sum + (o.monthly_recurring_revenue ?? 0),
     0,

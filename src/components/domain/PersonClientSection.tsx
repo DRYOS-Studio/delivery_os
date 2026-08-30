@@ -48,7 +48,7 @@ export function PersonClientSection({ client, operations }: Props) {
         </div>
         {operations.length === 0 ? (
           <p className="text-sm text-mute">
-            Nenhuma Operação ativa pra este Cliente.
+            Nenhuma Operação pra este Cliente.
           </p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

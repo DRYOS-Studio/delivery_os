@@ -156,6 +156,22 @@ export async function getClientSummary(
   };
 }
 
+/** Quantas Operações do Cliente ainda estão ATIVAS — alimenta o motivo do bloqueio. */
+export async function countActiveOperationsByClient(
+  clientId: string,
+): Promise<number> {
+  const supabase = await createServer();
+  const { count, error } = await supabase
+    .from("operations")
+    .select("id", { count: "exact", head: true })
+    .eq("client_id", clientId)
+    .is("archived_at", null)
+    .in("status", ACTIVE_STATUSES);
+  if (error)
+    throw new Error(`countActiveOperationsByClient: ${error.message}`);
+  return count ?? 0;
+}
+
 export async function clientHasActiveOperations(
   clientId: string,
 ): Promise<boolean> {

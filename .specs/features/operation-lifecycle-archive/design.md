@@ -66,7 +66,7 @@ arquivaria sem ninguém decidir. Análogo SQL do `Record` exaustivo do D3.
 2. `SELECT o.archived_at, c.archived_at INTO … FROM operations o JOIN clients c ON c.id =
    o.client_id WHERE o.id = p_operation_id AND o.archived_at IS NOT NULL FOR UPDATE OF o`;
    `IF NOT FOUND THEN RAISE 'P0002'`;
-3. **`IF v_client_archived IS NOT NULL THEN RAISE … ERRCODE '23514'`** — precondição de pai
+3. **`IF v_client_archived IS NOT NULL THEN RAISE … ERRCODE 'P0003'`** — precondição de pai
    não-arquivado que `E1`/`AC15` exigem. Sem ela, restaurar A1 sob Cliente A arquivado produz
    Operação com `archived_at IS NULL` que `OPERACAO_VISIVEL` exclui (cláusula do Cliente) **e** que
    a seção "Arquivados" também exclui (filtra `archived_at IS NOT NULL`): invisível nas duas listas
@@ -82,8 +82,8 @@ invalida — a janela vira minutos de exfiltração de todo anexo `visibility='c
 escrita falhasse, o token ficaria vivo permanentemente com o admin vendo um toast de erro. Ordem
 revogar-antes já seria fail-closed; a transação fecha de vez.
 **`restore_frente(p_frente_id)` também é RPC**, espelhando o D6: guard de admin, `FOR UPDATE`,
-`P0002`, e `IF operations.archived_at IS NOT NULL THEN RAISE '23515'` (código próprio — ver mapa de
-erro). Na R3 eu tinha escrito "action basta": aí a precondição de pai que `E1` exige não teria onde
+`P0002`, e `IF operations.archived_at IS NOT NULL THEN RAISE 'P0003'` (código próprio, distinto do
+`23514` de "não encerrada" — ver mapa de erro). Na R3 eu tinha escrito "action basta": aí a precondição de pai que `E1` exige não teria onde
 morar, e a metade-Frente do `AC15` está classificada **SQL** — script SQL não executa Server Action
 TS, então reimplementar a checagem no script provaria o script, não o código. Estado que isso
 deixava alcançável: Frente com `archived_at IS NULL` sob Operação arquivada, que volta a
@@ -305,8 +305,8 @@ a mesma armadilha que o D8 cita como razão para tirar o impacto do TS. `AC19` e
 exatamente isso.
 
 **Mapa de erro** (`ActionResult`, Inv. 13), **com ramo default**: `42501` → `'forbidden'`;
-`23514` → `err('Encerre a Operação antes de arquivar.', 'state_conflict')`; **`23515` →
-`err('Restaure o Cliente/Operação antes.', 'state_conflict')`** — código distinto porque reusar
+`23514` → `err('Encerre a Operação antes de arquivar.', 'state_conflict')`; **`P0003` →
+`err('Restaure o registro pai antes.', 'state_conflict')`** — código distinto porque reusar
 `23514` faria uma falha de **restore** exibir mensagem sobre **arquivar**, e `AC15` só exige
 `state_conflict`, então o mutante passaria; `P0002` →
 `'not_found'`; `PGRST202` → `err('Migration pendente — avise o time.', 'schema_stale')`; `22P02` →
