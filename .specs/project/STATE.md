@@ -28,7 +28,8 @@ Anteriormente: `operation-members` — COMPLETE (issue #80, PRs #81 + #82 + #83)
 4. **Fonte única do status** ancorada no enum gerado (`operation-status.ts`). União escrita à mão compila e fica cega a valor novo no banco — verificado.
 5. **MRR e custo entram no mesmo PR.** `getTopClientsByMRR` e `getActiveOperationsMonthlyCostsTotal` decidiam "ativa" só por `archived_at`. Corrigir só a receita deixaria `monthlyMarginTotal` com receita nova e custo velho — medido: 6000 em vez de 9000, pior que o estado anterior.
 6. **Cancelar revoga link público; concluir não.** Trigger `AFTER UPDATE`, com `WHEN` em status **e** em `archived_at`: a cascata escreve `archived_at` e nunca `status`, então um `WHEN` só de status não dispararia no arquivamento.
-7. **Restore item a item, nunca em cascata** — sem coluna de proveniência não dá pra saber quem foi arquivado pela cascata.
+7. **Tarefa de Operação arquivada some das 4 superfícies de contagem** (KPI do painel, `/tasks`, paginação, badge do nav), via join pela **Operação** — join pela Frente derrubaria tarefa de área. Escopo que entrou porque o arquivamento *manifesta* a incoerência: era latente enquanto nada era arquivado.
+8. **Restore item a item, nunca em cascata** — sem coluna de proveniência não dá pra saber quem foi arquivado pela cascata.
 
 **Ambiente de prova (achado que vale registrar).** O Supabase MCP conecta como `supabase_read_only_user`, com `rolbypassrls = true` e sem poder virar `authenticated` — asserção rodada por ali prova um caminho que nenhum caller de produção usa. Branching exige plano Pro. A prova saiu no **stack local**, com `BEGIN; SET LOCAL ROLE authenticated; request.jwt.claims`, onde a RLS de fato morde.
 

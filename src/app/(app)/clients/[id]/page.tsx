@@ -30,7 +30,7 @@ export default async function Page({
   if (!client) notFound();
 
   const [operations, persons, diagnostic, summary, profile] = await Promise.all([
-    getActiveOperations({ clientId: id }),
+    getActiveOperations({ clientId: id, scope: "visivel" }),
     getExternalPersonsByClient(id),
     getDiagnosticByClient(id),
     getClientSummary(id),

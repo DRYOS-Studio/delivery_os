@@ -61,7 +61,7 @@ top-level (subtarefa não conta) — `sage` quando há alguma, `neutral` quando 
 ### View cross-Frente `/tasks`
 
 Item de nav "Tasks" com badge das minhas tarefas abertas. Agrega tarefas de
-todas as Frentes e Operações visíveis, com dropdown de responsável:
+todas as Frentes e Operações **não arquivadas**, com dropdown de responsável:
 
 - **sem param** → minhas tarefas, resolvidas por `profiles.person_id`
   (AD-010). Se o vínculo for `NULL`, cai pra "Todos" — sem empty-state cego.
@@ -171,6 +171,15 @@ classificar o status novo. Fail-closed por construção — status não classifi
 não vira "aberto" por acidente.
 
 ## Onde a tarefa aparece — e onde não
+
+> **Operação arquivada tira a tarefa de todas as superfícies de contagem.** Quatro
+> call-sites aplicam `operations!fk_tasks_operation_id!inner` +
+> `.is("operation.archived_at", null)`: o KPI "tarefas abertas" do painel
+> (`dashboard.ts`), a lista `/tasks` (`listTasks`), a paginação (`countTasks`) e o
+> **badge do nav** (`countMyOpenTasks`). O join é pela **Operação**, nunca pela Frente:
+> `tasks.operation_id` é `NOT NULL` e cobre tarefa de área (`frente_id` nulo), que um
+> join por Frente derrubaria da tela sem erro. E o `!inner` é obrigatório — sem ele o
+> supabase-js descarta o filtro em silêncio e nada muda. Ver AD-018.
 
 - **`/public/[token]`** — tarefa de **entrega** aparece na seção "Próximos
   movimentos" do relatório do cliente. `fetchUpcomingTasks` filtra

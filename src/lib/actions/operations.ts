@@ -13,7 +13,10 @@ import {
   getOperation,
 } from "@/lib/db/queries/operations";
 import { operationSchema } from "@/lib/validators/operation";
-import type { OperationStatus } from "@/lib/utils/operation-status";
+import {
+  isActiveStatus,
+  type OperationStatus,
+} from "@/lib/utils/operation-status";
 
 type PostgresError = { code?: string; message: string };
 
@@ -135,6 +138,17 @@ export async function updateOperationAction(
 
   const v = validate(formData);
   if (!v.ok) return v;
+
+  // Encerrar é ato de admin. Sem este guard, um membro com linha em
+  // `operation_members` grava `cancelada` (a RLS de UPDATE é `can_see_operation`,
+  // não `is_admin`), o trigger `trg_operations_revoke_links` dispara e os links
+  // públicos do cliente são revogados **irreversivelmente** — ação que
+  // `revokePublicLinkAction` reserva a admin. Só barra a TRANSIÇÃO: membro segue
+  // editando os demais campos de uma Operação já encerrada.
+  if (!isActiveStatus(v.data.status) && v.data.status !== current.status) {
+    const adminGuard = await requireAdminAction();
+    if (!adminGuard.ok) return adminGuard;
+  }
 
   // client_id não pode mudar — força o valor atual
   const supabase = await createServer();

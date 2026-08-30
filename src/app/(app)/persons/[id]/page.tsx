@@ -97,7 +97,7 @@ async function ExternalDetail({
   }
   const [client, operations] = await Promise.all([
     getClient(clientId),
-    getActiveOperations({ clientId }),
+    getActiveOperations({ clientId, scope: "visivel" }),
   ]);
   if (!client) {
     return (
