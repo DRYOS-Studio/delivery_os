@@ -41,6 +41,8 @@ type Props = (
       internalPersons: InternalPersonItem[];
       products: ServiceProductListItem[];
       canArchive: boolean;
+      /** Motivo exibido quando `canArchive` é falso. `null` quando liberado. */
+      archiveBlockedReason: string | null;
     }
 ) & { isAdmin?: boolean };
 
@@ -397,16 +399,26 @@ export function FrenteForm(props: Props): React.JSX.Element {
             </Button>
           </Link>
         </div>
-        {isEdit && props.canArchive && isAdmin && (
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={handleArchive}
-            disabled={busy}
-            className="text-critical hover:text-critical hover:bg-critical-bg"
-          >
-            Arquivar
-          </Button>
+        {isEdit && isAdmin && (
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={handleArchive}
+              disabled={busy || !props.canArchive}
+              aria-describedby={
+                props.archiveBlockedReason ? "archive-blocked" : undefined
+              }
+              className="text-critical hover:text-critical hover:bg-critical-bg"
+            >
+              Arquivar
+            </Button>
+            {props.archiveBlockedReason && (
+              <p id="archive-blocked" className="text-xs text-mute">
+                {props.archiveBlockedReason}
+              </p>
+            )}
+          </div>
         )}
       </div>
     </form>

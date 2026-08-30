@@ -438,16 +438,3 @@ export async function listOperationsWithFrentes(): Promise<
     .filter((op) => op.frentes.length > 0);
 }
 
-export async function operationHasActiveFrentes(
-  operationId: string,
-): Promise<boolean> {
-  const supabase = await createServer();
-  const { count, error } = await supabase
-    .from("frentes")
-    .select("id", { count: "exact", head: true })
-    .eq("operation_id", operationId)
-    .is("archived_at", null);
-  if (error)
-    throw new Error(`operationHasActiveFrentes: ${error.message}`);
-  return (count ?? 0) > 0;
-}

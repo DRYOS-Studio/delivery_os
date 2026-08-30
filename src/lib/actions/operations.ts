@@ -1,11 +1,16 @@
 "use server";
 
-import { type ActionResult, dbErr, err, ok } from "@/lib/actions/_types";
+import {
+  type ActionResult,
+  dbErr,
+  err,
+  ok,
+  rpcErr,
+} from "@/lib/actions/_types";
 import { requireAdminAction, requireUserAction } from "@/lib/auth/server";
 import { createServer } from "@/lib/db/client";
 import {
   getOperation,
-  operationHasActiveFrentes,
 } from "@/lib/db/queries/operations";
 import { operationSchema } from "@/lib/validators/operation";
 import type { OperationStatus } from "@/lib/utils/operation-status";
@@ -164,19 +169,33 @@ export async function archiveOperationAction(
   const adminGuard = await requireAdminAction();
   if (!adminGuard.ok) return adminGuard;
 
-  const hasFrentes = await operationHasActiveFrentes(id);
-  if (hasFrentes) {
-    return err(
-      "Operação tem Frentes ativas. Arquive-as antes.",
-      "has_active_frentes",
-    );
-  }
-
+  // Sem pré-check de Frentes: a cascata arquiva as Frentes e fecha as alocações.
+  // A única precondição é semântica e vive na função SQL: status terminal.
   const supabase = await createServer();
-  const { error: dbError } = await supabase
-    .from("operations")
-    .update({ archived_at: new Date().toISOString() })
-    .eq("id", id);
-  if (dbError) return dbErr(dbError, "archiveOperationAction");
+  const { error: dbError } = await supabase.rpc("archive_operation_cascade", {
+    p_operation_id: id,
+  });
+  if (dbError) return rpcErr(dbError, "archiveOperationAction");
   return ok(undefined);
+}
+
+export async function restoreOperationAction(
+  id: string,
+): Promise<ActionResult<{ id: string }>> {
+  const userResult = await requireUserAction();
+  if (!userResult.ok) return userResult;
+
+  const adminGuard = await requireAdminAction();
+  if (!adminGuard.ok) return adminGuard;
+
+  // A RPC revoga os public_links ANTES de desarquivar, na mesma transação: fazer isso
+  // em duas escritas soltas abriria janela em que o token antigo volta a servir
+  // /public/<token> — e a rota de download emite signed URL que a revogação posterior
+  // não invalida.
+  const supabase = await createServer();
+  const { error: dbError } = await supabase.rpc("restore_operation", {
+    p_operation_id: id,
+  });
+  if (dbError) return rpcErr(dbError, "restoreOperationAction");
+  return ok({ id });
 }

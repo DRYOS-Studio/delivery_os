@@ -33,6 +33,11 @@ export default async function Page({
         canChangeSlug={isAdmin || !hasOps}
         hasActiveOperations={hasOps}
         canArchive={!hasOps}
+        archiveBlockedReason={
+          hasOps
+            ? "Encerre as Operações deste Cliente antes de arquivar."
+            : null
+        }
         isAdmin={isAdmin}
       />
     </>

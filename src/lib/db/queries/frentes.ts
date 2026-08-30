@@ -15,17 +15,6 @@ export async function getFrente(id: string): Promise<FrenteRow | null> {
   return data;
 }
 
-export async function frenteHasActiveAllocations(
-  frenteId: string,
-): Promise<boolean> {
-  const supabase = await createServer();
-  const { count, error } = await supabase
-    .from("allocations")
-    .select("id", { count: "exact", head: true })
-    .eq("frente_id", frenteId);
-  if (error) throw new Error(`frenteHasActiveAllocations: ${error.message}`);
-  return (count ?? 0) > 0;
-}
 
 export type FrenteAttentionItem = {
   id: string;
