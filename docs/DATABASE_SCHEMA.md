@@ -95,7 +95,7 @@ CHECK `chk_persons_kind_consistency`: garante exclusividade.
 | `client_id` | uuid NOT NULL → clients (RESTRICT) | |
 | `product_line` | enum `product_line` | core / spark / studio |
 | `name` | text NOT NULL | |
-| `status` | enum `operation_status` default `em_construcao` | em_construcao / em_operacao / janela_critica / arquivada |
+| `status` | enum `operation_status` default `em_construcao` | ativos: em_construcao / em_operacao / janela_critica · terminais: concluida / cancelada (e arquivada, legado — nunca escrito). Terminal e `archived_at` são eixos distintos: terminal sai dos agregados, `archived_at` tira da vista |
 | `monthly_recurring_revenue` | numeric(14,2) | nullable (Studio one-off) |
 | `monthly_fixed_cost` | numeric(12,2) | nullable; custo mensal fixo (hospedagem, infra). Admin-only via UI |
 | `recurrence` | enum `recurrence` | mensal / trimestral / anual / unica; nullable |
@@ -387,7 +387,7 @@ Múltiplos links por Operação, revogáveis individualmente. Sem auth: quem tem
 
 Trigger `set_public_links_updated_at` + index `idx_public_links_operation_created`.
 
-Rota pública: `/public/[token]` (fora do `(app)`, sem auth). O resolver do token (`getPublicLinkByToken`) é o ponto único de validade: null pra revogado, expirado (`expires_at`, `<` estrito) ou operação arquivada. Download de anexo público: `/public/[token]/attachments/[aid]/download` com validação quádrupla (token válido + attachment pertence à op + attachment visibility=cliente + meeting visibility=cliente se aplicável), 404 uniforme.
+Rota pública: `/public/[token]` (fora do `(app)`, sem auth). O resolver do token (`getPublicLinkByToken`) é o ponto único de validade: null pra revogado, expirado (`expires_at`, `<` estrito) ou operação arquivada. Marcar a Operação como **cancelada** ou **arquivá-la** revoga os links ativos dela via trigger `trg_operations_revoke_links` — *concluída* não revoga (contrato entregue ainda serve o relatório). Restaurar uma Operação também revoga, na mesma transação: desarquivar sem revogar reabriria em silêncio todo token que o arquivamento tinha apagado. Download de anexo público: `/public/[token]/attachments/[aid]/download` com validação quádrupla (token válido + attachment pertence à op + attachment visibility=cliente + meeting visibility=cliente se aplicável), 404 uniforme.
 
 ---
 
@@ -667,6 +667,31 @@ Index dedup: `(operation_id, event_type, subject_id, sent_at DESC)`.
 
 ---
 
+## Funções de arquivamento (migration `20260830023102`)
+
+Oito funções `SECURITY INVOKER` + 1 trigger. Todas com `SET search_path = public`,
+`is_admin()` interno, `REVOKE EXECUTE … FROM PUBLIC, anon` + `GRANT … TO authenticated`.
+
+| Função | Papel |
+|---|---|
+| `archive_operation_cascade(uuid)` | arquiva Operação + Frentes + fecha alocações abertas. Exige status terminal (`23514`) |
+| `archive_client_cascade(uuid)` | arquiva Cliente cascateando em cada Operação; aborta a transação se alguma não estiver encerrada |
+| `archive_frente_cascade(uuid)` | arquiva Frente + fecha alocações abertas dela |
+| `restore_operation(uuid)` | revoga `public_links` **antes** de desarquivar; exige Cliente não arquivado (`P0003`) |
+| `restore_frente(uuid)` | desarquiva; exige Operação não arquivada (`P0003`) |
+| `archive_operation_impact(uuid)` | contagem do que a cascata vai alterar (alimenta a confirmação) |
+| `archive_client_impact(uuid)` | idem, no nível do Cliente |
+| `tg_revoke_links_on_terminal()` | trigger: revoga `public_links` ao cancelar **ou** arquivar |
+
+⚠️ **O guard `is_admin()` interno não é redundante com `requireAdminAction`.** A RLS de
+UPDATE em `operations`/`frentes`/`allocations` é `can_see_operation`, ou seja qualquer
+membro passa — sem o guard, `/rest/v1/rpc/` contorna a Server Action. As duas funções de
+impacto **não podem virar `SECURITY DEFINER`**: viveriam como oráculo de contagem
+cross-tenant.
+
+⚠️ **`archived_at` de `clients`/`operations`/`frentes` só se escreve por estas funções.**
+`update({ archived_at })` direto é bug: pula a cascata, o guard de status e o trigger.
+
 ## Enums
 
 | Enum | Valores |
@@ -674,7 +699,7 @@ Index dedup: `(operation_id, event_type, subject_id, sent_at DESC)`.
 | `product_line` | core, spark, studio |
 | `frente_cycle_type` | a, b, c, d, e |
 | `frente_domain` | infra, dados_analiticos, dados_tecnicos |
-| `operation_status` | em_construcao, em_operacao, janela_critica, arquivada |
+| `operation_status` | em_construcao, em_operacao, janela_critica, concluida, cancelada, arquivada (legado) |
 | `frente_phase` | descoberta, execucao, entrega, encerrada |
 | `person_kind` | internal, external |
 | `allocation_role` | responsavel, executor, aprovador, plantao |

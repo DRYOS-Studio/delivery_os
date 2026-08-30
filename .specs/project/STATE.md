@@ -1,7 +1,9 @@
 # State
 
-**Last Updated:** 2026-08-22
-**Current Work:** `task-count-consistency` (issue #136, branch `fix/task-count-consistency`) — a Pill de tarefas abertas na lista de Frentes contava subtarefa (`operations.ts`) e o header do detalhe não (`[fid]/page.tsx:48`). Unificado na regra do header: **subtarefa não conta**. Embed passa a trazer `parent_task_id`; `countOpenTasksByFrente` (órfã) removida — não podia virar fonte única porque `getOperation` traz todas as Frentes numa query só e usá-la por Frente seria N+1. ⚠️ O bug era **latente**: produção tem 17 tarefas e **zero** subtarefas, então as duas telas concordavam. Divergência provada via SQL simulado (3 pais + 3 subtarefas: regra antiga 5, nova 2, header 2). `docs/workflows/tarefas.md` reconciliado (tabela de contagens + remoção do parágrafo que documentava a divergência como intencional).
+**Last Updated:** 2026-08-30
+**Current Work:** `operation-lifecycle-archive` (issue #159, branch `feat/operation-lifecycle-archive`) — encerrar e arquivar Operação/Cliente. Ver AD-018.
+
+**Anteriormente:** `task-count-consistency` (issue #136, branch `fix/task-count-consistency`) — a Pill de tarefas abertas na lista de Frentes contava subtarefa (`operations.ts`) e o header do detalhe não (`[fid]/page.tsx:48`). Unificado na regra do header: **subtarefa não conta**. Embed passa a trazer `parent_task_id`; `countOpenTasksByFrente` (órfã) removida — não podia virar fonte única porque `getOperation` traz todas as Frentes numa query só e usá-la por Frente seria N+1. ⚠️ O bug era **latente**: produção tem 17 tarefas e **zero** subtarefas, então as duas telas concordavam. Divergência provada via SQL simulado (3 pais + 3 subtarefas: regra antiga 5, nova 2, header 2). `docs/workflows/tarefas.md` reconciliado (tabela de contagens + remoção do parágrafo que documentava a divergência como intencional).
 
 **Nesta mesma sessão (todos MERGED):** #135 docs-reconcile (issue #134) · #146 `.gitignore` do `.claude/settings.json` (issue #144) · #147 bump `next` 16.2.6→16.3.2, zera 4 high do npm audit (issue #140) · #148 security headers em `next.config.ts` — CSP/HSTS/frame-ancestors/nosniff + `no-referrer` no `/public` (issue #139) · #149 open redirect nos 3 pontos de redirect pós-login (issue #137) — `//evil.com`, `/\evil.com` **e** `/<TAB>/evil.com` passavam; fix delega ao parser de URL em vez de checar prefixo. Repo passou a **público** (Vercel `dryos-studio` está no Hobby, que não deploya repo privado de org — ver issue #145).
 
@@ -13,6 +15,22 @@ Anteriormente: `operation-members` — COMPLETE (issue #80, PRs #81 + #82 + #83)
 ---
 
 ## Recent Decisions (Last 60 days)
+
+### AD-018: Encerrar ≠ arquivar — status terminal, cascata em SQL e guard de admin no banco (2026-08-30)
+
+**Contexto.** Não havia caminho na UI para encerrar um projeto nem arquivar um Cliente. `operation_status` não tinha estado terminal (6/6 ops em prod estavam `em_operacao`), e a cadeia de arquivamento tinha beco sem saída: `frenteHasActiveAllocations` contava qualquer alocação que já tivesse existido — em prod as 13 alocações estavam sem `end_date`, então nenhuma Frente com gente alocada era arquivável. Quando bloqueava, o botão sumia do DOM sem motivo.
+
+**Decisões.**
+
+1. **Dois eixos, não um.** `status` = ciclo de vida do negócio (`concluida`/`cancelada` novos); `archived_at` = visibilidade. Operação terminal sai dos **agregados** e **continua nas listas** — filtrar status na lista faria a Operação encerrada sumir antes de poder ser arquivada, recriando o beco sem saída com outro nome.
+2. **Cascata em função SQL, não em Server Action.** O cliente Supabase JS não abre transação; escritas soltas deixam Frente arquivada com alocação aberta. 8 funções + 1 trigger.
+3. **`is_admin()` dentro da função, além do guard na action.** A RLS de UPDATE em `operations`/`frentes`/`allocations` é `can_see_operation`, ou seja **qualquer membro passa**. Demonstrado no stack local: removido o guard, um membro não-admin arquivou a Operação inteira via RPC. `SECURITY DEFINER` proibido.
+4. **Fonte única do status** ancorada no enum gerado (`operation-status.ts`). União escrita à mão compila e fica cega a valor novo no banco — verificado.
+5. **MRR e custo entram no mesmo PR.** `getTopClientsByMRR` e `getActiveOperationsMonthlyCostsTotal` decidiam "ativa" só por `archived_at`. Corrigir só a receita deixaria `monthlyMarginTotal` com receita nova e custo velho — medido: 6000 em vez de 9000, pior que o estado anterior.
+6. **Cancelar revoga link público; concluir não.** Trigger `AFTER UPDATE`, com `WHEN` em status **e** em `archived_at`: a cascata escreve `archived_at` e nunca `status`, então um `WHEN` só de status não dispararia no arquivamento.
+7. **Restore item a item, nunca em cascata** — sem coluna de proveniência não dá pra saber quem foi arquivado pela cascata.
+
+**Ambiente de prova (achado que vale registrar).** O Supabase MCP conecta como `supabase_read_only_user`, com `rolbypassrls = true` e sem poder virar `authenticated` — asserção rodada por ali prova um caminho que nenhum caller de produção usa. Branching exige plano Pro. A prova saiu no **stack local**, com `BEGIN; SET LOCAL ROLE authenticated; request.jwt.claims`, onde a RLS de fato morde.
 
 ### AD-017: Perf de queries — agregação server-side, cache per-render e boundaries seletivos (2026-06-11)
 
