@@ -19,6 +19,7 @@ import {
   type OperationOutput,
 } from "@/lib/validators/operation";
 import { selectableStatuses } from "@/lib/utils/operation-status";
+import { getOperationArchiveImpact } from "@/lib/actions/archive-impact";
 
 type ClientForSelect = { id: string; name: string };
 
@@ -197,8 +198,29 @@ export function OperationForm(props: Props): React.JSX.Element {
 
   async function handleArchive() {
     if (!isEdit || !props.canArchive) return;
-    if (!window.confirm("Arquivar esta Operação?")) return;
+
+    // Busca o impacto ANTES de perguntar: a confirmação diz o que vai acontecer, não
+    // um texto genérico. Mensagem multi-linha em window.confirm — o repo não tem
+    // componente de Dialog e introduzir um não foi pedido.
     setIsArchiving(true);
+    const impact = await getOperationArchiveImpact(props.initialData.id);
+    if (!impact.ok) {
+      setGeneralError(impact.error);
+      setIsArchiving(false);
+      return;
+    }
+    const { frentes, alocacoes } = impact.data;
+    const linhas = [
+      "Arquivar esta Operação?",
+      "",
+      `• ${frentes} ${frentes === 1 ? "Frente será arquivada" : "Frentes serão arquivadas"}`,
+      `• ${alocacoes} ${alocacoes === 1 ? "alocação aberta será encerrada" : "alocações abertas serão encerradas"}`,
+      "• Links públicos ativos serão revogados",
+    ];
+    if (!window.confirm(linhas.join("\n"))) {
+      setIsArchiving(false);
+      return;
+    }
     setGeneralError(null);
     const result = await archiveOperationAction(props.initialData.id);
     if (result.ok) {

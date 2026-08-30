@@ -268,8 +268,8 @@ function crossFrenteSelect(inner: boolean): string {
     area:areas!fk_tasks_area_id ( id, name ),
     assignees:${join} ( person:persons!fk_task_assignees_person_id (id, name) ),
     frente:frentes!fk_tasks_frente_id ( name ),
-    operation:operations!fk_tasks_operation_id (
-      id, name,
+    operation:operations!fk_tasks_operation_id!inner (
+      id, name, archived_at,
       client:clients!fk_operations_client_id (name)
     )
   `;
@@ -323,6 +323,13 @@ export async function listTasks(
     .from("tasks")
     .select(crossFrenteSelect(Boolean(assigneePersonId)));
 
+  // Tarefa de Operação arquivada some. Join via OPERAÇÃO, não via Frente:
+  // `tasks.operation_id` é NOT NULL (20260610140001:16) e cobre os dois tipos de
+  // tarefa, enquanto `frentes!inner` derrubaria toda tarefa de área (`frente_id`
+  // nulo, Inv. 15) da tela, em silêncio.
+  // O `!inner` no embed é obrigatório: sem ele o supabase-js descarta este filtro.
+  query = query.is("operation.archived_at", null);
+
   if (assigneePersonId)
     query = query.eq("assignees.person_id", assigneePersonId);
   if (filter === "open") query = query.in("status", OPEN_STATUSES);
@@ -358,13 +365,20 @@ export async function countTasks(
     if (assigneePersonId) {
       return supabase
         .from("tasks")
-        .select("id, task_assignees!inner(person_id)", {
-          count: "exact",
-          head: true,
-        })
-        .eq("task_assignees.person_id", assigneePersonId);
+        .select(
+          "id, task_assignees!inner(person_id), operation:operations!fk_tasks_operation_id!inner(archived_at)",
+          { count: "exact", head: true },
+        )
+        .eq("task_assignees.person_id", assigneePersonId)
+        .is("operation.archived_at", null);
     }
-    return supabase.from("tasks").select("id", { count: "exact", head: true });
+    return supabase
+      .from("tasks")
+      .select(
+        "id, operation:operations!fk_tasks_operation_id!inner(archived_at)",
+        { count: "exact", head: true },
+      )
+      .is("operation.archived_at", null);
   };
   const [openRes, doneRes, allRes] = await Promise.all([
     base().in("status", OPEN_STATUSES),
@@ -384,11 +398,12 @@ export async function countMyOpenTasks(personId: string): Promise<number> {
   const supabase = await createServer();
   const { count, error } = await supabase
     .from("tasks")
-    .select("id, task_assignees!inner(person_id)", {
-      count: "exact",
-      head: true,
-    })
+    .select(
+      "id, task_assignees!inner(person_id), operation:operations!fk_tasks_operation_id!inner(archived_at)",
+      { count: "exact", head: true },
+    )
     .eq("task_assignees.person_id", personId)
+    .is("operation.archived_at", null)
     .in("status", OPEN_STATUSES);
   if (error) throw new Error(`countMyOpenTasks: ${error.message}`);
   return count ?? 0;

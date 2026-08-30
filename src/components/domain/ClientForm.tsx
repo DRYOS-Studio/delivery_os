@@ -26,6 +26,7 @@ import {
   type ClientInput,
   type ClientOutput,
 } from "@/lib/validators/client";
+import { getClientArchiveImpact } from "@/lib/actions/archive-impact";
 
 type Props = (
   | { mode: "create" }
@@ -194,8 +195,27 @@ export function ClientForm(props: Props): React.JSX.Element {
 
   async function handleArchive() {
     if (!isEdit || !props.canArchive) return;
-    if (!window.confirm("Arquivar este Cliente?")) return;
+
     setIsArchiving(true);
+    const impact = await getClientArchiveImpact(props.initialData.id);
+    if (!impact.ok) {
+      setGeneralError(impact.error);
+      setIsArchiving(false);
+      return;
+    }
+    const { operacoes, frentes, alocacoes } = impact.data;
+    const linhas = [
+      "Arquivar este Cliente?",
+      "",
+      `• ${operacoes} ${operacoes === 1 ? "Operação será arquivada" : "Operações serão arquivadas"}`,
+      `• ${frentes} ${frentes === 1 ? "Frente será arquivada" : "Frentes serão arquivadas"}`,
+      `• ${alocacoes} ${alocacoes === 1 ? "alocação aberta será encerrada" : "alocações abertas serão encerradas"}`,
+      "• Links públicos ativos serão revogados",
+    ];
+    if (!window.confirm(linhas.join("\n"))) {
+      setIsArchiving(false);
+      return;
+    }
     setGeneralError(null);
     const result = await archiveClientAction(props.initialData.id);
     if (result.ok) {

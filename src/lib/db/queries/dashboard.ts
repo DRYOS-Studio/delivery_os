@@ -83,9 +83,15 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
       .is("end_date", null),
     supabase
       .from("tasks")
-      .select("id", { count: "exact", head: true })
+      .select(
+        "id, operation:operations!fk_tasks_operation_id!inner(archived_at)",
+        { count: "exact", head: true },
+      )
       // KPI de entrega: exclui tarefas de área (back-office transversal).
       .is("area_id", null)
+      // ...e tarefas de Operação arquivada, senão o painel mostra "operações
+      // ativas" sem o Cliente arquivado e "tarefas abertas" com as dele.
+      .is("operation.archived_at", null)
       .in("status", ["todo", "doing", "blocked"]),
     getActiveOperationsMonthlyCostsTotal(),
   ]);
