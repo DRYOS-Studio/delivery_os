@@ -1,4 +1,8 @@
 import { createServer } from "@/lib/db/client";
+import {
+  ACTIVE_STATUSES,
+  isActiveStatus,
+} from "@/lib/utils/operation-status";
 import type { Database } from "@/lib/db/types";
 
 export type ClientDetail = Database["public"]["Tables"]["clients"]["Row"];
@@ -11,10 +15,17 @@ export type ClientListItem = {
   createdAt: string;
   operationsActive: number;
   externalPersons: number;
+  archivedAt: string | null;
 };
 
+/**
+ * `includeArchived` só para a seção "Arquivados" de `/clients`. Default `false` de
+ * propósito: dos 5 call-sites, 4 são picker de Cliente (nova Operação, editar Operação,
+ * nova Pessoa, editar Pessoa) — trazer arquivados sem escopo poria Cliente arquivado
+ * como opção no `<select>`.
+ */
 export async function listClients(
-  options: { search?: string | undefined } = {},
+  options: { search?: string | undefined; includeArchived?: boolean } = {},
 ): Promise<ClientListItem[]> {
   const supabase = await createServer();
   const search = options.search?.trim();
@@ -28,12 +39,16 @@ export async function listClients(
       slug,
       notes,
       created_at,
+      archived_at,
       operations(id, archived_at, status),
       persons!fk_persons_client_id(id, archived_at, kind)
       `,
     )
-    .is("archived_at", null)
     .order("name", { ascending: true });
+
+  if (!(options.includeArchived ?? false)) {
+    query = query.is("archived_at", null);
+  }
 
   if (search) {
     const escaped = search.replace(/[%_]/g, (m) => `\\${m}`);
@@ -46,7 +61,7 @@ export async function listClients(
 
   return data.map((c): ClientListItem => {
     const operationsActive = (c.operations ?? []).filter(
-      (op) => op.archived_at === null && op.status !== "arquivada",
+      (op) => op.archived_at === null && isActiveStatus(op.status),
     ).length;
     const externalPersons = (c.persons ?? []).filter(
       (p) => p.kind === "external" && p.archived_at === null,
@@ -59,6 +74,7 @@ export async function listClients(
       createdAt: c.created_at,
       operationsActive,
       externalPersons,
+      archivedAt: c.archived_at,
     };
   });
 }
@@ -99,15 +115,19 @@ export async function getClientSummary(
 
   const opsRes = await supabase
     .from("operations")
-    .select("id, archived_at, monthly_recurring_revenue")
+    .select("id, archived_at, status, monthly_recurring_revenue")
     .eq("client_id", clientId);
   if (opsRes.error)
     throw new Error(`getClientSummary.ops: ${opsRes.error.message}`);
 
   const ops = opsRes.data ?? [];
-  const active = ops.filter((o) => !o.archived_at);
+  // ATIVA = não arquivada E status não-terminal. Operação concluída/cancelada para de
+  // somar MRR — é a promessa central de encerrar um projeto.
+  const active = ops.filter((o) => !o.archived_at && isActiveStatus(o.status));
   const activeOperations = active.length;
-  const archivedOperations = ops.length - activeOperations;
+  // Contado DIRETO, não por complemento: `ops.length - activeOperations` faria a
+  // Operação concluída (não arquivada) aparecer como "arquivada" no card.
+  const archivedOperations = ops.filter((o) => o.archived_at !== null).length;
   const mrrTotal = active.reduce(
     (sum, o) => sum + (o.monthly_recurring_revenue ?? 0),
     0,
@@ -136,6 +156,22 @@ export async function getClientSummary(
   };
 }
 
+/** Quantas Operações do Cliente ainda estão ATIVAS — alimenta o motivo do bloqueio. */
+export async function countActiveOperationsByClient(
+  clientId: string,
+): Promise<number> {
+  const supabase = await createServer();
+  const { count, error } = await supabase
+    .from("operations")
+    .select("id", { count: "exact", head: true })
+    .eq("client_id", clientId)
+    .is("archived_at", null)
+    .in("status", ACTIVE_STATUSES);
+  if (error)
+    throw new Error(`countActiveOperationsByClient: ${error.message}`);
+  return count ?? 0;
+}
+
 export async function clientHasActiveOperations(
   clientId: string,
 ): Promise<boolean> {
@@ -145,7 +181,7 @@ export async function clientHasActiveOperations(
     .select("id", { count: "exact", head: true })
     .eq("client_id", clientId)
     .is("archived_at", null)
-    .neq("status", "arquivada");
+    .in("status", ACTIVE_STATUSES);
   if (error) throw new Error(`clientHasActiveOperations: ${error.message}`);
   return (count ?? 0) > 0;
 }

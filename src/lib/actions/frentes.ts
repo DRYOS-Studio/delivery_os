@@ -1,10 +1,15 @@
 "use server";
 
-import { type ActionResult, dbErr, err, ok } from "@/lib/actions/_types";
+import {
+  type ActionResult,
+  dbErr,
+  err,
+  ok,
+  rpcErr,
+} from "@/lib/actions/_types";
 import { requireAdminAction, requireUserAction } from "@/lib/auth/server";
 import { createServer } from "@/lib/db/client";
 import {
-  frenteHasActiveAllocations,
   getFrente,
 } from "@/lib/db/queries/frentes";
 import { frenteSchema } from "@/lib/validators/frente";
@@ -156,20 +161,32 @@ export async function archiveFrenteAction(
   const current = await getFrente(id);
   if (!current) return err("Frente não encontrada.", "not_found");
 
-  const hasAllocations = await frenteHasActiveAllocations(id);
-  if (hasAllocations) {
-    return err(
-      "Frente tem alocações ativas. Remova-as antes de arquivar.",
-      "has_active_allocations",
-    );
-  }
+  // Sem pré-check de alocação: a cascata FECHA as alocações abertas em vez de ser
+  // bloqueada por elas. O pré-check antigo (`frenteHasActiveAllocations`) contava
+  // qualquer alocação que já tivesse existido — era o fundo do beco sem saída.
+  const supabase = await createServer();
+  const { error: dbError } = await supabase.rpc("archive_frente_cascade", {
+    p_frente_id: id,
+  });
+
+  if (dbError) return rpcErr(dbError, "archiveFrenteAction");
+  return ok({ operationId: current.operation_id });
+}
+
+export async function restoreFrenteAction(
+  id: string,
+): Promise<ActionResult<{ id: string }>> {
+  const userResult = await requireUserAction();
+  if (!userResult.ok) return userResult;
+
+  const adminGuard = await requireAdminAction();
+  if (!adminGuard.ok) return adminGuard;
 
   const supabase = await createServer();
-  const { error: dbError } = await supabase
-    .from("frentes")
-    .update({ archived_at: new Date().toISOString() })
-    .eq("id", id);
+  const { error: dbError } = await supabase.rpc("restore_frente", {
+    p_frente_id: id,
+  });
 
-  if (dbError) return dbErr(dbError, "archiveFrenteAction");
-  return ok({ operationId: current.operation_id });
+  if (dbError) return rpcErr(dbError, "restoreFrenteAction");
+  return ok({ id });
 }

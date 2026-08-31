@@ -46,6 +46,7 @@ export async function listGrantableClients(): Promise<GrantClient[]> {
   const { data, error } = await supabase
     .from("clients")
     .select("id, name")
+    .is("archived_at", null)
     .order("name", { ascending: true });
   if (error) throw new Error(`listGrantableClients: ${error.message}`);
   return data ?? [];
@@ -56,7 +57,11 @@ export async function listGrantableOperations(): Promise<GrantOperation[]> {
   const supabase = await createServer();
   const { data, error } = await supabase
     .from("operations")
-    .select("id, name, client:clients!fk_operations_client_id ( name )")
+    .select(
+      "id, name, client:clients!fk_operations_client_id!inner ( name, archived_at )",
+    )
+    .is("archived_at", null)
+    .is("client.archived_at", null)
     .order("name", { ascending: true });
   if (error) throw new Error(`listGrantableOperations: ${error.message}`);
   type Row = { id: string; name: string; client: { name: string } | { name: string }[] | null };

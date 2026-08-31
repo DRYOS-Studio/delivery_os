@@ -1,6 +1,12 @@
 "use server";
 
-import { type ActionResult, dbErr, err, ok } from "@/lib/actions/_types";
+import {
+  type ActionResult,
+  dbErr,
+  err,
+  ok,
+  rpcErr,
+} from "@/lib/actions/_types";
 import {
   getProfile,
   requireAdminAction,
@@ -156,20 +162,41 @@ export async function archiveClientAction(
   const adminGuard = await requireAdminAction();
   if (!adminGuard.ok) return adminGuard;
 
+  // Guard semântico continua (a UI precisa do motivo antes de habilitar o botão), mas
+  // a função SQL o repete e é ela quem manda: aborta a transação inteira se alguma
+  // Operação não estiver encerrada, em vez de "pular" a não-terminal.
   const hasOps = await clientHasActiveOperations(id);
   if (hasOps) {
     return err(
-      "Cliente tem Operações ativas. Arquive-as antes.",
+      "Cliente tem Operações ativas. Encerre-as antes.",
       "has_active_operations",
     );
   }
 
   const supabase = await createServer();
+  const { error: dbError } = await supabase.rpc("archive_client_cascade", {
+    p_client_id: id,
+  });
+
+  if (dbError) return rpcErr(dbError, "archiveClientAction");
+  return ok(undefined);
+}
+
+export async function restoreClientAction(
+  id: string,
+): Promise<ActionResult<{ id: string }>> {
+  const userResult = await requireUserAction();
+  if (!userResult.ok) return userResult;
+  const adminGuard = await requireAdminAction();
+  if (!adminGuard.ok) return adminGuard;
+
+  // Escrita única (Cliente não tem pai) — action basta, sem RPC.
+  const supabase = await createServer();
   const { error: dbError } = await supabase
     .from("clients")
-    .update({ archived_at: new Date().toISOString() })
+    .update({ archived_at: null })
     .eq("id", id);
 
-  if (dbError) return dbErr(dbError, "archiveClientAction");
-  return ok(undefined);
+  if (dbError) return dbErr(dbError, "restoreClientAction");
+  return ok({ id });
 }

@@ -3,6 +3,7 @@ import { DecisionForm } from "@/components/domain/DecisionForm";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { listMeetingsByOperation } from "@/lib/db/queries/meetings";
 import { getOperation } from "@/lib/db/queries/operations";
+import { isActiveStatus } from "@/lib/utils/operation-status";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -19,7 +20,9 @@ export default async function Page({
     listMeetingsByOperation(id, 100),
   ]);
   if (!op) redirect("/operations");
-  if (op.status === "arquivada") redirect(`/operations/${id}`);
+  // Barra qualquer status terminal, não só o legado `arquivada`: contrato
+  // encerrado não recebe registro novo.
+  if (!isActiveStatus(op.status)) redirect(`/operations/${id}`);
 
   return (
     <>

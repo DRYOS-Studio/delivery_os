@@ -1541,6 +1541,33 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      archive_client_cascade: {
+        Args: { p_client_id: string }
+        Returns: undefined
+      }
+      archive_client_impact: {
+        Args: { p_client_id: string }
+        Returns: {
+          alocacoes: number
+          frentes: number
+          operacoes: number
+        }[]
+      }
+      archive_frente_cascade: {
+        Args: { p_frente_id: string }
+        Returns: undefined
+      }
+      archive_operation_cascade: {
+        Args: { p_operation_id: string }
+        Returns: undefined
+      }
+      archive_operation_impact: {
+        Args: { p_operation_id: string }
+        Returns: {
+          alocacoes: number
+          frentes: number
+        }[]
+      }
       area_can_reach_operation: {
         Args: { p_area_id: string; p_op_id: string }
         Returns: boolean
@@ -1550,6 +1577,11 @@ export type Database = {
       can_see_task: { Args: { t_id: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       is_area_granted: { Args: { p_op_id: string }; Returns: boolean }
+      restore_frente: { Args: { p_frente_id: string }; Returns: undefined }
+      restore_operation: {
+        Args: { p_operation_id: string }
+        Returns: undefined
+      }
       user_in_area: { Args: { p_area_id: string }; Returns: boolean }
     }
     Enums: {
@@ -1566,6 +1598,8 @@ export type Database = {
         | "em_operacao"
         | "janela_critica"
         | "arquivada"
+        | "concluida"
+        | "cancelada"
       person_kind: "internal" | "external"
       product_line: "core" | "spark" | "studio"
       product_recommendation: "core" | "spark" | "studio"
@@ -1715,6 +1749,8 @@ export const Constants = {
         "em_operacao",
         "janela_critica",
         "arquivada",
+        "concluida",
+        "cancelada",
       ],
       person_kind: ["internal", "external"],
       product_line: ["core", "spark", "studio"],

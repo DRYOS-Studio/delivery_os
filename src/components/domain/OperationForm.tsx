@@ -18,6 +18,8 @@ import {
   type OperationInput,
   type OperationOutput,
 } from "@/lib/validators/operation";
+import { selectableStatuses } from "@/lib/utils/operation-status";
+import { getOperationArchiveImpact } from "@/lib/actions/archive-impact";
 
 type ClientForSelect = { id: string; name: string };
 
@@ -35,6 +37,8 @@ type Props =
       initialData: OperationDetail;
       clientsForSelect: ClientForSelect[];
       canArchive: boolean;
+      /** Motivo exibido quando `canArchive` é falso. `null` quando liberado. */
+      archiveBlockedReason: string | null;
       diagnosticsByClient: DiagnosticOption[];
       isAdmin?: boolean;
     };
@@ -44,6 +48,10 @@ const PRODUCT_LINE_LABEL: Record<"core" | "spark" | "studio", string> = {
   spark: "Spark",
   studio: "Studio",
 };
+
+const EDITABLE_STATUS_VALUES = new Set(
+  selectableStatuses("edit").map((o) => o.value),
+);
 
 function nameFromCombo(clientName: string, line: string): string {
   if (!clientName || !line) return "";
@@ -74,10 +82,12 @@ export function OperationForm(props: Props): React.JSX.Element {
         client_id: props.initialData.client.id,
         product_line: props.initialData.productLine,
         name: props.initialData.name,
-        status:
-          props.initialData.status === "arquivada"
-            ? "em_operacao"
-            : props.initialData.status,
+        // Só reescreve status não-selecionável (hoje só `arquivada`, legado). Generalizar
+        // isso para "todo status terminal" apagaria Concluída/Cancelada ao salvar — o ato
+        // de negócio que a feature existe para registrar.
+        status: EDITABLE_STATUS_VALUES.has(props.initialData.status)
+          ? props.initialData.status
+          : "em_operacao",
         recurrence: props.initialData.recurrence ?? undefined,
         monthly_recurring_revenue:
           props.initialData.monthlyRecurringRevenue ?? null,
@@ -188,8 +198,29 @@ export function OperationForm(props: Props): React.JSX.Element {
 
   async function handleArchive() {
     if (!isEdit || !props.canArchive) return;
-    if (!window.confirm("Arquivar esta Operação?")) return;
+
+    // Busca o impacto ANTES de perguntar: a confirmação diz o que vai acontecer, não
+    // um texto genérico. Mensagem multi-linha em window.confirm — o repo não tem
+    // componente de Dialog e introduzir um não foi pedido.
     setIsArchiving(true);
+    const impact = await getOperationArchiveImpact(props.initialData.id);
+    if (!impact.ok) {
+      setGeneralError(impact.error);
+      setIsArchiving(false);
+      return;
+    }
+    const { frentes, alocacoes } = impact.data;
+    const linhas = [
+      "Arquivar esta Operação?",
+      "",
+      `• ${frentes} ${frentes === 1 ? "Frente será arquivada" : "Frentes serão arquivadas"}`,
+      `• ${alocacoes} ${alocacoes === 1 ? "alocação aberta será encerrada" : "alocações abertas serão encerradas"}`,
+      "• Links públicos ativos serão revogados",
+    ];
+    if (!window.confirm(linhas.join("\n"))) {
+      setIsArchiving(false);
+      return;
+    }
     setGeneralError(null);
     const result = await archiveOperationAction(props.initialData.id);
     if (result.ok) {
@@ -201,13 +232,7 @@ export function OperationForm(props: Props): React.JSX.Element {
     }
   }
 
-  const allowedStatus: { value: OperationInput["status"]; label: string }[] = [
-    { value: "em_construcao", label: "Em construção" },
-    { value: "em_operacao", label: "Em operação" },
-    ...(isEdit
-      ? [{ value: "janela_critica" as const, label: "Janela crítica" }]
-      : []),
-  ];
+  const allowedStatus = selectableStatuses(isEdit ? "edit" : "create");
 
   return (
     <form
@@ -522,16 +547,26 @@ export function OperationForm(props: Props): React.JSX.Element {
             </Button>
           </Link>
         </div>
-        {isEdit && props.canArchive && (
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={handleArchive}
-            disabled={busy}
-            className="text-critical hover:text-critical hover:bg-critical-bg"
-          >
-            Arquivar
-          </Button>
+        {isEdit && isAdmin && (
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={handleArchive}
+              disabled={busy || !props.canArchive}
+              aria-describedby={
+                props.archiveBlockedReason ? "archive-blocked" : undefined
+              }
+              className="text-critical hover:text-critical hover:bg-critical-bg"
+            >
+              Arquivar
+            </Button>
+            {props.archiveBlockedReason && (
+              <p id="archive-blocked" className="text-xs text-mute">
+                {props.archiveBlockedReason}
+              </p>
+            )}
+          </div>
         )}
       </div>
     </form>

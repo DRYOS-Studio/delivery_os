@@ -1,4 +1,5 @@
 import { createServer } from "@/lib/db/client";
+import { ACTIVE_STATUSES } from "@/lib/utils/operation-status";
 import type { Database } from "@/lib/db/types";
 
 export type CostRecurrence = Database["public"]["Enums"]["cost_recurrence"];
@@ -298,14 +299,17 @@ export async function getActiveOperationsMonthlyCostsTotal(): Promise<number> {
   const [opsRes, costsRes, allocRes] = await Promise.all([
     supabase
       .from("operations")
-      .select("id, monthly_fixed_cost")
-      .is("archived_at", null),
+      .select("id, monthly_fixed_cost, client:clients!inner(archived_at)")
+      .is("archived_at", null)
+      .is("client.archived_at", null)
+      .in("status", ACTIVE_STATUSES),
     supabase
       .from("operation_costs")
       .select(
-        "*, operation:operations!fk_operation_costs_operation_id!inner(archived_at)",
+        "*, operation:operations!fk_operation_costs_operation_id!inner(archived_at, status)",
       )
       .is("operation.archived_at", null)
+      .in("operation.status", ACTIVE_STATUSES)
       // O agregado só usa custos mensais (totalMonthly não inclui `unica`) —
       // não trafegar o histórico de custos pontuais do org inteiro.
       .eq("recurrence", "mensal")
@@ -317,11 +321,12 @@ export async function getActiveOperationsMonthlyCostsTotal(): Promise<number> {
         `${ALLOC_SELECT_FIELDS},
         frente:frentes!fk_allocations_frente_id!inner(
           id, operation_id, archived_at,
-          operation:operations!fk_frentes_operation_id!inner(archived_at)
+          operation:operations!fk_frentes_operation_id!inner(archived_at, status)
         )`,
       )
       .is("frente.archived_at", null)
       .is("frente.operation.archived_at", null)
+      .in("frente.operation.status", ACTIVE_STATUSES)
       .or(`end_date.is.null,end_date.gt.${today}`),
   ]);
   if (opsRes.error)

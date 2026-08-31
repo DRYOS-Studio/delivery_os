@@ -95,6 +95,8 @@ Os três domínios podem coexistir na mesma Operação como Frentes paralelas co
 
 **Operação** — instância vendida (um Core, um Spark Inbox, um Studio Launch). Contrato comercial, preço, recorrência, faturamento. Vinculada a um Diagnóstico que originou.
 
+*Ciclo de vida:* `em construção → em operação → (janela crítica) → concluída | cancelada`. **Encerrar e arquivar são atos distintos.** Encerrar (status terminal) é o ato de negócio: a Operação sai dos agregados — para de somar MRR e custo — mas **continua listada**, porque é por ela que se chega no arquivamento. Arquivar tira da vista e exige status terminal; cascateia nas Frentes e encerra as alocações abertas, numa transação. *Cancelada* revoga os links públicos do cliente; *concluída* não — contrato entregue ainda serve o relatório.
+
 **Frente** — fluxo de entrega dentro da Operação. Tipo de ciclo + domínio + responsável + alocação de pessoas + status acionável + fase atual.
 
 **Pessoa** — interna (Dryos, com especialidade) ou externa (cliente ou parceiro do cliente, com papel).

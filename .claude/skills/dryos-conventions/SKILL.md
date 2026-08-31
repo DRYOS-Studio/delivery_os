@@ -33,7 +33,10 @@ Esta skill é o contrato de implementação do DRYOS Delivery. Antes de qualquer
 
 ### Exemplo bom
 ```typescript
-type OperationStatus = 'em_construcao' | 'em_operacao' | 'janela_critica' | 'arquivada';
+// NÃO escrever a união à mão: ela compila e fica cega a valor novo no enum do banco.
+// A fonte única é `src/lib/utils/operation-status.ts`, ancorada em
+// Database["public"]["Enums"]["operation_status"].
+type OperationStatus = Database['public']['Enums']['operation_status'];
 
 type Operation = {
   id: string;

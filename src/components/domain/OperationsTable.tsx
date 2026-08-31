@@ -5,25 +5,16 @@ import { Pill, type PillVariant } from "@/components/ui/Pill";
 import type { OperationListItem } from "@/lib/db/queries/operations";
 import { formatDateBR } from "@/lib/utils/date";
 import { formatMoneyBR } from "@/lib/utils/money";
+import {
+  statusLabel,
+  statusPillVariant,
+} from "@/lib/utils/operation-status";
 
 const PRODUCT_LINE_LABEL: Record<OperationListItem["productLine"], string> = {
   core: "Core",
   spark: "Spark",
   studio: "Studio",
 };
-const STATUS_LABEL: Record<OperationListItem["status"], string> = {
-  em_construcao: "Em construção",
-  em_operacao: "Em operação",
-  janela_critica: "Janela crítica",
-  arquivada: "Arquivada",
-};
-const STATUS_VARIANT: Record<OperationListItem["status"], PillVariant> = {
-  em_construcao: "neutral",
-  em_operacao: "sage",
-  janela_critica: "warning",
-  arquivada: "neutral",
-};
-
 export function OperationsTable({
   operations,
   hasSearch,
@@ -86,8 +77,8 @@ export function OperationsTable({
                 <Pill variant="oak" showDot>
                   {PRODUCT_LINE_LABEL[op.productLine]}
                 </Pill>
-                <Pill variant={STATUS_VARIANT[op.status]}>
-                  {STATUS_LABEL[op.status]}
+                <Pill variant={statusPillVariant(op.status)}>
+                  {statusLabel(op.status)}
                 </Pill>
               </>
             }
@@ -133,8 +124,8 @@ export function OperationsTable({
                 </Pill>
               </Td>
               <Td>
-                <Pill variant={STATUS_VARIANT[op.status]}>
-                  {STATUS_LABEL[op.status]}
+                <Pill variant={statusPillVariant(op.status)}>
+                  {statusLabel(op.status)}
                 </Pill>
               </Td>
               {isAdmin && (

@@ -4,10 +4,7 @@ import { FrenteForm } from "@/components/domain/FrenteForm";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { getProfile } from "@/lib/auth/server";
 import { listAllocationsByFrente } from "@/lib/db/queries/allocations";
-import {
-  frenteHasActiveAllocations,
-  getFrente,
-} from "@/lib/db/queries/frentes";
+import { getFrente } from "@/lib/db/queries/frentes";
 import { getOperation } from "@/lib/db/queries/operations";
 import { listInternalPersons } from "@/lib/db/queries/persons";
 import { listActiveServiceProducts } from "@/lib/db/queries/service-products";
@@ -22,11 +19,10 @@ export default async function Page({
   const { id, fid } = await params;
   if (!UUID_RE.test(id) || !UUID_RE.test(fid)) redirect("/operations");
 
-  const [op, frente, hasAllocs, persons, allocations, products] =
+  const [op, frente, persons, allocations, products] =
     await Promise.all([
       getOperation(id),
       getFrente(fid),
-      frenteHasActiveAllocations(fid),
       listInternalPersons(),
       listAllocationsByFrente(fid),
       listActiveServiceProducts(),
@@ -50,7 +46,8 @@ export default async function Page({
         operationId={id}
         internalPersons={persons}
         products={products}
-        canArchive={!hasAllocs}
+        canArchive={true}
+        archiveBlockedReason={null}
         isAdmin={isAdmin}
       />
       <AllocationsSection

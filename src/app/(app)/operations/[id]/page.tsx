@@ -13,6 +13,7 @@ import { QuickWinsSection } from "@/components/domain/QuickWinsSection";
 import { SLASection } from "@/components/domain/SLASection";
 import { TabsNav, type TabDef } from "@/components/ui/TabsNav";
 import { getProfile } from "@/lib/auth/server";
+import { RestoreButton } from "@/components/domain/RestoreButton";
 import { getOperationMonthlyCosts } from "@/lib/db/queries/operation-costs";
 import { computeMargin, type MarginResult } from "@/lib/utils/margin";
 import {
@@ -38,6 +39,7 @@ import {
   listVillainsByOperation,
 } from "@/lib/db/queries/operation-villains";
 import { canWriteOperation } from "@/lib/db/queries/operation-members";
+import { listArchivedFrentesByOperation } from "@/lib/db/queries/frentes";
 import { getOperation } from "@/lib/db/queries/operations";
 import { listPublicLinksByOperation } from "@/lib/db/queries/publicLinks";
 import { canCreateAreaTaskInOperation } from "@/lib/db/queries/areas";
@@ -242,6 +244,11 @@ export default async function Page({
   if (!op) notFound();
 
   const isAdmin = profile?.role === "admin";
+  // Frente arquivada não aparece em nenhuma outra tela (getFrente e o embed de
+  // getOperation filtram) — é aqui que o restore item-a-item existe.
+  const archivedFrentes = isAdmin
+    ? await listArchivedFrentesByOperation(id)
+    : [];
   // Aba "Área / Interno" só pra quem tem acesso de área: vê tarefa de área OU
   // pode criar (admin / membro de área com concessão). Some pro resto.
   const showAreaTab = areaTasksCount > 0 || canCreateAreaTask;
@@ -351,11 +358,35 @@ export default async function Page({
       )}
 
       {tab === "frentes" && (
-        <FrentesListSection
-          frentes={op.frentes}
-          operationId={op.id}
-          canWrite={canWrite}
-        />
+        <>
+          <FrentesListSection
+            frentes={op.frentes}
+            operationId={op.id}
+            canWrite={canWrite}
+          />
+
+          {isAdmin && archivedFrentes.length > 0 && (
+            <section className="mt-10">
+              <h2 className="font-display text-base text-ink font-semibold mb-3">
+                Arquivadas
+                <span className="font-mono text-[10px] text-mute uppercase tracking-wide ml-2">
+                  {archivedFrentes.length}
+                </span>
+              </h2>
+              <div className="bg-card border border-line rounded divide-y divide-line">
+                {archivedFrentes.map((f) => (
+                  <div
+                    key={f.id}
+                    className="flex items-center justify-between px-4 py-3"
+                  >
+                    <p className="text-sm text-ink-soft truncate">{f.name}</p>
+                    <RestoreButton kind="frente" id={f.id} name={f.name} />
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+        </>
       )}
 
       {tab === "briefing" && (

@@ -1,4 +1,8 @@
 import { createServer } from "@/lib/db/client";
+import {
+  ACTIVE_STATUSES,
+  isActiveStatus,
+} from "@/lib/utils/operation-status";
 import { getActiveOperationsMonthlyCostsTotal } from "@/lib/db/queries/operation-costs";
 import { STALENESS_THRESHOLDS } from "@/lib/utils/staleness";
 
@@ -51,7 +55,13 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
   ] = await Promise.all([
     supabase
       .from("operations")
-      .select("id, monthly_recurring_revenue, archived_at"),
+      // Traz TODAS e separa em JS. Filtrar `client.archived_at` na query faria as
+      // Operações de um Cliente arquivado sumirem também do card "Operações
+      // arquivadas" — que iria a 0 em vez de contá-las. A cláusula do Cliente
+      // pertence ao predicado ATIVA, não à contagem de arquivadas.
+      .select(
+        "id, monthly_recurring_revenue, archived_at, status, client:clients!inner(archived_at)",
+      ),
     supabase
       .from("frentes")
       .select("actionable_status, updated_at")
@@ -76,9 +86,15 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
       .is("end_date", null),
     supabase
       .from("tasks")
-      .select("id", { count: "exact", head: true })
+      .select(
+        "id, operation:operations!fk_tasks_operation_id!inner(archived_at)",
+        { count: "exact", head: true },
+      )
       // KPI de entrega: exclui tarefas de área (back-office transversal).
       .is("area_id", null)
+      // ...e tarefas de Operação arquivada, senão o painel mostra "operações
+      // ativas" sem o Cliente arquivado e "tarefas abertas" com as dele.
+      .is("operation.archived_at", null)
       .in("status", ["todo", "doing", "blocked"]),
     getActiveOperationsMonthlyCostsTotal(),
   ]);
@@ -111,13 +127,26 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     );
 
   const ops = opsRes.data ?? [];
-  const active = ops.filter((o) => !o.archived_at);
+  // ATIVA: não arquivada E status não-terminal (senão Operação cancelada segue somando MRR).
+  const clienteArquivado = (o: (typeof ops)[number]): boolean => {
+    const c = o.client as
+      | { archived_at: string | null }
+      | { archived_at: string | null }[]
+      | null;
+    const one = Array.isArray(c) ? (c[0] ?? null) : c;
+    return one?.archived_at != null;
+  };
+  const active = ops.filter(
+    (o) => !o.archived_at && isActiveStatus(o.status) && !clienteArquivado(o),
+  );
   const mrrTotal = active.reduce(
     (sum, o) => sum + (o.monthly_recurring_revenue ?? 0),
     0,
   );
   const activeOperations = active.length;
-  const archivedOperations = ops.length - activeOperations;
+  // Direto, não por complemento: senão o card "Operações arquivadas" contaria as
+  // concluídas/canceladas que ainda não foram arquivadas.
+  const archivedOperations = ops.filter((o) => o.archived_at !== null).length;
 
   const frentes = frentesRes.data ?? [];
   const frentesHealthy = frentes.filter(
@@ -166,9 +195,11 @@ export async function getTopClientsByMRR(limit = 5): Promise<ClientMRR[]> {
   const { data, error } = await supabase
     .from("operations")
     .select(
-      "client_id, monthly_recurring_revenue, clients!inner(id, name)",
+      "client_id, monthly_recurring_revenue, status, clients!inner(id, name, archived_at)",
     )
-    .is("archived_at", null);
+    .is("archived_at", null)
+    .is("clients.archived_at", null)
+    .in("status", ACTIVE_STATUSES);
 
   if (error)
     throw new Error(`dashboard.getTopClientsByMRR: ${error.message}`);
