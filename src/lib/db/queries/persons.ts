@@ -121,17 +121,34 @@ export async function countActivePersons(): Promise<{
   return { internal, external, total: internal + external };
 }
 
-export async function personHasActiveAllocations(
+/**
+ * Alocações **abertas** da pessoa. "Aberta" é o predicado que os leitores usam
+ * (`operation-costs.ts`, `public-report.ts`): `end_date IS NULL OR end_date > hoje`.
+ *
+ * Antes contava qualquer alocação que já tivesse existido, sem filtrar `end_date` —
+ * mesmo defeito de `frenteHasActiveAllocations` (removida na #159). Acertava por
+ * acidente enquanto nenhuma alocação era encerrada; a cascata da #159 passou a
+ * escrever `end_date`, e aí a pessoa ficaria inarquivável para sempre.
+ */
+export async function countActiveAllocationsByPerson(
   personId: string,
-): Promise<boolean> {
+): Promise<number> {
   const supabase = await createServer();
+  const hoje = new Date().toISOString().slice(0, 10);
   const { count, error } = await supabase
     .from("allocations")
     .select("id", { count: "exact", head: true })
-    .eq("person_id", personId);
+    .eq("person_id", personId)
+    .or(`end_date.is.null,end_date.gt.${hoje}`);
   if (error)
-    throw new Error(`personHasActiveAllocations: ${error.message}`);
-  return (count ?? 0) > 0;
+    throw new Error(`countActiveAllocationsByPerson: ${error.message}`);
+  return count ?? 0;
+}
+
+export async function personHasActiveAllocations(
+  personId: string,
+): Promise<boolean> {
+  return (await countActiveAllocationsByPerson(personId)) > 0;
 }
 
 export async function getPersonAllocations(
