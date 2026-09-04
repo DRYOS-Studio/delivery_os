@@ -1,7 +1,22 @@
 # State
 
-**Last Updated:** 2026-08-30
-**Current Work:** `operation-lifecycle-archive` (issue #159, branch `feat/operation-lifecycle-archive`) — encerrar e arquivar Operação/Cliente. Ver AD-018.
+**Last Updated:** 2026-09-03
+**Current Work:** `tasks-subtask-visibility` (issue #163) — subtarefa sem
+responsável herda visibilidade da tarefa-pai em `/tasks`; tela de edição da
+tarefa-pai lista as subtarefas inline. Ver AD-019. dryos-pipeline completo:
+Specify (fool-gate 2 rodadas, 1 FAIL→PASS), Design (design-gate PASS +
+fool-gate 4 rodadas até fechar um vazamento via RLS de `persons` — ver
+AD-019), Implement (`/code-review` achou e corrigiu regressão de perf em
+`countTasks` + `.or()` duplicado), Release gate (conformance achou e
+corrigiu doc-sync em `docs/workflows/tarefas.md`). **Pendente:** verificação
+manual live (não tive acesso ao Supabase deste projeto via MCP) — confirmar
+que `assigneeLinks` chega populado no payload real antes de fechar de vez
+(T6 em `.specs/features/tasks-subtask-visibility/tasks.md`); PR ainda não
+aberto.
+
+**Anteriormente:** `operation-lifecycle-archive` (issue #159, branch
+`feat/operation-lifecycle-archive`) — encerrar e arquivar Operação/Cliente.
+**MERGED** (#160, #162). Ver AD-018.
 
 **Anteriormente:** `task-count-consistency` (issue #136, branch `fix/task-count-consistency`) — a Pill de tarefas abertas na lista de Frentes contava subtarefa (`operations.ts`) e o header do detalhe não (`[fid]/page.tsx:48`). Unificado na regra do header: **subtarefa não conta**. Embed passa a trazer `parent_task_id`; `countOpenTasksByFrente` (órfã) removida — não podia virar fonte única porque `getOperation` traz todas as Frentes numa query só e usá-la por Frente seria N+1. ⚠️ O bug era **latente**: produção tem 17 tarefas e **zero** subtarefas, então as duas telas concordavam. Divergência provada via SQL simulado (3 pais + 3 subtarefas: regra antiga 5, nova 2, header 2). `docs/workflows/tarefas.md` reconciliado (tabela de contagens + remoção do parágrafo que documentava a divergência como intencional).
 
@@ -15,6 +30,87 @@ Anteriormente: `operation-members` — COMPLETE (issue #80, PRs #81 + #82 + #83)
 ---
 
 ## Recent Decisions (Last 60 days)
+
+### AD-019: Subtarefa herda visibilidade de responsável do pai; lista inline reaproveita `TaskListItem` (2026-09-03)
+
+**Contexto.** Causa raiz provada via `/dryos-debug`: `/tasks` filtra por
+responsável com `task_assignees!inner` (`tasks.ts:261-276,333-334`) — como
+subtarefa nasce sem responsável (`TaskForm.tsx:103`), ela some da visão
+default ("eu") mesmo quando a tarefa-pai é do usuário. Segundo sintoma:
+`.../tasks/[tid]/edit` computa `countSubtasks` só pra gating de
+"virar pai de outra task", nunca renderiza as filhas.
+
+**Decisões.**
+
+1. **Herança só para subtarefa órfã de responsável**, não um OR geral pai↔filha
+   — subtarefa com responsável PRÓPRIO Q≠P não herda (evita vazar trabalho
+   explicitamente delegado pra dentro do filtro "eu"). Resolvido via lookup
+   separado (`task_assignees.person_id = P` → ids) + `.or("id.in,parent_task_id.in")`
+   numa ÚNICA query (ordenação/limit no banco preservados) + filtro pós-fetch
+   em JS sobre um embed DEDICADO `assigneeLinks:task_assignees(person_id)`
+   — nunca atravessa `persons`, porque `person_id` é coluna própria da
+   junção. Levou 3 rodadas de gate: v1 filtrava o array de EXIBIÇÃO (que já
+   ia pra `persons`, RLS podia zerar pra Membro não-admin → subtarefa
+   delegada parecia órfã); v2 trocou pra "linha crua" mas ainda embedava
+   `persons` dentro dela, só adiando a mesma pergunta; v3 (final) usa um
+   alias que não embeda `persons` em nenhum nível — a pergunta "RLS zera o
+   embed?" deixa de fazer sentido porque não há RLS de `persons` envolvida.
+   Guard fail-closed: chave ausente/malformada é tratada como "tem
+   responsável" (exclui), nunca como "órfã" (vazaria). Evitado: duas queries
+   mescladas em JS (quebraria a ordenação global por `due_date` que existe
+   por causa do teto de 200) e RPC/view SQL nova (não pedida — custo de
+   migration + regen de types pro volume declarado, não porque fosse
+   inexpressável em SQL).
+2. **Herança independe do status do PAI** — o lookup de ids-de-P NÃO filtra
+   por status; quem decide a aba (Abertas/Concluídas/Todas) é o status da
+   PRÓPRIA subtarefa. Motivo: pai `done` não pode apagar do radar uma filha
+   ainda `todo`.
+3. **`countTasks` abandona `count:'exact',head:true` SÓ no branch com
+   responsável** — achado do `/code-review` na Fase 4: a v1 deste fix trocava
+   os dois branches (com e sem responsável) por um único fetch sem
+   `head:true`, então "Todos" (o caso mais comum, sem filtro) passava a
+   varrer toda task não-arquivada do sistema a cada load — regressão de
+   performance que a spec/design não pediam. Fix: "Todos" mantém os 3
+   `count:'exact',head:true` originais; só com responsável (`resolveInheritanceFilter`
+   + `filterInheritedRows`, mesmo mecanismo de `listTasks`) busca linhas de
+   verdade, porque o Postgres não sabe aplicar sozinho "sem responsável".
+   Badge e lista nunca divergem sob herança (mesma resolução de ids + mesmo
+   filtro nos dois), e os 3 números do toolbar nascem consistentes entre si
+   por construção.
+4. **Lista de subtarefas na tela do pai reaproveita `TaskListItem`** (mesmo
+   componente da tela da Frente), sem componente novo read-only — vem de
+   graça com `StatusCycleButton`/`DeleteTaskButton`(admin)/indent, é a
+   paridade que já existe em outro lugar, não escopo novo. Pulada quando a
+   própria task já é subtarefa (`parentTaskId !== null`) — reflete o
+   invariante de hierarquia de 1 nível no código, não confia em "a query
+   retornaria vazio de qualquer jeito".
+5. **Fora de escopo, registrado (não resolvido nesta feature):** indent/badge
+   de subtarefa em `MyTaskListItem` (`/tasks` fica com pai e filha
+   visualmente idênticos — aceitável no volume atual, ~5 tarefas); badge
+   "Tasks" da Sidebar (`countMyOpenTasks`) continua com o join estrito e
+   pode divergir do subtítulo da própria página `/tasks`.
+
+Gates: fool-gate Specify rodou 2x (rodada 1: 3 BLOCKER — ambiguidade
+status-do-pai, dimensão "subtarefa com responsável próprio" sem AC,
+contradição sobre `TaskListItem` ser read-only; rodada 2: PASS, 5 WARN
+aceitos/registrados acima). Design rodou 4x (design-gate PASS na 1ª correção;
+fool-gate 3 BLOCKER seguidos, todos sobre a mesma pergunta — "o teste de
+órfã pode vazar via RLS de `persons`?" — até a solução final (embed dedicado
+`assigneeLinks`, nunca atravessa `persons`) eliminar a pergunta em vez de
+argumentar sobre ela). `/code-review` na Fase 4 achou regressão real
+(`countTasks` virando fetch completo até em "Todos") + duplicação de `.or()`
+— corrigidas. Release gate (conformance) achou doc-sync: `tarefas.md` ficou
+descrevendo o `countTasks` de query única depois que o `/code-review` já
+tinha dividido em 2 branches — corrigido junto com a divergência nova
+badge-do-nav vs `/tasks` (item 5 acima), que ficou sem menção na tabela de
+contagens do doc até essa rodada.
+
+**Não verificado ao vivo (leitura, não execução):** se `assigneeLinks`
+chega como array no payload real do PostgREST pra este projeto (sem acesso
+Supabase MCP a este projeto na sessão). O guard fail-closed protege contra
+vazamento se a chave vier ausente, mas nesse caso a herança (a razão da
+feature existir) fica quebrada em silêncio. Verificar manualmente antes de
+considerar AC1 do Story1 fechado — ver `.specs/features/tasks-subtask-visibility/tasks.md` T6.
 
 ### AD-018: Encerrar ≠ arquivar — status terminal, cascata em SQL e guard de admin no banco (2026-08-30)
 
