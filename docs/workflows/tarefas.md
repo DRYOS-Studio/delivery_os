@@ -1,6 +1,8 @@
 # Tarefas — fluxo de navegação e gestão
 
-**Última revisão**: 2026-08-21 — reconciliado com AD-010 a AD-014 (PRs #97 a #133).
+**Última revisão**: 2026-09-03 — reconciliado com AD-019 (herança de
+visibilidade em `/tasks` + lista inline de subtarefas). Anteriormente
+2026-08-21, reconciliado com AD-010 a AD-014 (PRs #97 a #133).
 A revisão anterior (2026-05-18, PR #52) descrevia o modelo pré-área: tarefa
 como filha obrigatória de Frente, sem responsável múltiplo, sem subtarefa e
 sem view cross-Frente. Nada disso vale mais.
@@ -65,19 +67,35 @@ todas as Frentes e Operações **não arquivadas**, com dropdown de responsável
 
 - **sem param** → minhas tarefas, resolvidas por `profiles.person_id`
   (AD-010). Se o vínculo for `NULL`, cai pra "Todos" — sem empty-state cego.
-- **`?assignee=<personId>`** → só daquela pessoa (está *entre* os responsáveis).
-- **`?assignee=all`** → tudo que a RLS deixa ver.
+- **`?assignee=<personId>`** → daquela pessoa **ou herdada dela** — subtarefa
+  sem responsável próprio aparece se a tarefa-pai é de `personId` (AD-019;
+  antes disso, filtrava só quem estava literalmente entre os responsáveis,
+  e subtarefa sem responsável sumia mesmo com pai da pessoa filtrada).
+  Subtarefa com responsável PRÓPRIO diferente não herda.
+- **`?assignee=all`** → tudo que a RLS deixa ver, sem herança (não precisa —
+  já mostra tudo).
 
 Combina com `?filter=open|done|all`. Criar direto daqui em `/tasks/new`
 (`TaskQuickCreateForm`, cascade Operação → Frente; Quick Win e incidente SLA
 ficam fora — dependem da Operação e moram no form por Frente).
 
-⚠️ `listTasks` continua sem filtrar `area_id` nem `parent_task_id` — `/tasks`
-mistura entrega, área e subtarefa de propósito (é a visão agregada).
+⚠️ `listTasks` continua sem filtrar `area_id` — `/tasks` mistura entrega e
+área de propósito (é a visão agregada). `parent_task_id` **é** usado agora
+(AD-019) — só não como filtro de exclusão, como caminho de INCLUSÃO sob
+filtro de responsável (herança descrita acima).
 
-O teto é `TASKS_PAGE_LIMIT` (200, em `queries/tasks.ts`). Quando o total de
-`countTasks` passa do que veio, o `TasksList` mostra "Mostrando 200 de N".
-Não há paginação por página ainda — o corte é um teto só.
+O teto é `TASKS_PAGE_LIMIT` (200, em `queries/tasks.ts`, só em `listTasks`).
+Quando o total de `countTasks` passa do que veio, o `TasksList` mostra
+"Mostrando 200 de N". Não há paginação por página ainda — o corte é um teto
+só. `countTasks` (AD-019) tem **dois caminhos**, não um: em "Todos" (sem
+`assigneePersonId`) continua com os 3 `count:'exact', head:true` originais
+em paralelo, sem herança e sem materializar linha nenhuma — regressão de
+performance evitada aqui (uma v1 deste fix trocava os dois pelo mesmo fetch
+completo, achado do `/code-review`). Com responsável, aí sim busca linhas de
+verdade e particiona open/done/all em JS via `isOpenStatus`, porque o
+Postgres não sabe aplicar sozinho o filtro de "subtarefa sem responsável" —
+esse é o único caminho que precisa da herança, e é o mesmo mecanismo de
+`listTasks` (`resolveInheritanceFilter` compartilhada), pra não divergir.
 
 A ordenação inteira mora no banco: com teto, reordenar em JS depois do fetch
 reordenaria só a fatia trazida. Na aba **Todas**, `completed_at` entra como
@@ -114,8 +132,10 @@ Hierarquia pai → filha de **um nível só** (AD-012):
 - Trigger `enforce_task_parent` barra 2 níveis, exige **mesma Frente** e impede
   que um pai-com-filhas vire filha.
 - `CHECK check_tasks_not_self_parent` barra self-parent.
-- **Sem rollup de status** — pai e filhas são independentes. A UI só mostra
-  "m/n subtarefas".
+- **Sem rollup de status** — pai e filhas são independentes.
+- Tela da Frente mostra "m/n subtarefas" no pai; a tela de edição do pai
+  (`.../tasks/[tid]/edit`) lista as subtarefas inline (AD-019) — antes só
+  mostrava o form da própria task, subtarefas só apareciam na Frente.
 - Deletar o pai apaga as filhas (CASCADE, perda controlada e deliberada).
 - Só tarefa de entrega tem subtarefa (o trigger exige Frente).
 
@@ -147,12 +167,21 @@ Nos forms é checkbox múltiplo; na lista por Frente vira grupo de avatares; em
 |---|---|---|
 | Pill na linha da Frente (`/operations/[id]`) | só top-level (`parent_task_id` null), aberta | `queries/operations.ts:309` |
 | Header do detalhe da Frente | só top-level (`parentTaskId` null) | `frentes/[fid]/page.tsx:52` |
-| Badge do nav "Tasks" | minhas abertas | `countMyOpenTasks` |
+| Badge do nav "Tasks" | minhas abertas, **sem** herança de subtarefa | `countMyOpenTasks` |
+| Subtítulo/badges de `/tasks` | minhas abertas, **com** herança de subtarefa (AD-019) | `countTasks` |
 | Card "Tarefas abertas" (`/admin/dashboard`) | abertas nas Frentes não-arquivadas, admin-only | `countAllOpenTasks` |
 
 As duas primeiras usam a mesma regra: **subtarefa não conta**. Até a issue
 #136 divergiam — a lista somava subtarefa e o header não, então a mesma Frente
 mostrava "5 tarefas" numa tela e "3 abertas" na outra.
+
+⚠️ **Nova divergência aceita (AD-019, débito registrado, não é bug):**
+`countMyOpenTasks` (badge do nav) continua no join estrito
+`task_assignees!inner`, sem herança — só `countTasks`/`listTasks` (a própria
+tela `/tasks`) herdam subtarefa órfã do pai. Uma subtarefa herdada conta pro
+subtítulo de `/tasks` mas não pro badge do nav, na mesma sessão. Escopo
+fora declarado no spec da feature; se incomodar na prática, é a próxima
+mudança em `/tasks`, não um bug desta.
 
 **"Aberta" tem uma fonte única.** Não existe mais `!== "done"` espalhado: todas
 as superfícies derivam de `TASK_STATUS_OPEN`, um `Record<TaskStatus, boolean>`
@@ -160,10 +189,13 @@ em `queries/tasks.ts` que classifica cada status do enum. Dele saem as duas
 formas de consumo:
 
 - `OPEN_STATUSES` — array pros filtros `.in("status", …)` das queries
-  (`listTasks` com `?filter=open`, `countTasks`, `countMyOpenTasks`,
-  `countAllOpenTasks`).
+  (`listTasks` com `?filter=open`, `countMyOpenTasks`, `countAllOpenTasks`,
+  e `countTasks` no branch "Todos" — esse continua no banco).
 - `isOpenStatus(status)` — predicado pros filtros em JS
-  (`frentes/[fid]/page.tsx`, `queries/operations.ts`).
+  (`frentes/[fid]/page.tsx`, `queries/operations.ts`, e `countTasks` (AD-019)
+  no branch **com responsável** — aí sim precisa particionar open/done/all em
+  JS, sobre linhas já filtradas por herança, porque o banco não sabe aplicar
+  esse filtro sozinho).
 
 O guard é o próprio `tsc`: `Record<TaskStatus, boolean>` é exaustivo, então o
 próximo `ALTER TYPE task_status ADD VALUE` **quebra o build** até alguém
@@ -175,8 +207,10 @@ não vira "aberto" por acidente.
 > **Operação arquivada tira a tarefa de todas as superfícies de contagem.** Quatro
 > call-sites aplicam `operations!fk_tasks_operation_id!inner` +
 > `.is("operation.archived_at", null)`: o KPI "tarefas abertas" do painel
-> (`dashboard.ts`), a lista `/tasks` (`listTasks`), a paginação (`countTasks`) e o
-> **badge do nav** (`countMyOpenTasks`). O join é pela **Operação**, nunca pela Frente:
+> (`dashboard.ts`), a lista `/tasks` (`listTasks`), os badges de `/tasks`
+> (`countTasks` — não é paginação de página, é o teto de linhas + os 3
+> contadores Abertas/Concluídas/Todas do toolbar) e o **badge do nav**
+> (`countMyOpenTasks`). O join é pela **Operação**, nunca pela Frente:
 > `tasks.operation_id` é `NOT NULL` e cobre tarefa de área (`frente_id` nulo), que um
 > join por Frente derrubaria da tela sem erro. E o `!inner` é obrigatório — sem ele o
 > supabase-js descarta o filtro em silêncio e nada muda. Ver AD-018.
@@ -205,5 +239,7 @@ não vira "aberto" por acidente.
 - Schema: [DATABASE_SCHEMA.md](../DATABASE_SCHEMA.md) (seção `tasks`, `task_assignees`)
 - Invariante 15: `CLAUDE.md`
 - Decisões: AD-010 (vínculo user→pessoa), AD-011 (multi-responsável),
-  AD-012 (subtarefa), AD-013 e AD-014 (tarefa de área) em `.specs/project/STATE.md`
-- Specs: `.specs/features/tasks/`, `.specs/features/areas-as-access-groups/`
+  AD-012 (subtarefa), AD-013 e AD-014 (tarefa de área), AD-019 (herança de
+  visibilidade + lista inline de subtarefas) em `.specs/project/STATE.md`
+- Specs: `.specs/features/tasks/`, `.specs/features/areas-as-access-groups/`,
+  `.specs/features/tasks-subtask-visibility/`
