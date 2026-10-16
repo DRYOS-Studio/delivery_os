@@ -469,43 +469,70 @@ export type Database = {
       }
       diagnostics: {
         Row: {
+          action_plan: Json
+          answers: Json
           client_id: string
+          computed_scores: Json
           conducted_at: string | null
           created_at: string
+          flags: Json
+          form_type: string
           id: string
-          notes: string
+          na_answers: Json
+          notes: string | null
+          profile_data: Json
           recommended_product:
             | Database["public"]["Enums"]["product_recommendation"]
             | null
+          status: string
           updated_at: string
+          version: number
         }
         Insert: {
+          action_plan?: Json
+          answers?: Json
           client_id: string
+          computed_scores?: Json
           conducted_at?: string | null
           created_at?: string
+          flags?: Json
+          form_type?: string
           id?: string
-          notes: string
+          na_answers?: Json
+          notes?: string | null
+          profile_data?: Json
           recommended_product?:
             | Database["public"]["Enums"]["product_recommendation"]
             | null
+          status?: string
           updated_at?: string
+          version?: number
         }
         Update: {
+          action_plan?: Json
+          answers?: Json
           client_id?: string
+          computed_scores?: Json
           conducted_at?: string | null
           created_at?: string
+          flags?: Json
+          form_type?: string
           id?: string
-          notes?: string
+          na_answers?: Json
+          notes?: string | null
+          profile_data?: Json
           recommended_product?:
             | Database["public"]["Enums"]["product_recommendation"]
             | null
+          status?: string
           updated_at?: string
+          version?: number
         }
         Relationships: [
           {
             foreignKeyName: "fk_diagnostics_client_id"
             columns: ["client_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },

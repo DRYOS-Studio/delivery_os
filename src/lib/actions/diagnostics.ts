@@ -4,10 +4,20 @@ import { revalidatePath } from "next/cache";
 import { type ActionResult, dbErr, err, ok } from "@/lib/actions/_types";
 import { requireUserAction } from "@/lib/auth/server";
 import { createServer } from "@/lib/db/client";
+import type { Json } from "@/lib/db/types";
+import {
+  computeDiagnosticScores,
+  deriveActionPlan,
+  detectDiagnosticFlags,
+} from "@/lib/utils/management-diagnostic";
 import {
   diagnosticSchema,
   type DiagnosticOutput,
 } from "@/lib/validators/diagnostic";
+import {
+  managementDiagnosticSaveSchema,
+  type ManagementDiagnosticSaveInput,
+} from "@/lib/validators/management-diagnostic";
 
 function parseFormData(formData: FormData) {
   return {
@@ -75,5 +85,73 @@ export async function upsertDiagnosticAction(
   }
 
   revalidatePath(`/clients/${clientId}`);
+  return ok({ id: resultId, clientId });
+}
+
+export async function saveManagementDiagnosticAction(
+  clientId: string,
+  diagnosticId: string | null,
+  input: ManagementDiagnosticSaveInput,
+): Promise<ActionResult<{ id: string; clientId: string }>> {
+  const userResult = await requireUserAction();
+  if (!userResult.ok) return userResult;
+
+  const parsed = managementDiagnosticSaveSchema.safeParse(input);
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    return err(first?.message ?? "Dados inválidos.", "validation_failed");
+  }
+  const data = parsed.data;
+
+  const supabase = await createServer();
+
+  const computedScores = computeDiagnosticScores(data.answers, data.naAnswers);
+  const flags = detectDiagnosticFlags(data.answers, data.naAnswers);
+  const actionPlan = deriveActionPlan(computedScores.dims);
+
+  const conductedAt =
+    data.conductedAt ||
+    (data.profileData.data
+      ? data.profileData.data
+      : new Date().toISOString().slice(0, 10));
+
+  const payload = {
+    client_id: clientId,
+    form_type: data.formType,
+    status: data.status,
+    conducted_at: conductedAt,
+    notes: data.notes || null,
+    recommended_product: data.recommendedProduct ?? null,
+    profile_data: data.profileData as unknown as Json,
+    answers: data.answers as unknown as Json,
+    na_answers: data.naAnswers as unknown as Json,
+    computed_scores: computedScores as unknown as Json,
+    flags: flags as unknown as Json,
+    action_plan: actionPlan as unknown as Json,
+    version: 1,
+  };
+
+  let resultId: string;
+
+  if (diagnosticId) {
+    const { error } = await supabase
+      .from("diagnostics")
+      .update(payload)
+      .eq("id", diagnosticId);
+    if (error) return dbErr(error, "saveManagementDiagnosticAction.update");
+    resultId = diagnosticId;
+  } else {
+    const { data: inserted, error } = await supabase
+      .from("diagnostics")
+      .insert(payload)
+      .select("id")
+      .single();
+    if (error) return dbErr(error, "saveManagementDiagnosticAction.insert");
+    if (!inserted) return err("Falha ao salvar diagnóstico.", "no_data");
+    resultId = inserted.id;
+  }
+
+  revalidatePath(`/clients/${clientId}`);
+  revalidatePath(`/clients/${clientId}/diagnostic`);
   return ok({ id: resultId, clientId });
 }

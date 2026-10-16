@@ -1,6 +1,6 @@
 # Database Schema
 
-**Última análise**: 2026-06-11 (perf-queries — issue #131, AD-017)
+**Última análise**: 2026-10-16 (clients-management-diagnostic — issue #166)
 **Projeto Supabase**: `Delivery OS` (`tmsaucxoeqpfluzwrwkc`)
 **Schema**: `public`
 
@@ -533,19 +533,29 @@ RLS `qwc_authenticated_full` (Inv. 12); mutações via Server Actions admin-only
 
 ---
 
-### `diagnostics` — diagnóstico precede a Operação
+### `diagnostics` — diagnóstico de gestão e maturidade precede a Operação
 
-1 por cliente no MVP (UNIQUE). Notes em prosa + recommended_product opcional.
+Histórico por cliente permitido (reavaliações no tempo). Questionário de 13 dimensões e 61 perguntas, pontuação 1-5, sinais de alerta e plano de ação. Suporta rascunho (`status = 'draft'`) e finalizado (`status = 'completed'`).
 
 | Coluna | Tipo | Notas |
 |---|---|---|
-| `id` | uuid PK | |
-| `client_id` | uuid NOT NULL UNIQUE → clients (CASCADE) | |
-| `notes` | text NOT NULL | CHECK length 10-10000 |
+| `id` | uuid PK | gen_random_uuid() |
+| `client_id` | uuid NOT NULL → clients (CASCADE) | histórico por cliente (sem UNIQUE) |
+| `form_type` | text NOT NULL default 'estruturacao_processos' | tipo/modelo do diagnóstico |
+| `status` | text NOT NULL default 'completed' | CHECK in ('draft', 'completed') |
+| `version` | int NOT NULL default 1 | versão do questionário |
+| `notes` | text | nullable; notas ou síntese livre (CHECK length 10-10000 se preenchido) |
 | `recommended_product` | enum `product_recommendation` | core/spark/studio nullable |
-| `conducted_at` | date | nullable |
-| `created_at`, `updated_at` | timestamptz | |
+| `conducted_at` | date | data de condução |
+| `profile_data` | jsonb NOT NULL default '{}' | respondente, cargo, setor, porte, faturamento, dores, objetivos |
+| `answers` | jsonb NOT NULL default '{}' | mapa de respostas das 61 perguntas |
+| `na_answers` | jsonb NOT NULL default '{}' | mapa de perguntas marcadas como N/A |
+| `computed_scores` | jsonb NOT NULL default '{}' | índice geral (0-100), nível (1-5), notas das 13 dimensões |
+| `flags` | jsonb NOT NULL default '[]' | sinais de alerta detectados (alta/média severidade) |
+| `action_plan` | jsonb NOT NULL default '{}' | plano de ação em 3 horizontes (qw 30d, d90, m12) |
+| `created_at`, `updated_at` | timestamptz | trigger updated_at |
 
+Index `idx_diagnostics_client_conducted` em `(client_id, conducted_at DESC, created_at DESC)`.
 `operations.diagnostic_id` FK SET NULL liga Op opcionalmente ao diagnóstico do cliente.
 
 ---
