@@ -10,6 +10,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Pill, type PillVariant } from "@/components/ui/Pill";
+import { DeleteDiagnosticButton } from "@/components/domain/DeleteDiagnosticButton";
 import { LEVELS } from "@/lib/constants/management-diagnostic";
 import type { DiagnosticDetail } from "@/lib/db/queries/diagnostics";
 import { formatDateBR } from "@/lib/utils/date";
@@ -66,6 +67,12 @@ export function ClientDiagnosticSection({
                 <Edit className="w-3 h-3" strokeWidth={1.75} />
                 Editar
               </Link>
+              <DeleteDiagnosticButton
+                diagnosticId={diagnostic.id}
+                clientId={clientId}
+                variant="icon"
+                label="Excluir diagnóstico"
+              />
               <Link
                 href={`/clients/${clientId}/diagnostic/new`}
                 className="inline-flex items-center gap-1.5 rounded font-medium px-2.5 py-1.5 text-xs bg-sage-bg text-sage-deep hover:bg-sage hover:text-bg transition-colors"
