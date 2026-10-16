@@ -1,7 +1,9 @@
 # State
 
 **Last Updated:** 2026-10-16
-**Current Work:** `clients-management-diagnostic` (issue #166, branch `feat/clients-management-diagnostic`) — integração do Diagnóstico de Gestão (13 dimensões, 61 perguntas, 23 sinais de alerta, cálculo de maturidade 1-5, plano de ação priorizado) ao cadastro do cliente. Migration `20261016110000_management_diagnostics.sql` criada, motor de cálculo TypeScript implementado, wizard de 15 passos com autosave, tela de relatório com radar SVG e integração em `/clients/[id]`. Typecheck e build turbopack validados 100% limpos. Ver AD-020.
+**Current Work:** Nenhum no momento (pipeline ocioso).
+
+**Anteriormente:** `clients-management-diagnostic` (issue #166, PR #167 **MERGED**) — integração do Diagnóstico de Gestão (13 dimensões, 61 perguntas, 23 sinais de alerta, cálculo de maturidade 1-5, plano de ação priorizado) ao cadastro do cliente. Migration `20261016110000_management_diagnostics.sql` aplicada no banco de produção (Supabase `tmsaucxoeqpfluzwrwkc`), motor de cálculo TypeScript implementado, wizard de 15 passos com autosave, tela de relatório com radar SVG e integração em `/clients/[id]`. Typecheck, build e deploy Vercel 100% concluídos. Ver AD-020.
 
 **Anteriormente:** `tasks-subtask-visibility` (issue #163) — subtarefa sem
 responsável herda visibilidade da tarefa-pai em `/tasks`; tela de edição da
