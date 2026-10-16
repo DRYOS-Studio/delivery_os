@@ -1,18 +1,11 @@
 # State
 
-**Last Updated:** 2026-09-03
-**Current Work:** `tasks-subtask-visibility` (issue #163) — subtarefa sem
+**Last Updated:** 2026-10-16
+**Current Work:** `clients-management-diagnostic` (issue #166, branch `feat/clients-management-diagnostic`) — integração do Diagnóstico de Gestão (13 dimensões, 61 perguntas, 23 sinais de alerta, cálculo de maturidade 1-5, plano de ação priorizado) ao cadastro do cliente. Migration `20261016110000_management_diagnostics.sql` criada, motor de cálculo TypeScript implementado, wizard de 15 passos com autosave, tela de relatório com radar SVG e integração em `/clients/[id]`. Typecheck e build turbopack validados 100% limpos. Ver AD-020.
+
+**Anteriormente:** `tasks-subtask-visibility` (issue #163) — subtarefa sem
 responsável herda visibilidade da tarefa-pai em `/tasks`; tela de edição da
-tarefa-pai lista as subtarefas inline. Ver AD-019. dryos-pipeline completo:
-Specify (fool-gate 2 rodadas, 1 FAIL→PASS), Design (design-gate PASS +
-fool-gate 4 rodadas até fechar um vazamento via RLS de `persons` — ver
-AD-019), Implement (`/code-review` achou e corrigiu regressão de perf em
-`countTasks` + `.or()` duplicado), Release gate (conformance achou e
-corrigiu doc-sync em `docs/workflows/tarefas.md`). **Pendente:** verificação
-manual live (não tive acesso ao Supabase deste projeto via MCP) — confirmar
-que `assigneeLinks` chega populado no payload real antes de fechar de vez
-(T6 em `.specs/features/tasks-subtask-visibility/tasks.md`); PR ainda não
-aberto.
+tarefa-pai lista as subtarefas inline. Ver AD-019. MERGED (#164).
 
 **Anteriormente:** `operation-lifecycle-archive` (issue #159, branch
 `feat/operation-lifecycle-archive`) — encerrar e arquivar Operação/Cliente.
@@ -30,6 +23,16 @@ Anteriormente: `operation-members` — COMPLETE (issue #80, PRs #81 + #82 + #83)
 ---
 
 ## Recent Decisions (Last 60 days)
+
+### AD-020: Diagnóstico de Gestão em 13 dimensões integrado ao cadastro do cliente (2026-10-16)
+
+**Contexto.** O diagnóstico anterior em `/clients/[id]/diagnostic` era um formulário minimalista de 3 campos (notas, produto recomendado, data). A metodologia operacional canônica da DRYOS conta com um questionário de maturidade completo (Ops & Finance) de 13 dimensões, 61 perguntas, 23 sinais de alerta, notas normalizadas (0 a 100), níveis de maturidade (1 a 5) e plano de ação priorizado (Quick Wins 30d, Estruturação 90d e Consolidação 6-12m), cujo protótipo em HTML existia isolado salvando apenas em localStorage.
+
+**Decisões.**
+1. **Extensão da tabela `diagnostics` com colunas JSONB**: Em vez de criar 61 colunas relacionais rígidas, adicionamos `profile_data`, `answers`, `na_answers`, `computed_scores`, `flags` e `action_plan` como JSONB, e removemos a constraint `UNIQUE(client_id)` para permitir histórico de diagnósticos e reavaliações periódicas.
+2. **Cálculos Server-Side Determinísticos**: O motor de cálculo TypeScript em `src/lib/utils/management-diagnostic.ts` reproduz com 100% de fidelidade a matemática do protótipo e é invocado tanto no cliente (para feedback interativo no wizard) quanto na Server Action `saveManagementDiagnosticAction` antes de persistir, garantindo integridade dos dados no banco.
+3. **Wizard Interativo com Autosave**: 15 etapas (Identificação, 13 Dimensões e Conclusão), com suporte a debounce de salvamento (`status = 'draft'`), navegação fluida em sidebar no desktop e seleção responsiva em mobile, integrado aos tokens do Design System DRYOS (Tailwind 4, Funnel Display, Onest, pílulas canônicas).
+4. **Relatório Executivo Integrado**: Visualização completa em `/clients/[id]/diagnostic` com Gauge, Nível, Gráfico Radar SVG responsivo, Top 3 Pontos Fortes e Lacunas Críticas, Sinais de Alerta com tags de criticidade, Plano de Ação em 3 colunas e formatação limpa de impressão (`@media print` para A4). Seção de diagnóstico em `/clients/[id]` atualizada com preview rico dos resultados mais recentes.
 
 ### AD-019: Subtarefa herda visibilidade de responsável do pai; lista inline reaproveita `TaskListItem` (2026-09-03)
 
