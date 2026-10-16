@@ -2,6 +2,7 @@
 
 import { AlertTriangle, ArrowLeft, CheckCircle2, Download, Printer } from "lucide-react";
 import Link from "next/link";
+import { DeleteDiagnosticButton } from "@/components/domain/DeleteDiagnosticButton";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Pill, type PillVariant } from "@/components/ui/Pill";
@@ -101,6 +102,12 @@ export function ManagementDiagnosticReport({
             <Printer className="w-4 h-4" />
             Imprimir / Salvar PDF
           </Button>
+          <DeleteDiagnosticButton
+            diagnosticId={diagnostic.id}
+            clientId={clientId}
+            label="Excluir Diagnóstico"
+            variant="ghost-critical"
+          />
         </div>
       </div>
 

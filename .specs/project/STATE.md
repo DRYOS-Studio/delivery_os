@@ -1,7 +1,7 @@
 # State
 
 **Last Updated:** 2026-10-16
-**Current Work:** Nenhum no momento (pipeline ocioso).
+**Current Work:** `clients-delete-diagnostic` (issue #168, branch `feat/clients-delete-diagnostic`) — exclusão de diagnóstico de gestão com confirmação modal, Server Action `deleteDiagnosticAction`, componente `DeleteDiagnosticButton` integrado ao relatório (`ManagementDiagnosticReport`), ao wizard (`ManagementDiagnosticWizard`) e ao perfil do cliente (`ClientDiagnosticSection`).
 
 **Anteriormente:** `clients-management-diagnostic` (issue #166, PR #167 **MERGED**) — integração do Diagnóstico de Gestão (13 dimensões, 61 perguntas, 23 sinais de alerta, cálculo de maturidade 1-5, plano de ação priorizado) ao cadastro do cliente. Migration `20261016110000_management_diagnostics.sql` aplicada no banco de produção (Supabase `tmsaucxoeqpfluzwrwkc`), motor de cálculo TypeScript implementado, wizard de 15 passos com autosave, tela de relatório com radar SVG e integração em `/clients/[id]`. Typecheck, build e deploy Vercel 100% concluídos. Ver AD-020.
 

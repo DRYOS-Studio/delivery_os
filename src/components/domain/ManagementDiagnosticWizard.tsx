@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { DeleteDiagnosticButton } from "@/components/domain/DeleteDiagnosticButton";
 import { saveManagementDiagnosticAction } from "@/lib/actions/diagnostics";
 import {
   DIMS,
@@ -248,6 +249,14 @@ export function ManagementDiagnosticWizard({
               {savingStatus === "saved" && "Salvo automaticamente"}
               {savingStatus === "error" && "Erro ao salvar"}
             </span>
+            {diagnosticId && (
+              <DeleteDiagnosticButton
+                diagnosticId={diagnosticId}
+                clientId={clientId}
+                label="Excluir"
+                variant="button"
+              />
+            )}
             <Button
               variant="ghost"
               type="button"

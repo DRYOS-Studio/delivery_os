@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { type ActionResult, dbErr, err, ok } from "@/lib/actions/_types";
 import { requireUserAction } from "@/lib/auth/server";
 import { createServer } from "@/lib/db/client";
+import { getDiagnosticById } from "@/lib/db/queries/diagnostics";
 import type { Json } from "@/lib/db/types";
 import {
   computeDiagnosticScores,
@@ -154,4 +155,27 @@ export async function saveManagementDiagnosticAction(
   revalidatePath(`/clients/${clientId}`);
   revalidatePath(`/clients/${clientId}/diagnostic`);
   return ok({ id: resultId, clientId });
+}
+
+export async function deleteDiagnosticAction(
+  diagnosticId: string,
+): Promise<ActionResult<{ id: string; clientId: string }>> {
+  const userResult = await requireUserAction();
+  if (!userResult.ok) return userResult;
+
+  const current = await getDiagnosticById(diagnosticId);
+  if (!current) return err("Diagnóstico não encontrado.", "not_found");
+
+  const supabase = await createServer();
+  const { error } = await supabase
+    .from("diagnostics")
+    .delete()
+    .eq("id", diagnosticId);
+
+  if (error) return dbErr(error, "deleteDiagnosticAction");
+
+  revalidatePath(`/clients/${current.client_id}`);
+  revalidatePath(`/clients/${current.client_id}/diagnostic`);
+  revalidatePath("/clients");
+  return ok({ id: diagnosticId, clientId: current.client_id });
 }
