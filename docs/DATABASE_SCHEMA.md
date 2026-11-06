@@ -1,6 +1,6 @@
 # Database Schema
 
-**Última análise**: 2026-11-06 (activity trail — PR agent)
+**Última análise**: 2026-11-06 (contratos cliente — PR agent)
 **Projeto Supabase**: `Delivery OS` (`tmsaucxoeqpfluzwrwkc`)
 **Schema**: `public`
 
@@ -12,7 +12,7 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 
 | Módulo | Tabelas | Total |
 |---|---|---|
-| **Cliente** | `clients` | 1 |
+| **Cliente** | `clients`, `client_contracts` | 2 |
 | **Operação** | `operations` | 1 |
 | **Entrega** | `frentes`, `allocations`, `tasks`, `task_assignees` | 4 |
 | **Pessoas** | `persons` | 1 |
@@ -33,7 +33,7 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 | **Notificações** | `notifications_log` | 1 |
 | **Auditoria** | `activity_events` | 1 |
 | **Comentários** | `task_comments`, `operation_comments` | 2 |
-| **Total atual** | | **34** |
+| **Total atual** | | **35** |
 
 ---
 
@@ -67,14 +67,40 @@ RLS: `authenticated_full_access` (sem 1). Granularidade Admin/Membro entra com `
 
 ---
 
-### `activity_events` — histórico de mudanças (audit trail)
+### `client_contracts` — contrato comercial (arquivo + metadados)
 
-Eventos gerados por triggers em `clients`, `operations`, `frentes`, `tasks` e `task_assignees` (responsáveis). Cada linha referencia o assunto (`subject_type` + `subject_id`), denormaliza `operation_id` / `client_id` quando aplicável e guarda `actor_profile_id` = `auth.uid()` no momento da mudança.
+Metadados financeiros e PDF/arquivo no bucket privado `contracts` (Storage path prefixado com `<client_id>/`). Apenas **admin** via RLS e policies de Storage. `uploaded_by` → `profiles`.
 
 | Coluna | Tipo | Notas |
 |---|---|---|
 | `id` | uuid PK | |
-| `subject_type` | enum `activity_subject_type` | client \| operation \| frente \| task |
+| `client_id` | uuid NOT NULL → clients (CASCADE) | |
+| `label` | text NOT NULL | CHECK trim length ≥ 2 |
+| `monthly_value` | numeric(14,2) | nullable |
+| `currency` | text NOT NULL default `BRL` | |
+| `reajuste_notes` | text | nullable |
+| `start_date`, `end_date` | date | nullable; CHECK `end >= start` quando ambos |
+| `payment_day_of_month` | int | nullable; 1–28 |
+| `status` | enum `client_contract_status` | `rascunho` \| `vigente` \| `encerrada` |
+| `notes` | text | nullable |
+| `storage_path` | text NOT NULL | CHECK prefix `<client_id>/` |
+| `filename`, `mime_type` | text | |
+| `size_bytes` | bigint | CHECK > 0 e ≤ 50 MB |
+| `uploaded_by` | uuid → profiles | SET NULL |
+| `created_at`, `updated_at` | timestamptz | |
+
+Trigger `set_client_contracts_updated_at`. Trigger `trg_activity_client_contracts_aiud` → `activity_events` (`subject_type = client_contract`).
+
+---
+
+### `activity_events` — histórico de mudanças (audit trail)
+
+Eventos gerados por triggers em `clients`, `operations`, `frentes`, `tasks`, `task_assignees` (responsáveis) e `client_contracts`. Cada linha referencia o assunto (`subject_type` + `subject_id`), denormaliza `operation_id` / `client_id` quando aplicável e guarda `actor_profile_id` = `auth.uid()` no momento da mudança.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `subject_type` | enum `activity_subject_type` | client \| operation \| frente \| task \| client_contract |
 | `subject_id` | uuid NOT NULL | id do registro no tipo acima |
 | `operation_id` | uuid → operations | nullable (client puro) |
 | `client_id` | uuid → clients | nullable |
@@ -774,6 +800,7 @@ cross-tenant.
 | `product_recommendation` | core, spark, studio |
 | `user_role` | admin, member |
 | `task_status` | todo, doing, blocked, done |
+| `client_contract_status` | rascunho, vigente, encerrada |
 
 > Enum `task_area` **removido** em `20260610150001` — virou a tabela `areas` (FK `area_id`).
 | `cost_recurrence` | mensal, unica |
@@ -824,6 +851,8 @@ cross-tenant.
 | 20260611040158 | rls_hardening | 2026-06-11 (via MCP, AD-015, issue #127) — storage policies escopadas por operação; catálogos escrita `is_admin()` + DELETE sem policy; `SET search_path` em 6 funções; `rls_auto_enable`/`ensure_rls` versionados; REVOKE anon/PUBLIC + `ALTER DEFAULT PRIVILEGES` |
 | 20260611130334 | attachment_visibility | 2026-06-11 (via MCP, AD-016, issue #129) — enum `attachment_visibility` + `attachments.visibility` default `cliente` (controle da superfície pública) |
 | 20260611155226 | hot_fk_indexes | 2026-06-11 (via MCP, AD-017, issue #131) — índices nos 5 FKs quentes (`frentes.operation_id`, `allocations.frente_id`/`person_id`, `operations.client_id`, `persons.client_id`); FKs frios (`created_by` etc.) deliberadamente sem índice |
+| 20261106123000 | client_contracts | repo — bucket `contracts`, tabela `client_contracts`, RLS admin |
+| 20261106123100 | activity_client_contracts | repo — `activity_subject_type` + `client_contract`; triggers no feed |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações

@@ -2,6 +2,7 @@ import { Edit2 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ClientDiagnosticSection } from "@/components/domain/ClientDiagnosticSection";
+import { ClientContractsSection } from "@/components/domain/ClientContractsSection";
 import { ClientHubTasksSection } from "@/components/domain/ClientHubTasksSection";
 import { ClientIdentitySection } from "@/components/domain/ClientIdentitySection";
 import { ClientSummarySection } from "@/components/domain/ClientSummarySection";
@@ -12,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import { getProfile } from "@/lib/auth/server";
 import { getClient, getClientSummary } from "@/lib/db/queries/clients";
+import { listClientContracts } from "@/lib/db/queries/client-contracts";
 import { listOpenTasksForClient } from "@/lib/db/queries/client-hub";
 import { getDiagnosticByClient } from "@/lib/db/queries/diagnostics";
 import { getActiveOperations } from "@/lib/db/queries/operations";
@@ -41,6 +43,7 @@ export default async function Page({
       listOpenTasksForClient(id),
     ]);
   const isAdmin = profile?.role === "admin";
+  const contracts = isAdmin ? await listClientContracts(id) : [];
 
   return (
     <>
@@ -72,6 +75,8 @@ export default async function Page({
       )}
 
       <ClientSummarySection summary={summary} isAdmin={isAdmin} />
+
+      {isAdmin && <ClientContractsSection clientId={client.id} contracts={contracts} />}
       <ClientIdentitySection client={client} />
 
       <ClientDiagnosticSection diagnostic={diagnostic} clientId={client.id} />

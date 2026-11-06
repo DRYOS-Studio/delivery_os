@@ -480,6 +480,84 @@ export type Database = {
         }
         Relationships: []
       }
+      client_contracts: {
+        Row: {
+          client_id: string
+          created_at: string
+          currency: string
+          end_date: string | null
+          filename: string
+          id: string
+          label: string
+          mime_type: string
+          monthly_value: number | null
+          notes: string | null
+          payment_day_of_month: number | null
+          reajuste_notes: string | null
+          size_bytes: number
+          start_date: string | null
+          status: Database["public"]["Enums"]["client_contract_status"]
+          storage_path: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          currency?: string
+          end_date?: string | null
+          filename: string
+          id?: string
+          label: string
+          mime_type: string
+          monthly_value?: number | null
+          notes?: string | null
+          payment_day_of_month?: number | null
+          reajuste_notes?: string | null
+          size_bytes: number
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["client_contract_status"]
+          storage_path: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          currency?: string
+          end_date?: string | null
+          filename?: string
+          id?: string
+          label?: string
+          mime_type?: string
+          monthly_value?: number | null
+          notes?: string | null
+          payment_day_of_month?: number | null
+          reajuste_notes?: string | null
+          size_bytes?: number
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["client_contract_status"]
+          storage_path?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_client_contracts_client"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_client_contracts_uploaded_by"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       decisions: {
         Row: {
           context: string | null
@@ -1784,7 +1862,12 @@ export type Database = {
       user_in_area: { Args: { p_area_id: string }; Returns: boolean }
     }
     Enums: {
-      activity_subject_type: "client" | "operation" | "frente" | "task"
+      activity_subject_type:
+        | "client"
+        | "operation"
+        | "frente"
+        | "task"
+        | "client_contract"
       allocation_role: "responsavel" | "executor" | "aprovador" | "plantao"
       attachment_visibility: "interno" | "cliente"
       cost_recurrence: "mensal" | "unica"
@@ -1809,6 +1892,7 @@ export type Database = {
       sla_severity: "low" | "medium" | "high"
       task_status: "todo" | "doing" | "blocked" | "done"
       user_role: "admin" | "member"
+      client_contract_status: "rascunho" | "vigente" | "encerrada"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1936,7 +2020,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      activity_subject_type: ["client", "operation", "frente", "task"],
+      activity_subject_type: [
+        "client",
+        "operation",
+        "frente",
+        "task",
+        "client_contract",
+      ],
       allocation_role: ["responsavel", "executor", "aprovador", "plantao"],
       attachment_visibility: ["interno", "cliente"],
       cost_recurrence: ["mensal", "unica"],
@@ -1962,6 +2052,7 @@ export const Constants = {
       sla_severity: ["low", "medium", "high"],
       task_status: ["todo", "doing", "blocked", "done"],
       user_role: ["admin", "member"],
+      client_contract_status: ["rascunho", "vigente", "encerrada"],
     },
   },
 } as const
