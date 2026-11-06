@@ -192,6 +192,73 @@ export type Database = {
           },
         ]
       }
+      activity_events: {
+        Row: {
+          action: string
+          actor_profile_id: string | null
+          client_id: string | null
+          created_at: string
+          field_key: string | null
+          id: string
+          metadata: Json
+          new_value: Json | null
+          old_value: Json | null
+          operation_id: string | null
+          subject_id: string
+          subject_type: Database["public"]["Enums"]["activity_subject_type"]
+        }
+        Insert: {
+          action: string
+          actor_profile_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          field_key?: string | null
+          id?: string
+          metadata?: Json
+          new_value?: Json | null
+          old_value?: Json | null
+          operation_id?: string | null
+          subject_id: string
+          subject_type: Database["public"]["Enums"]["activity_subject_type"]
+        }
+        Update: {
+          action?: string
+          actor_profile_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          field_key?: string | null
+          id?: string
+          metadata?: Json
+          new_value?: Json | null
+          old_value?: Json | null
+          operation_id?: string | null
+          subject_id?: string
+          subject_type?: Database["public"]["Enums"]["activity_subject_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_activity_events_actor"
+            columns: ["actor_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_activity_events_client"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_activity_events_operation"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "operations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attachments: {
         Row: {
           created_at: string
@@ -1602,6 +1669,27 @@ export type Database = {
       can_read_operation: { Args: { op_id: string }; Returns: boolean }
       can_see_operation: { Args: { op_id: string }; Returns: boolean }
       can_see_task: { Args: { t_id: string }; Returns: boolean }
+      can_read_activity_subject: {
+        Args: {
+          p_subject_id: string
+          p_subject_type: Database["public"]["Enums"]["activity_subject_type"]
+        }
+        Returns: boolean
+      }
+      log_activity_event: {
+        Args: {
+          p_action: string
+          p_client_id: string | null
+          p_field_key: string | null
+          p_metadata?: Json
+          p_new_value: Json | null
+          p_old_value: Json | null
+          p_operation_id: string | null
+          p_subject_id: string
+          p_subject_type: Database["public"]["Enums"]["activity_subject_type"]
+        }
+        Returns: string
+      }
       is_admin: { Args: never; Returns: boolean }
       is_area_granted: { Args: { p_op_id: string }; Returns: boolean }
       restore_frente: { Args: { p_frente_id: string }; Returns: undefined }
@@ -1612,6 +1700,7 @@ export type Database = {
       user_in_area: { Args: { p_area_id: string }; Returns: boolean }
     }
     Enums: {
+      activity_subject_type: "client" | "operation" | "frente" | "task"
       allocation_role: "responsavel" | "executor" | "aprovador" | "plantao"
       attachment_visibility: "interno" | "cliente"
       cost_recurrence: "mensal" | "unica"
@@ -1763,6 +1852,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      activity_subject_type: ["client", "operation", "frente", "task"],
       allocation_role: ["responsavel", "executor", "aprovador", "plantao"],
       attachment_visibility: ["interno", "cliente"],
       cost_recurrence: ["mensal", "unica"],
