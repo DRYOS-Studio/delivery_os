@@ -32,19 +32,7 @@ AS $$
         AND public.can_read_operation(f.operation_id)
     )
     WHEN 'task' THEN public.can_see_task(p_subject_id)
-    WHEN 'client_contract' THEN (
-      public.is_admin()
-      OR EXISTS (
-        SELECT 1 FROM public.client_contracts cc
-        JOIN public.clients c ON c.id = cc.client_id
-        WHERE cc.id = p_subject_id
-          AND EXISTS (
-            SELECT 1 FROM public.operations o
-            WHERE o.client_id = c.id
-              AND public.can_read_operation(o.id)
-          )
-      )
-    )
+    WHEN 'client_contract' THEN public.is_admin()
     ELSE false
   END;
 $$;
