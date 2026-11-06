@@ -38,10 +38,18 @@ Use **Server Actions** ou rotas que já aplicam validação e convênios do app.
 
 - Preferência: consumir a API HTTP do app ou o servidor MCP (quando disponível) em vez de `INSERT` manual.
 
-## 6. O que não colocar no repositório
+## 6. Servidor MCP (JSON-RPC sobre HTTP)
+
+- **URL:** `POST ${NEXT_PUBLIC_APP_URL}/api/mcp` (ex.: `http://localhost:3000/api/mcp` em dev).
+- **Autenticação:** header `Authorization: Bearer <access_token>` com o **JWT do Supabase** do usuário agente (obtido após `signInWithPassword` ou fluxo equivalente). Não usar `SUPABASE_SECRET_KEY` aqui — o servidor instancia um cliente com **anon key + JWT** para respeitar RLS como o usuário.
+- **Discovery:** `GET /api/mcp` devolve um resumo do endpoint.
+- **Protocolo:** JSON-RPC 2.0; métodos mínimos `initialize`, `notifications/initialized`, `tools/list`, `tools/call`. Ferramentas atuais: `list_operations`, `get_operation` (somente leitura).
+- Estender o catálogo em `src/app/api/mcp/route.ts` mantendo o mesmo padrão de auth.
+
+## 7. O que não colocar no repositório
 
 - Senhas, service role, URLs de webhook com segredo embutido, tokens de API pessoais.
 
-## 7. Variáveis de ambiente (referência)
+## 8. Variáveis de ambiente (referência)
 
 Documentadas em `.env.local.example`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` (só backend), `CRON_SECRET`, `NOTIFICATION_WEBHOOK_URL`.
