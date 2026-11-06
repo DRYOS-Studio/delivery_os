@@ -4,6 +4,7 @@ import { TaskListItem } from "@/components/domain/TaskListItem";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { getProfile, requireUser } from "@/lib/auth/server";
 import { listActivityForTask } from "@/lib/db/queries/activity";
+import { listTaskComments } from "@/lib/db/queries/comments";
 import { getFrenteDetail } from "@/lib/db/queries/frentes";
 import { listIncidentsByOperation } from "@/lib/db/queries/incidents";
 import { listInternalPersons } from "@/lib/db/queries/persons";
@@ -14,6 +15,7 @@ import {
   listSubtasksOf,
 } from "@/lib/db/queries/tasks";
 import { ActivityFeedSection } from "@/components/domain/ActivityFeedSection";
+import { TaskCommentsSection } from "@/components/domain/TaskCommentsSection";
 
 export default async function Page({
   params,
@@ -35,11 +37,12 @@ export default async function Page({
 
   // Subtarefa não pode ter filhas (hierarquia de 1 nível, enforce_task_parent)
   // — pula a query em vez de confiar que ela voltaria vazia.
-  const [subtasks, activityEvents] = await Promise.all([
+  const [subtasks, activityEvents, taskComments] = await Promise.all([
     task.parentTaskId === null
       ? listSubtasksOf(tid)
       : Promise.resolve([]),
     listActivityForTask(tid),
+    listTaskComments(tid),
   ]);
   // Task com subtarefas não pode virar subtarefa → não oferece pai.
   const childCount = subtasks.length;
@@ -65,6 +68,14 @@ export default async function Page({
         isAdmin={isAdmin}
       />
       <ActivityFeedSection events={activityEvents} />
+      {profile?.user?.id ? (
+        <TaskCommentsSection
+          taskId={tid}
+          comments={taskComments}
+          currentUserId={profile.user.id}
+          isAdmin={isAdmin}
+        />
+      ) : null}
       {subtasks.length > 0 && (
         <section className="mt-9">
           <h2 className="font-display text-lg text-ink font-semibold mb-4">

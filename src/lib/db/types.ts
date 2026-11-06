@@ -1488,6 +1488,90 @@ export type Database = {
           },
         ]
       }
+      operation_comments: {
+        Row: {
+          author_profile_id: string
+          body: string
+          created_at: string
+          id: string
+          operation_id: string
+          updated_at: string
+        }
+        Insert: {
+          author_profile_id?: string
+          body: string
+          created_at?: string
+          id?: string
+          operation_id: string
+          updated_at?: string
+        }
+        Update: {
+          author_profile_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          operation_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_operation_comments_author"
+            columns: ["author_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_operation_comments_operation"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "operations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_comments: {
+        Row: {
+          author_profile_id: string
+          body: string
+          created_at: string
+          id: string
+          task_id: string
+          updated_at: string
+        }
+        Insert: {
+          author_profile_id?: string
+          body: string
+          created_at?: string
+          id?: string
+          task_id: string
+          updated_at?: string
+        }
+        Update: {
+          author_profile_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          task_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_task_comments_author"
+            columns: ["author_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_task_comments_task"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           area_id: string | null
