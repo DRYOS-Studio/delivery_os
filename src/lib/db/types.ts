@@ -1377,6 +1377,95 @@ export type Database = {
           },
         ]
       }
+      mcp_idempotent_responses: {
+        Row: {
+          created_at: string
+          idempotency_key: string
+          profile_id: string
+          result: Json
+          scope: string
+        }
+        Insert: {
+          created_at?: string
+          idempotency_key: string
+          profile_id: string
+          result: Json
+          scope: string
+        }
+        Update: {
+          created_at?: string
+          idempotency_key?: string
+          profile_id?: string
+          result?: Json
+          scope?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_mcp_idempotent_profile_id"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profile_agent_tokens: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          last_used_at: string | null
+          name: string
+          profile_id: string
+          revoked_at: string | null
+          scopes: Database["public"]["Enums"]["mcp_agent_token_scope"][]
+          token_fingerprint: string
+          token_hash: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          last_used_at?: string | null
+          name: string
+          profile_id: string
+          revoked_at?: string | null
+          scopes?: Database["public"]["Enums"]["mcp_agent_token_scope"][]
+          token_fingerprint: string
+          token_hash: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          last_used_at?: string | null
+          name?: string
+          profile_id?: string
+          revoked_at?: string | null
+          scopes?: Database["public"]["Enums"]["mcp_agent_token_scope"][]
+          token_fingerprint?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_pat_created_by"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_pat_profile_id"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       public_links: {
         Row: {
           created_at: string
@@ -1949,6 +2038,18 @@ export type Database = {
         }
         Returns: boolean
       }
+      create_mcp_agent_token: {
+        Args: {
+          p_expires_at: string
+          p_name: string
+          p_profile_id: string
+          p_scopes: Database["public"]["Enums"]["mcp_agent_token_scope"][]
+        }
+        Returns: Json
+      }
+      revoke_mcp_agent_token: { Args: { p_id: string }; Returns: Json }
+      verify_mcp_agent_token: { Args: { p_token_plaintext: string }; Returns: Json }
+      mcp_token_fingerprint: { Args: { p_plaintext: string }; Returns: string }
       log_activity_event: {
         Args: {
           p_action: string
@@ -2005,6 +2106,7 @@ export type Database = {
       task_status: "todo" | "doing" | "blocked" | "done"
       user_role: "admin" | "member"
       client_contract_status: "rascunho" | "vigente" | "encerrada"
+      mcp_agent_token_scope: "read" | "write"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2166,6 +2268,7 @@ export const Constants = {
       task_status: ["todo", "doing", "blocked", "done"],
       user_role: ["admin", "member"],
       client_contract_status: ["rascunho", "vigente", "encerrada"],
+      mcp_agent_token_scope: ["read", "write"],
     },
   },
 } as const

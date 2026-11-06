@@ -9,12 +9,14 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:mcp-isolated": "bash scripts/mcp-isolated-rls-test.sh",
     "gen:types": "supabase gen types typescript --project-id tmsaucxoeqpfluzwrwkc > src/lib/db/types.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.105.4",
+    "jose": "^6.1.0",
     "clsx": "^2.1.1",
     "lucide-react": "^1.16.0",
     "next": "16.3.2",

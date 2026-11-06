@@ -1,7 +1,17 @@
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
+import { getCachedMcpResult, setCachedMcpResult } from "@/lib/mcp/idempotency";
+import { jsonRpcError, jsonRpcResult, toolText, type JsonRpcId } from "@/lib/mcp/jsonrpc";
+import { resolveMcpCallerJwt } from "@/lib/mcp/resolve-caller-jwt";
+import { mcpHasWriteScope } from "@/lib/mcp/scope";
 import { createUserSupabase } from "@/lib/mcp/supabase-user-client";
-
-type JsonRpcId = string | number | null;
+import {
+  mcpAddTaskComment,
+  mcpChangeTaskStatus,
+  mcpCreateDeliveryTask,
+  mcpGetTask,
+  mcpListTasks,
+  mcpUpdateTask,
+} from "@/lib/mcp/tools/task-tools";
 
 type JsonRpcRequest = {
   jsonrpc?: string;
@@ -9,17 +19,6 @@ type JsonRpcRequest = {
   method?: string;
   params?: unknown;
 };
-
-function jsonRpcError(id: JsonRpcId, code: number, message: string, status: number) {
-  return NextResponse.json(
-    { jsonrpc: "2.0", id: id ?? null, error: { code, message } },
-    { status },
-  );
-}
-
-function jsonRpcResult(id: JsonRpcId, result: unknown) {
-  return NextResponse.json({ jsonrpc: "2.0", id, result });
-}
 
 function parseBearer(req: Request): string | null {
   const auth = req.headers.get("authorization");
@@ -32,29 +31,134 @@ const TOOLS = [
   {
     name: "list_operations",
     description:
-      "Lista operações visíveis ao usuário (RLS), com nome do cliente. Parâmetro opcional: limit (1–50, default 20).",
+      "Lista operações visíveis (RLS). Parâmetro opcional: limit (1–50, default 20).",
     inputSchema: {
       type: "object",
-      properties: { limit: { type: "number", description: "Máximo de linhas" } },
+      properties: { limit: { type: "number" } },
     },
   },
   {
     name: "get_operation",
-    description: "Detalhe de uma operação por id (uuid).",
+    description: "Detalhe de operação por id (uuid).",
+    inputSchema: {
+      type: "object",
+      properties: { operation_id: { type: "string" } },
+      required: ["operation_id"],
+    },
+  },
+  {
+    name: "list_tasks",
+    description:
+      "Lista tarefas visíveis (RLS). Filtros: operation_id, client_id, status[], assignee_person_id. limit 1–50, offset.",
     inputSchema: {
       type: "object",
       properties: {
-        operation_id: { type: "string", description: "UUID da operação" },
+        operation_id: { type: "string" },
+        client_id: { type: "string" },
+        status: { type: "array", items: { type: "string" } },
+        assignee_person_id: { type: "string" },
+        limit: { type: "number" },
+        offset: { type: "number" },
       },
-      required: ["operation_id"],
+    },
+  },
+  {
+    name: "get_task",
+    description: "Detalhe de tarefa por id.",
+    inputSchema: {
+      type: "object",
+      properties: { task_id: { type: "string" } },
+      required: ["task_id"],
+    },
+  },
+  {
+    name: "create_task",
+    description:
+      "Cria tarefa de entrega (frente_id obrigatório). Campos alinhados ao app (title, status, datas, assignees…).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        frente_id: { type: "string" },
+        title: { type: "string" },
+        description: { type: "string" },
+        status: { type: "string" },
+        assignee_person_ids: { type: "array", items: { type: "string" } },
+        parent_task_id: { type: "string" },
+        start_date: { type: "string" },
+        due_date: { type: "string" },
+        tags: { type: "array", items: { type: "string" } },
+        quick_win_id: { type: "string" },
+        sla_incident_id: { type: "string" },
+        idempotency_key: { type: "string" },
+      },
+      required: ["frente_id", "title"],
+    },
+  },
+  {
+    name: "update_task",
+    description: "Atualiza tarefa (task_id + campos opcionais). assignee_person_ids substitui lista.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        task_id: { type: "string" },
+        title: { type: "string" },
+        description: { type: "string" },
+        status: { type: "string" },
+        assignee_person_ids: { type: "array", items: { type: "string" } },
+        parent_task_id: { type: "string" },
+        start_date: { type: "string" },
+        due_date: { type: "string" },
+        tags: { type: "array", items: { type: "string" } },
+        quick_win_id: { type: "string" },
+        sla_incident_id: { type: "string" },
+        idempotency_key: { type: "string" },
+      },
+      required: ["task_id"],
+    },
+  },
+  {
+    name: "change_task_status",
+    description: "Atualiza só o status da tarefa.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        task_id: { type: "string" },
+        status: { type: "string" },
+        idempotency_key: { type: "string" },
+      },
+      required: ["task_id", "status"],
+    },
+  },
+  {
+    name: "add_task_comment",
+    description: "Adiciona comentário à tarefa (autor = perfil do token/JWT).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        task_id: { type: "string" },
+        body: { type: "string" },
+        idempotency_key: { type: "string" },
+      },
+      required: ["task_id", "body"],
     },
   },
 ] as const;
 
-export async function POST(req: Request) {
-  const jwt = parseBearer(req);
-  if (!jwt) {
-    return jsonRpcError(null, -32001, "Autenticação obrigatória: Authorization Bearer <JWT Supabase>.", 401);
+export async function POST(req: NextRequest) {
+  const bearerRaw = parseBearer(req);
+  if (!bearerRaw) {
+    return jsonRpcError(null, -32001, "Autenticação obrigatória: Bearer <JWT Supabase ou token MCP>.", 401);
+  }
+
+  const resolved = await resolveMcpCallerJwt(bearerRaw);
+  if (!resolved.ok) {
+    const msg =
+      resolved.code === "invalid_or_expired"
+        ? "Token MCP inválido, expirado ou revogado."
+        : resolved.code === "server_misconfigured"
+          ? "Servidor sem SUPABASE_SERVICE_ROLE_KEY ou SUPABASE_JWT_SECRET."
+          : "Falha na autenticação.";
+    return jsonRpcError(null, -32001, msg, 401);
   }
 
   let body: JsonRpcRequest;
@@ -73,10 +177,19 @@ export async function POST(req: Request) {
     return jsonRpcError(id ?? null, -32600, "method obrigatório.", 400);
   }
 
-  const supabase = createUserSupabase(jwt);
-  const { data: userData, error: userErr } = await supabase.auth.getUser();
-  if (userErr || !userData.user) {
-    return jsonRpcError(id ?? null, -32001, "JWT inválido ou sessão expirada.", 401);
+  const supabase = createUserSupabase(resolved.jwt);
+  const mcpCtx = resolved.ctx;
+
+  let callerUserId: string;
+  if (mcpCtx?.mcpAgent) {
+    // verify_mcp_agent_token já validou perfil + auth.users; evita round-trip GoTrue em JWT sintético.
+    callerUserId = mcpCtx.profileId;
+  } else {
+    const { data: userData, error: userErr } = await supabase.auth.getUser();
+    if (userErr || !userData.user) {
+      return jsonRpcError(id ?? null, -32001, "Sessão inválida ou expirada.", 401);
+    }
+    callerUserId = userData.user.id;
   }
 
   switch (method) {
@@ -84,7 +197,7 @@ export async function POST(req: Request) {
       return jsonRpcResult(id ?? null, {
         protocolVersion: "2024-11-05",
         capabilities: { tools: {} },
-        serverInfo: { name: "dryos-delivery-mcp", version: "0.1.0" },
+        serverInfo: { name: "dryos-delivery-mcp", version: "0.2.0" },
       });
 
     case "notifications/initialized":
@@ -97,6 +210,37 @@ export async function POST(req: Request) {
       const p = params as { name?: string; arguments?: Record<string, unknown> } | undefined;
       const toolName = p?.name;
       const args = p?.arguments ?? {};
+
+      const needWrite =
+        toolName === "create_task" ||
+        toolName === "update_task" ||
+        toolName === "change_task_status" ||
+        toolName === "add_task_comment";
+
+      if (needWrite && mcpCtx && !mcpHasWriteScope(mcpCtx)) {
+        return jsonRpcError(id ?? null, -32003, "Token somente leitura (read).", 403);
+      }
+
+      async function withIdem(scope: string, fn: () => Promise<unknown>) {
+        const ik =
+          typeof args.idempotency_key === "string" ? args.idempotency_key.trim() : undefined;
+        if (mcpCtx && ik) {
+          const hit = await getCachedMcpResult(mcpCtx.profileId, scope, ik);
+          if (hit !== null) return jsonRpcResult(id ?? null, toolText(hit));
+        }
+        const out = await fn();
+        if (
+          mcpCtx &&
+          ik &&
+          typeof out === "object" &&
+          out !== null &&
+          "ok" in out &&
+          (out as { ok: boolean }).ok
+        ) {
+          await setCachedMcpResult(mcpCtx.profileId, scope, ik, out);
+        }
+        return jsonRpcResult(id ?? null, toolText(out));
+      }
 
       if (toolName === "list_operations") {
         const rawLimit = args.limit;
@@ -118,14 +262,7 @@ export async function POST(req: Request) {
         if (error) {
           return jsonRpcError(id ?? null, -32000, `DB: ${error.message}`, 500);
         }
-        return jsonRpcResult(id ?? null, {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(data ?? [], null, 2),
-            },
-          ],
-        });
+        return jsonRpcResult(id ?? null, toolText(data ?? []));
       }
 
       if (toolName === "get_operation") {
@@ -149,8 +286,43 @@ export async function POST(req: Request) {
         if (!data) {
           return jsonRpcError(id ?? null, -32002, "Operação não encontrada ou sem acesso.", 404);
         }
-        return jsonRpcResult(id ?? null, {
-          content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+        return jsonRpcResult(id ?? null, toolText(data));
+      }
+
+      if (toolName === "list_tasks") {
+        const r = await mcpListTasks(supabase, args);
+        return jsonRpcResult(id ?? null, toolText(r.ok ? { tasks: r.tasks } : { error: r.message }));
+      }
+
+      if (toolName === "get_task") {
+        const r = await mcpGetTask(supabase, args);
+        if (!r.ok) {
+          return jsonRpcError(id ?? null, r.notFound ? -32002 : -32000, r.message, r.notFound ? 404 : 400);
+        }
+        return jsonRpcResult(id ?? null, toolText(r.task));
+      }
+
+      if (toolName === "create_task") {
+        return withIdem("create_task", async () => {
+          return mcpCreateDeliveryTask(supabase, args);
+        });
+      }
+
+      if (toolName === "update_task") {
+        return withIdem("update_task", async () => {
+          return mcpUpdateTask(supabase, args);
+        });
+      }
+
+      if (toolName === "change_task_status") {
+        return withIdem("change_task_status", async () => {
+          return mcpChangeTaskStatus(supabase, args);
+        });
+      }
+
+      if (toolName === "add_task_comment") {
+        return withIdem("add_task_comment", async () => {
+          return mcpAddTaskComment(supabase, args, callerUserId);
         });
       }
 
@@ -167,6 +339,10 @@ export async function GET() {
     name: "dryos-delivery-mcp",
     protocol: "jsonrpc-2.0",
     post: "/api/mcp",
-    auth: "Authorization: Bearer <Supabase access_token>",
+    auth: {
+      bearer_jwt: "Authorization: Bearer <Supabase access_token> (sessão Curta)",
+      bearer_mcp:
+        "Authorization: Bearer <token MCP exibido uma vez no /admin — prefixo mcp_agt_>; o servidor troca por JWT curto com SUPABASE_JWT_SECRET",
+    },
   });
 }

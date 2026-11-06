@@ -52,6 +52,8 @@ inicialização do cliente Supabase, de propósito.
 
 **Convites / admin (service role):** em produção defina `SUPABASE_SERVICE_ROLE_KEY` (mesmo segredo que o Dashboard chama de *service_role*). Server Actions de `/admin` que convidam usuários leem essa variável; o nome legado `SUPABASE_SECRET_KEY` ainda é aceito como fallback. Nunca exponha no cliente.
 
+**MCP / token de agente (`mcp_agt_`):** defina `SUPABASE_JWT_SECRET` (JWT Secret no Dashboard — não a chave publicável). O endpoint `POST /api/mcp` troca o token estático por um JWT curto com o mesmo `sub` do perfil, preservando RLS. Fluxo e limitações em `docs/agent-supabase.md`.
+
 ## Documentação canônica
 
 Leia antes de mexer no código — nesta ordem:
