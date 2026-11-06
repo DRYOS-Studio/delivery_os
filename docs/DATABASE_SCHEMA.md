@@ -730,7 +730,7 @@ Trigger `create_profile_for_new_user` (AFTER INSERT em auth.users, SECURITY DEFI
 
 RLS (refinado por `operation-members`, #80):
 - SELECT (`profiles_scoped_select`): admin vê todos; member vê **si mesmo + colegas que compartilham uma Operação** (via `operation_members`). Não é mais "todos veem todos".
-- UPDATE só admin (policy WITH CHECK `(SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'`)
+- UPDATE só admin (`profiles_admin_update`: `USING` / `WITH CHECK` = `public.is_admin()`. Não usar subquery `SELECT ... FROM profiles` na policy — recursão RLS com `profiles_scoped_select`.)
 - INSERT bloqueado pra authenticated (só via trigger SECURITY DEFINER)
 - DELETE bloqueado (sem policy)
 
@@ -892,6 +892,7 @@ cross-tenant.
 | 20261106123100 | activity_client_contracts | repo — `activity_subject_type` + `client_contract`; triggers no feed |
 | 20261106124000 | meeting_agenda_granola | repo — pauta/próximos passos; colunas Granola em `meetings`; `decisions.agenda_item_id` |
 | 20261106124500 | activity_profile_subject | repo — enum `activity_subject_type` + valor `profile`; `can_read_activity_subject` para audit de perfil (só admin) |
+| 20261106210000 | profiles_admin_update_no_recursion | repo — `profiles_admin_update` usa `is_admin()` para evitar recursão RLS com `profiles_scoped_select` |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações
