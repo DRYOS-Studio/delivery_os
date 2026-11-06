@@ -62,6 +62,24 @@ describe("resolveMcpCallerJwt", () => {
     );
   });
 
+  it("defaults empty RPC scopes to read-only", async () => {
+    mockRpc.mockResolvedValue({
+      data: {
+        ok: true,
+        profile_id: "00000000-0000-4000-8000-000000000002",
+        scopes: [],
+      },
+      error: null,
+    });
+    mockMint.mockResolvedValue("minted");
+
+    const r = await resolveMcpCallerJwt(mcpBearer);
+    expect(r.ok).toBe(true);
+    if (r.ok && "ctx" in r && r.ctx) {
+      expect(r.ctx.scopes).toEqual(["read"]);
+    }
+  });
+
   it("maps failed verify to error code from RPC", async () => {
     mockRpc.mockResolvedValue({
       data: { ok: false, code: "invalid_or_expired" },

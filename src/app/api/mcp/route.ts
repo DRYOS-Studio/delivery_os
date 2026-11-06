@@ -178,12 +178,19 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = createUserSupabase(resolved.jwt);
-  const { data: userData, error: userErr } = await supabase.auth.getUser();
-  if (userErr || !userData.user) {
-    return jsonRpcError(id ?? null, -32001, "Sessão inválida ou expirada.", 401);
-  }
-
   const mcpCtx = resolved.ctx;
+
+  let callerUserId: string;
+  if (mcpCtx?.mcpAgent) {
+    // verify_mcp_agent_token já validou perfil + auth.users; evita round-trip GoTrue em JWT sintético.
+    callerUserId = mcpCtx.profileId;
+  } else {
+    const { data: userData, error: userErr } = await supabase.auth.getUser();
+    if (userErr || !userData.user) {
+      return jsonRpcError(id ?? null, -32001, "Sessão inválida ou expirada.", 401);
+    }
+    callerUserId = userData.user.id;
+  }
 
   switch (method) {
     case "initialize":
@@ -315,7 +322,7 @@ export async function POST(req: NextRequest) {
 
       if (toolName === "add_task_comment") {
         return withIdem("add_task_comment", async () => {
-          return mcpAddTaskComment(supabase, args, userData.user.id);
+          return mcpAddTaskComment(supabase, args, callerUserId);
         });
       }
 

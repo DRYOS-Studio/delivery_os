@@ -87,7 +87,18 @@ Saídas compactas (JSON em `content` de texto) para reduzir tokens.
 - **Revogação:** admin revoga no `/admin` (ou delete do user em Auth em cascata com `profiles`). Remoção de `operation_members` afeta o que o JWT ainda enxerga na próxima request.
 - Não há OAuth2 completo no endpoint; para o Cursor use **HTTPS URL + header estático** ou continue com JWT curto manual se preferir.
 
-## 7. Ordem de deploy (migrations)
+## 7. Teste isolado (CI / agente)
+
+Com Postgres local (não Docker Supabase, não projeto remoto):
+
+```bash
+npm run test:mcp-isolated   # aplica todas as migrations + asserções MCP/RLS
+npm run test                # inclui vitest `mcp-isolated-rls.integration.test.ts`
+```
+
+Script: `scripts/mcp-isolated-rls-test.sh` + bootstrap `scripts/isolated-pg-bootstrap.sql`.
+
+## 8. Ordem de deploy (migrations)
 
 Aplicar em ordem de timestamp no repositório; as relevantes ao MCP incluem:
 
@@ -97,17 +108,17 @@ Aplicar em ordem de timestamp no repositório; as relevantes ao MCP incluem:
 
 Depois: `npm run gen:types` e deploy do app com `SUPABASE_JWT_SECRET` definido.
 
-## 8. Passos para o usuário (conexão segura)
+## 9. Passos para o usuário (conexão segura)
 
 1. Admin abre `/admin`, expande o usuário agente, em **Tokens MCP** define nome, validade (dias), escopos (read/write) e **Cria**.
 2. Copia o valor `mcp_agt_...` **uma única vez** e cola no Cursor (Add MCP Server) como `Authorization: Bearer <token>` ou equivalente.
 3. URL do servidor: `https://<seu-app>/api/mcp`.
 4. Para desligar: **Revogar** no mesmo painel (invalidação imediata no verify).
 
-## 9. O que não colocar no repositório
+## 10. O que não colocar no repositório
 
 Senhas, service role, `SUPABASE_JWT_SECRET`, URLs de webhook com segredo embutido, tokens MCP ou JWT de sessão.
 
-## 10. Variáveis de ambiente (referência)
+## 11. Variáveis de ambiente (referência)
 
 Documentadas em `.env.local.example`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_SECRET_KEY` (legado), `SUPABASE_JWT_SECRET` (MCP troca de token), `CRON_SECRET`, `NOTIFICATION_WEBHOOK_URL`.

@@ -16,7 +16,8 @@ function parseScopes(raw: unknown): ("read" | "write")[] {
   for (const x of raw) {
     if (x === "read" || x === "write") out.push(x);
   }
-  return out.length > 0 ? out : ["read", "write"];
+  // Escopo vazio no RPC não deve ampliar para write (least privilege).
+  return out.length > 0 ? out : ["read"];
 }
 
 export async function resolveMcpCallerJwt(

@@ -15,6 +15,7 @@ export async function mintSupabaseUserAccessToken(
   ttlSeconds: number,
 ): Promise<string> {
   const secret = new TextEncoder().encode(requiredEnv("SUPABASE_JWT_SECRET"));
+  const supabaseUrl = requiredEnv("NEXT_PUBLIC_SUPABASE_URL").replace(/\/$/, "");
   const now = Math.floor(Date.now() / 1000);
   const exp = now + ttlSeconds;
   return new SignJWT({
@@ -26,6 +27,7 @@ export async function mintSupabaseUserAccessToken(
   })
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
     .setSubject(userId)
+    .setIssuer(`${supabaseUrl}/auth/v1`)
     .setAudience("authenticated")
     .setIssuedAt(now)
     .setExpirationTime(exp)

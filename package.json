@@ -9,6 +9,7 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:mcp-isolated": "bash scripts/mcp-isolated-rls-test.sh",
     "gen:types": "supabase gen types typescript --project-id tmsaucxoeqpfluzwrwkc > src/lib/db/types.ts"
   },
   "dependencies": {
