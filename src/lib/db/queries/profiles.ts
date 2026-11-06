@@ -7,13 +7,20 @@ export type ProfileListItem = {
   name: string | null;
   role: Role;
   createdAt: string;
+  personId: string | null;
+  personName: string | null;
 };
 
 export async function listProfiles(): Promise<ProfileListItem[]> {
   const supabase = await createServer();
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, role, name, created_at")
+    .select(
+      `
+      id, role, name, created_at, person_id,
+      person:persons!fk_profiles_person_id ( id, name )
+      `,
+    )
     .order("created_at", { ascending: true });
   if (error) throw new Error(`listProfiles: ${error.message}`);
   if (!data) return [];
@@ -22,12 +29,15 @@ export async function listProfiles(): Promise<ProfileListItem[]> {
   const result: ProfileListItem[] = [];
   for (const p of data) {
     const { data: u } = await admin.auth.admin.getUserById(p.id);
+    const person = p.person as { id: string; name: string } | null;
     result.push({
       id: p.id,
       email: u?.user?.email ?? null,
       name: p.name,
-      role: p.role,
+      role: p.role as Role,
       createdAt: p.created_at,
+      personId: p.person_id,
+      personName: person?.name ?? null,
     });
   }
   return result;

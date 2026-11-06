@@ -20,7 +20,7 @@ Tarefas de **área** usam RLS adicional (`user_in_area` + concessão). Um member
 ## 3. Como autenticar
 
 - **App / API:** sessão Supabase (JWT) — `signInWithPassword` no cliente ou fluxo server com `@supabase/ssr`.
-- **Scripts / automação:** `SUPABASE_SECRET_KEY` (service role) **não** deve ser o padrão para o agente de produto: bypassa RLS. Prefira JWT do usuário agente.
+- **Scripts / automação:** chave **service role** (`SUPABASE_SERVICE_ROLE_KEY`, ou legado `SUPABASE_SECRET_KEY`) bypassa RLS — **não** deve ser o padrão para o agente de produto. Prefira JWT do usuário agente.
 
 ## 4. Tabelas que o agente costuma ler
 
@@ -52,4 +52,4 @@ Use **Server Actions** ou rotas que já aplicam validação e convênios do app.
 
 ## 8. Variáveis de ambiente (referência)
 
-Documentadas em `.env.local.example`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` (só backend), `CRON_SECRET`, `NOTIFICATION_WEBHOOK_URL`.
+Documentadas em `.env.local.example`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (só backend; convites/sync em `/admin`), `SUPABASE_SECRET_KEY` (nome legado, opcional), `CRON_SECRET`, `NOTIFICATION_WEBHOOK_URL`.

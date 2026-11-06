@@ -1979,6 +1979,7 @@ export type Database = {
         | "frente"
         | "task"
         | "client_contract"
+        | "profile"
       allocation_role: "responsavel" | "executor" | "aprovador" | "plantao"
       attachment_visibility: "interno" | "cliente"
       cost_recurrence: "mensal" | "unica"
@@ -2137,6 +2138,7 @@ export const Constants = {
         "frente",
         "task",
         "client_contract",
+        "profile",
       ],
       allocation_role: ["responsavel", "executor", "aprovador", "plantao"],
       attachment_visibility: ["interno", "cliente"],

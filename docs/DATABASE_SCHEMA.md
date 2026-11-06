@@ -95,12 +95,12 @@ Trigger `set_client_contracts_updated_at`. Trigger `trg_activity_client_contract
 
 ### `activity_events` — histórico de mudanças (audit trail)
 
-Eventos gerados por triggers em `clients`, `operations`, `frentes`, `tasks`, `task_assignees` (responsáveis) e `client_contracts`. Cada linha referencia o assunto (`subject_type` + `subject_id`), denormaliza `operation_id` / `client_id` quando aplicável e guarda `actor_profile_id` = `auth.uid()` no momento da mudança.
+Eventos gerados por triggers em `clients`, `operations`, `frentes`, `tasks`, `task_assignees` (responsáveis) e `client_contracts`, e por RPC a partir de ações admin em `profiles` (convite, troca de papel, vínculo de pessoa). Cada linha referencia o assunto (`subject_type` + `subject_id`), denormaliza `operation_id` / `client_id` quando aplicável e guarda `actor_profile_id` = `auth.uid()` no momento da mudança. Assunto `profile` é visível só para admin (`can_read_activity_subject`).
 
 | Coluna | Tipo | Notas |
 |---|---|---|
 | `id` | uuid PK | |
-| `subject_type` | enum `activity_subject_type` | client \| operation \| frente \| task \| client_contract |
+| `subject_type` | enum `activity_subject_type` | client \| operation \| frente \| task \| client_contract \| profile |
 | `subject_id` | uuid NOT NULL | id do registro no tipo acima |
 | `operation_id` | uuid → operations | nullable (client puro) |
 | `client_id` | uuid → clients | nullable |
@@ -891,6 +891,7 @@ cross-tenant.
 | 20261106123000 | client_contracts | repo — bucket `contracts`, tabela `client_contracts`, RLS admin |
 | 20261106123100 | activity_client_contracts | repo — `activity_subject_type` + `client_contract`; triggers no feed |
 | 20261106124000 | meeting_agenda_granola | repo — pauta/próximos passos; colunas Granola em `meetings`; `decisions.agenda_item_id` |
+| 20261106124500 | activity_profile_subject | repo — enum `activity_subject_type` + valor `profile`; `can_read_activity_subject` para audit de perfil (só admin) |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações
