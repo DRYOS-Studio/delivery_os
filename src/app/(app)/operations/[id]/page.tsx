@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ActivityFeedSection } from "@/components/domain/ActivityFeedSection";
+import { OperationCommentsSection } from "@/components/domain/OperationCommentsSection";
 import { AreaTasksSection } from "@/components/domain/AreaTasksSection";
 import { AttachmentsSection } from "@/components/domain/AttachmentsSection";
 import { CostsTab } from "@/components/domain/CostsTab";
@@ -23,6 +24,7 @@ import {
   listAttachmentsByOperation,
 } from "@/lib/db/queries/attachments";
 import { listActivityForOperation } from "@/lib/db/queries/activity";
+import { listOperationComments } from "@/lib/db/queries/comments";
 import { getBriefingFreshness } from "@/lib/db/queries/briefings";
 import {
   countDecisionsByOperation,
@@ -113,6 +115,7 @@ type TabContent = {
   publicLinks: Awaited<ReturnType<typeof listPublicLinksByOperation>>;
   baseUrl: string;
   activityEvents: Awaited<ReturnType<typeof listActivityForOperation>>;
+  operationComments: Awaited<ReturnType<typeof listOperationComments>>;
 };
 
 function emptyTabContent(): TabContent {
@@ -131,6 +134,7 @@ function emptyTabContent(): TabContent {
     publicLinks: [],
     baseUrl: "",
     activityEvents: [],
+    operationComments: [],
   };
 }
 
@@ -149,6 +153,7 @@ async function loadTabContent(
         villainNarratives,
         quickWinCatalogItems,
         activityEvents,
+        operationComments,
       ] = await Promise.all([
         listVillainsByOperation(id),
         listAvailableVillains(id),
@@ -156,6 +161,7 @@ async function loadTabContent(
         listVillainNarratives(id, yyyymm),
         listActiveQuickWinCatalog(),
         listActivityForOperation(id),
+        listOperationComments(id),
       ]);
       return {
         ...base,
@@ -165,6 +171,7 @@ async function loadTabContent(
         villainNarratives,
         quickWinCatalogItems,
         activityEvents,
+        operationComments,
       };
     }
     case "eventos": {
@@ -286,6 +293,7 @@ export default async function Page({
     publicLinks,
     baseUrl,
     activityEvents,
+    operationComments,
   } = tabContent;
 
   const margin: MarginResult | null =
@@ -363,6 +371,14 @@ export default async function Page({
           />
           <FinanceCards op={op} isAdmin={isAdmin} />
           <ActivityFeedSection events={activityEvents} />
+          {profile?.user?.id ? (
+            <OperationCommentsSection
+              operationId={op.id}
+              comments={operationComments}
+              currentUserId={profile.user.id}
+              isAdmin={isAdmin}
+            />
+          ) : null}
         </>
       )}
 
