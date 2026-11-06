@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { ActivityFeedSection } from "@/components/domain/ActivityFeedSection";
+import { TaskCommentsSection } from "@/components/domain/TaskCommentsSection";
 import { AreaTaskForm } from "@/components/domain/AreaTaskForm";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { getProfile, requireUser } from "@/lib/auth/server";
@@ -7,6 +8,7 @@ import { listAreas } from "@/lib/db/queries/areas";
 import { getOperation } from "@/lib/db/queries/operations";
 import { listInternalPersons } from "@/lib/db/queries/persons";
 import { listActivityForTask } from "@/lib/db/queries/activity";
+import { listTaskComments } from "@/lib/db/queries/comments";
 import { getTask } from "@/lib/db/queries/tasks";
 
 export default async function Page({
@@ -16,7 +18,7 @@ export default async function Page({
 }) {
   await requireUser();
   const { id, tid } = await params;
-  const [profile, operation, task, assignees, areas, activityEvents] =
+  const [profile, operation, task, assignees, areas, activityEvents, taskComments] =
     await Promise.all([
       getProfile(),
       getOperation(id),
@@ -24,6 +26,7 @@ export default async function Page({
       listInternalPersons(),
       listAreas(),
       listActivityForTask(tid),
+      listTaskComments(tid),
     ]);
   if (!operation) notFound();
   // Só tarefa de área desta Operação.
@@ -44,6 +47,14 @@ export default async function Page({
         isAdmin={profile?.role === "admin"}
       />
       <ActivityFeedSection events={activityEvents} />
+      {profile?.user?.id ? (
+        <TaskCommentsSection
+          taskId={tid}
+          comments={taskComments}
+          currentUserId={profile.user.id}
+          isAdmin={profile.role === "admin"}
+        />
+      ) : null}
     </>
   );
 }

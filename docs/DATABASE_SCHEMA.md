@@ -32,7 +32,8 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 | **Catálogo · Quick Wins** | `quick_win_catalog` | 1 |
 | **Notificações** | `notifications_log` | 1 |
 | **Auditoria** | `activity_events` | 1 |
-| **Total atual** | | **32** |
+| **Comentários** | `task_comments`, `operation_comments` | 2 |
+| **Total atual** | | **34** |
 
 ---
 
@@ -85,6 +86,34 @@ Eventos gerados por triggers em `clients`, `operations`, `frentes`, `tasks` e `t
 | `created_at` | timestamptz | |
 
 RLS: SELECT quando `can_read_activity_subject(subject_type, subject_id)`. Inserts via funções/triggers SECURITY DEFINER (`log_activity_event_system`); não há policy de INSERT para `authenticated` direto na tabela.
+
+---
+
+### `task_comments` — comentário em tarefa
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `task_id` | uuid → tasks | CASCADE |
+| `body` | text | 1–8000 chars |
+| `author_profile_id` | uuid → profiles | default `auth.uid()` |
+| `created_at`, `updated_at` | timestamptz | trigger `set_updated_at` |
+
+RLS: SELECT `can_see_task(task_id)`; INSERT se `can_see_task` e autor = `auth.uid()`; UPDATE/DELETE autor ou `is_admin()`.
+
+---
+
+### `operation_comments` — comentário na Operação
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `operation_id` | uuid → operations | CASCADE |
+| `body` | text | 1–8000 chars |
+| `author_profile_id` | uuid → profiles | default `auth.uid()` |
+| `created_at`, `updated_at` | timestamptz | |
+
+RLS: SELECT `can_read_operation(operation_id)`; INSERT `can_see_operation` e autor; UPDATE/DELETE `can_read_operation` e (autor ou admin).
 
 ---
 
