@@ -1,6 +1,6 @@
 # Database Schema
 
-**Última análise**: 2026-11-06 (pauta de reunião + Granola — PR agent)
+**Última análise**: 2026-11-06 (tokens MCP + tarefas no connector)
 **Projeto Supabase**: `Delivery OS` (`tmsaucxoeqpfluzwrwkc`)
 **Schema**: `public`
 
@@ -26,6 +26,7 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 | **Diagnóstico** | `diagnostics` | 1 |
 | **Quick Wins** | `quick_wins`, `quick_win_impacts` | 2 |
 | **Profiles** | `profiles` | 1 |
+| **Integração (MCP)** | `profile_agent_tokens`, `mcp_idempotent_responses` | 2 |
 | **Auth · Scope** | `operation_members`, `profile_areas`, `areas`, `area_clients`, `area_operations` | 5 |
 | **Operação · Custos** | `operation_costs` | 1 |
 | **Catálogo · Produtos** | `service_products` | 1 |
@@ -33,7 +34,7 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 | **Notificações** | `notifications_log` | 1 |
 | **Auditoria** | `activity_events` | 1 |
 | **Comentários** | `task_comments`, `operation_comments` | 2 |
-| **Total atual** | | **37** |
+| **Total atual** | | **39** |
 
 ---
 
@@ -738,6 +739,35 @@ RLS (refinado por `operation-members`, #80):
 
 ---
 
+### `profile_agent_tokens` — token estático MCP (troca por JWT curto)
+
+Segredos de conector remoto (prefixo `mcp_agt_`, exibido **uma vez** no `/admin`). Armazenamento: fingerprint SHA-256 (32 hex) para lookup + `crypt(..., gen_salt('bf'))` para o segredo; sem coluna de plaintext.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `profile_id` | uuid NOT NULL → profiles | dono = `auth.users.id` |
+| `name` | text NOT NULL | rótulo (1–120) |
+| `token_fingerprint` | text NOT NULL | unique parcial quando ativo |
+| `token_hash` | text NOT NULL | bcrypt |
+| `scopes` | `mcp_agent_token_scope[]` | `read` / `write` |
+| `created_at`, `last_used_at` | timestamptz | |
+| `expires_at` | timestamptz NOT NULL | > created_at (CHECK) |
+| `revoked_at` | timestamptz | revogação admin |
+| `created_by` | uuid → profiles | quem criou |
+
+RLS: SELECT `is_admin()` OU `profile_id = auth.uid()`. **Sem** INSERT/UPDATE direto — `create_mcp_agent_token` / `revoke_mcp_agent_token` (authenticated, SECURITY DEFINER, gate `is_admin()`). **`verify_mcp_agent_token`** (service_role): valida plaintext, checa `auth.users` existente e não banido (`banned_until`), atualiza `last_used_at`; usada só no servidor ao trocar token por JWT.
+
+---
+
+### `mcp_idempotent_responses` — cache de resposta por idempotency (MCP writes)
+
+Chave composta `(profile_id, scope, idempotency_key)`; `result` jsonb. Preenchido pelo app com **service role** após escrita MCP bem-sucedida (evita duplicar `create_task` / etc. em retries).
+
+RLS habilitado **sem** policy para `authenticated` — invisível ao cliente; service_role bypassa.
+
+---
+
 ### `operation_members` — vínculo member × Operação (Inv. scope, #80)
 
 Define **quem (member) vê qual Operação**. Admin vê tudo sem precisar de row aqui. Base do gating de visibilidade por Operação que cascateia pra todas as tabelas-filhas.
@@ -893,6 +923,9 @@ cross-tenant.
 | 20261106124000 | meeting_agenda_granola | repo — pauta/próximos passos; colunas Granola em `meetings`; `decisions.agenda_item_id` |
 | 20261106124500 | activity_profile_subject | repo — enum `activity_subject_type` + valor `profile`; `can_read_activity_subject` para audit de perfil (só admin) |
 | 20261106210000 | profiles_admin_update_no_recursion | repo — `profiles_admin_update` usa `is_admin()` para evitar recursão RLS com `profiles_scoped_select` |
+| 20261106220000 | mcp_agent_tokens | repo — `profile_agent_tokens`, enum `mcp_agent_token_scope`, RPCs create/revoke/verify (verify service_role) |
+| 20261106220100 | mcp_idempotent_calls | repo — `mcp_idempotent_responses` (cache idempotency MCP; só service_role) |
+| 20261106220200 | verify_mcp_agent_token_auth_user | repo — `verify_mcp_agent_token` recusa `auth.users` inexistente ou banido |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações
