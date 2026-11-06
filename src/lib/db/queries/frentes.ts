@@ -137,6 +137,21 @@ export async function countHotCriticalFrentes(): Promise<number> {
 
 export type ArchivedFrente = { id: string; name: string; archivedAt: string };
 
+export async function listActiveFrentesByOperation(
+  operationId: string,
+): Promise<{ id: string; name: string }[]> {
+  const supabase = await createServer();
+  const { data, error } = await supabase
+    .from("frentes")
+    .select("id, name")
+    .eq("operation_id", operationId)
+    .is("archived_at", null)
+    .order("name", { ascending: true });
+  if (error)
+    throw new Error(`listActiveFrentesByOperation: ${error.message}`);
+  return (data ?? []).map((f) => ({ id: f.id, name: f.name }));
+}
+
 /**
  * Alimenta a seção "Arquivadas" no detalhe da Operação. Sem essa superfície,
  * `restoreFrenteAction` não teria invocador: `getFrente` e o embed de `getOperation`

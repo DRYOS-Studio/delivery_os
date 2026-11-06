@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
 import { AttachmentsSection } from "@/components/domain/AttachmentsSection";
 import { MeetingForm } from "@/components/domain/MeetingForm";
+import { MeetingNextStepPromote } from "@/components/domain/MeetingNextStepPromote";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { getProfile } from "@/lib/auth/server";
 import { listAttachmentsByMeeting } from "@/lib/db/queries/attachments";
+import { listActiveFrentesByOperation } from "@/lib/db/queries/frentes";
 import {
   getMeeting,
   listAttendeeCandidates,
@@ -28,9 +30,10 @@ export default async function Page({
   if (!meeting) redirect(`/operations/${id}`);
   if (meeting.operation_id !== id) redirect(`/operations/${id}`);
 
-  const [attendeeCandidates, attachments] = await Promise.all([
+  const [attendeeCandidates, attachments, frentes] = await Promise.all([
     listAttendeeCandidates(op.client.id),
     listAttachmentsByMeeting(mid),
+    listActiveFrentesByOperation(id),
   ]);
 
   const profile = await getProfile();
@@ -49,6 +52,17 @@ export default async function Page({
         initialData={meeting}
         attendeeCandidates={attendeeCandidates}
         isAdmin={isAdmin}
+      />
+      <MeetingNextStepPromote
+        operationId={op.id}
+        frentes={frentes}
+        steps={meeting.next_steps.map((s) => ({
+          id: s.id,
+          description: s.description,
+          due_date: s.due_date,
+          task_id: s.task_id,
+          task: s.task,
+        }))}
       />
       <div className="mt-9">
         <AttachmentsSection

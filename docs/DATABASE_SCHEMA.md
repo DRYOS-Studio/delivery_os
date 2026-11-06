@@ -1,6 +1,6 @@
 # Database Schema
 
-**Última análise**: 2026-11-06 (contratos cliente — PR agent)
+**Última análise**: 2026-11-06 (pauta de reunião + Granola — PR agent)
 **Projeto Supabase**: `Delivery OS` (`tmsaucxoeqpfluzwrwkc`)
 **Schema**: `public`
 
@@ -17,7 +17,7 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 | **Entrega** | `frentes`, `allocations`, `tasks`, `task_assignees` | 4 |
 | **Pessoas** | `persons` | 1 |
 | **Briefing** | `briefings`, `briefing_versions` | 2 |
-| **Reuniões / Decisões** | `meetings`, `meeting_attendees`, `decisions` | 3 |
+| **Reuniões / Decisões** | `meetings`, `meeting_attendees`, `meeting_agenda_items`, `meeting_agenda_next_steps`, `decisions` | 5 |
 | **Anexos** | `attachments` | 1 |
 | **Acesso público** | `public_links` | 1 |
 | **SLA** | `sla_incidents` | 1 |
@@ -33,7 +33,7 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 | **Notificações** | `notifications_log` | 1 |
 | **Auditoria** | `activity_events` | 1 |
 | **Comentários** | `task_comments`, `operation_comments` | 2 |
-| **Total atual** | | **35** |
+| **Total atual** | | **37** |
 
 ---
 
@@ -382,9 +382,45 @@ Registro temporal ligado à Operação. Visibility própria (Inv. 05).
 | `scheduled_at` | timestamptz NOT NULL default now | reunião agendada (futura ou passada) |
 | `notes` | text | livre, max 5000 chars (Zod) |
 | `visibility` | enum `meeting_visibility` default `interno` | interno / cliente |
+| `granola_suggestion_text` | text | sugestão editável (import/cola) |
+| `granola_captured_at` | timestamptz | opcional; quando houve captura de sugestão |
+| `granola_source_ref` | text | opcional; ref externa (ex. id no Granola) |
 | `created_at`, `updated_at` | timestamptz | |
 
 Trigger `set_meetings_updated_at` + index `idx_meetings_operation_scheduled` (operation_id, scheduled_at DESC).
+
+---
+
+### `meeting_agenda_items` — item de pauta
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `meeting_id` | uuid NOT NULL → meetings (CASCADE) | |
+| `sort_order` | int NOT NULL default 0 | |
+| `title` | text NOT NULL | |
+| `notes` | text | nullable |
+| `source` | text NOT NULL | `manual` \| `granola` |
+| `granola_line` | text | reservado |
+| `created_at`, `updated_at` | timestamptz | |
+
+RLS: SELECT espelha `meetings` (membro ou área com concessão e meeting `cliente`); INSERT/UPDATE/DELETE exige `can_see_operation` da reunião.
+
+---
+
+### `meeting_agenda_next_steps` — próximo passo da reunião
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `meeting_id` | uuid NOT NULL → meetings (CASCADE) | |
+| `sort_order` | int NOT NULL default 0 | |
+| `description` | text NOT NULL | |
+| `due_date` | date | nullable |
+| `task_id` | uuid → tasks (SET NULL) | preenchido ao “virar tarefa” |
+| `created_at`, `updated_at` | timestamptz | |
+
+RLS: mesmo padrão de `meeting_agenda_items`.
 
 ---
 
@@ -409,6 +445,7 @@ Standalone (operation_id NOT NULL) com FK opcional pra meeting (SET NULL).
 | `id` | uuid PK | |
 | `operation_id` | uuid NOT NULL → operations (CASCADE) | |
 | `meeting_id` | uuid → meetings (SET NULL) | opcional; apagar reunião preserva decisão |
+| `agenda_item_id` | uuid → meeting_agenda_items (SET NULL) | opcional; FK exige mesmo `meeting_id` (CHECK + trigger) |
 | `title` | text NOT NULL | |
 | `context` | text | situação que motivou (opcional) |
 | `decision` | text NOT NULL | decisão tomada em prosa |
@@ -853,6 +890,7 @@ cross-tenant.
 | 20260611155226 | hot_fk_indexes | 2026-06-11 (via MCP, AD-017, issue #131) — índices nos 5 FKs quentes (`frentes.operation_id`, `allocations.frente_id`/`person_id`, `operations.client_id`, `persons.client_id`); FKs frios (`created_by` etc.) deliberadamente sem índice |
 | 20261106123000 | client_contracts | repo — bucket `contracts`, tabela `client_contracts`, RLS admin |
 | 20261106123100 | activity_client_contracts | repo — `activity_subject_type` + `client_contract`; triggers no feed |
+| 20261106124000 | meeting_agenda_granola | repo — pauta/próximos passos; colunas Granola em `meetings`; `decisions.agenda_item_id` |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações

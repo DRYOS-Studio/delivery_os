@@ -19,6 +19,7 @@ function parseFormData(formData: FormData) {
     visibility: ((formData.get("visibility") as string | null) ?? "cliente").trim(),
     decided_at: ((formData.get("decided_at") as string | null) ?? "").trim(),
     meeting_id: ((formData.get("meeting_id") as string | null) ?? "").trim(),
+    agenda_item_id: ((formData.get("agenda_item_id") as string | null) ?? "").trim(),
   };
 }
 
@@ -44,6 +45,22 @@ async function validateMeetingBelongsToOp(
   return ok(true);
 }
 
+async function validateAgendaItemBelongsToMeeting(
+  agendaItemId: string,
+  meetingId: string,
+): Promise<ActionResult<true>> {
+  const supabase = await createServer();
+  const { data, error } = await supabase
+    .from("meeting_agenda_items")
+    .select("id")
+    .eq("id", agendaItemId)
+    .eq("meeting_id", meetingId)
+    .maybeSingle();
+  if (error) return dbErr(error, "validateAgendaItemBelongsToMeeting");
+  if (!data) return err("Item de pauta inválido para esta reunião.", "invalid_agenda_item");
+  return ok(true);
+}
+
 export async function createDecisionAction(
   operationId: string,
   formData: FormData,
@@ -60,12 +77,24 @@ export async function createDecisionAction(
     if (!check.ok) return check;
   }
 
+  if (data.agenda_item_id) {
+    if (!data.meeting_id) {
+      return err("Item de pauta exige reunião associada.", "validation_meeting_id");
+    }
+    const ai = await validateAgendaItemBelongsToMeeting(
+      data.agenda_item_id,
+      data.meeting_id,
+    );
+    if (!ai.ok) return ai;
+  }
+
   const supabase = await createServer();
   const { data: row, error } = await supabase
     .from("decisions")
     .insert({
       operation_id: operationId,
       meeting_id: data.meeting_id ?? null,
+      agenda_item_id: data.agenda_item_id ?? null,
       title: data.title,
       context: data.context ?? null,
       decision: data.decision,
@@ -103,11 +132,23 @@ export async function updateDecisionAction(
     if (!check.ok) return check;
   }
 
+  if (data.agenda_item_id) {
+    if (!data.meeting_id) {
+      return err("Item de pauta exige reunião associada.", "validation_meeting_id");
+    }
+    const ai = await validateAgendaItemBelongsToMeeting(
+      data.agenda_item_id,
+      data.meeting_id,
+    );
+    if (!ai.ok) return ai;
+  }
+
   const supabase = await createServer();
   const { error } = await supabase
     .from("decisions")
     .update({
       meeting_id: data.meeting_id ?? null,
+      agenda_item_id: data.agenda_item_id ?? null,
       title: data.title,
       context: data.context ?? null,
       decision: data.decision,
