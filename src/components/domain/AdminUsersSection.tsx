@@ -1,7 +1,13 @@
+import { InviteUserForm } from "@/components/domain/InviteUserForm";
+import { ProfilePersonLinkControl } from "@/components/domain/ProfilePersonLinkControl";
 import { SetUserRoleButton } from "@/components/domain/SetUserRoleButton";
 import { Avatar } from "@/components/ui/Avatar";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
+import type {
+  OperationPickItem,
+  PersonPickItem,
+} from "@/lib/db/queries/admin-directory";
 import type { ProfileListItem } from "@/lib/db/queries/profiles";
 import { formatDateBR } from "@/lib/utils/date";
 import { initialsFromEmail } from "@/lib/utils/initials";
@@ -9,15 +15,20 @@ import { initialsFromEmail } from "@/lib/utils/initials";
 export function AdminUsersSection({
   profiles,
   currentUserId,
+  operations,
+  persons,
 }: {
   profiles: ProfileListItem[];
   currentUserId: string;
+  operations: OperationPickItem[];
+  persons: PersonPickItem[];
 }): React.JSX.Element {
   const adminCount = profiles.filter((p) => p.role === "admin").length;
   const memberCount = profiles.length - adminCount;
 
   return (
     <section className="mb-9">
+      <InviteUserForm operations={operations} persons={persons} />
       <div className="flex items-center gap-2 mb-4">
         <h2 className="font-display text-lg text-ink font-semibold">
           Usuários
@@ -38,7 +49,7 @@ export function AdminUsersSection({
           {profiles.map((p) => (
             <li
               key={p.id}
-              className="bg-card border border-line rounded px-4 py-3 flex items-center gap-3"
+              className="bg-card border border-line rounded px-4 py-3 flex flex-wrap items-center gap-3"
             >
               <Avatar
                 size="sm"
@@ -57,16 +68,28 @@ export function AdminUsersSection({
                 {p.name && (
                   <p className="text-xs text-mute mt-0.5">{p.name}</p>
                 )}
+                {p.personName && (
+                  <p className="text-[10px] text-sage-deep font-mono mt-0.5">
+                    Pessoa: {p.personName}
+                  </p>
+                )}
                 <p className="font-mono text-[10px] text-mute-soft mt-0.5">
                   Desde {formatDateBR(p.createdAt)}
                 </p>
               </div>
-              <SetUserRoleButton
-                targetUserId={p.id}
-                targetEmail={p.email}
-                currentRole={p.role}
-                isSelf={p.id === currentUserId}
-              />
+              <div className="flex flex-wrap items-center gap-3 ml-auto">
+                <ProfilePersonLinkControl
+                  profileId={p.id}
+                  persons={persons}
+                  currentPersonId={p.personId}
+                />
+                <SetUserRoleButton
+                  targetUserId={p.id}
+                  targetEmail={p.email}
+                  currentRole={p.role}
+                  isSelf={p.id === currentUserId}
+                />
+              </div>
             </li>
           ))}
         </ul>

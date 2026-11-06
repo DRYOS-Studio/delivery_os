@@ -43,11 +43,14 @@ inicialização do cliente Supabase, de propósito.
 | `npm run dev` | servidor de desenvolvimento |
 | `npm run build` | build de produção |
 | `npm run typecheck` | `tsc --noEmit` |
+| `npm run test` | Vitest (`src/**/*.test.ts`) |
 | `npm run gen:types` | regenera `src/lib/db/types.ts` do schema vivo |
 
 `gen:types` roda **depois de cada migration**, e o resultado é commitado.
 
 **Notificações / cron:** defina `CRON_SECRET` e, para enviar o resumo diário agregado e usar webhook global quando a Operação não tem URL, `NOTIFICATION_WEBHOOK_URL` (HTTPS, ver `checkWebhookUrl`). Ver `docs/DATABASE_SCHEMA.md` (`notifications_log`).
+
+**Convites / admin (service role):** em produção defina `SUPABASE_SERVICE_ROLE_KEY` (mesmo segredo que o Dashboard chama de *service_role*). Server Actions de `/admin` que convidam usuários leem essa variável; o nome legado `SUPABASE_SECRET_KEY` ainda é aceito como fallback. Nunca exponha no cliente.
 
 ## Documentação canônica
 

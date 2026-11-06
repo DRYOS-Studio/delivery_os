@@ -1,11 +1,19 @@
 import { AdminUsersSection } from "@/components/domain/AdminUsersSection";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { requireAdmin } from "@/lib/auth/server";
+import {
+  listOperationsForAdminInvite,
+  listPersonsForAdminLink,
+} from "@/lib/db/queries/admin-directory";
 import { listProfiles } from "@/lib/db/queries/profiles";
 
 export default async function Page() {
   const profile = await requireAdmin();
-  const profiles = await listProfiles();
+  const [profiles, operations, persons] = await Promise.all([
+    listProfiles(),
+    listOperationsForAdminInvite(),
+    listPersonsForAdminLink(),
+  ]);
 
   return (
     <>
@@ -16,6 +24,8 @@ export default async function Page() {
       <AdminUsersSection
         profiles={profiles}
         currentUserId={profile.user.id}
+        operations={operations}
+        persons={persons}
       />
     </>
   );
