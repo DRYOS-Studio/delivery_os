@@ -759,7 +759,7 @@ export type Database = {
         Row: {
           event_type: string
           id: string
-          operation_id: string
+          operation_id: string | null
           payload: Json
           response_status: number | null
           sent_at: string
@@ -769,7 +769,7 @@ export type Database = {
         Insert: {
           event_type: string
           id?: string
-          operation_id: string
+          operation_id?: string | null
           payload: Json
           response_status?: number | null
           sent_at?: string
@@ -779,7 +779,7 @@ export type Database = {
         Update: {
           event_type?: string
           id?: string
-          operation_id?: string
+          operation_id?: string | null
           payload?: Json
           response_status?: number | null
           sent_at?: string

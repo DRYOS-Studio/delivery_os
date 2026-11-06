@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/db/types";
+import { resolveOperationWebhook } from "@/lib/notifications/webhook-resolve";
 
 const DEDUP_WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -150,7 +151,8 @@ export async function listOpenSlaIncidentsPendingNotification(
   for (const r of rows) {
     const op = pickOne(r.operation);
     if (!op || op.archived_at !== null) continue;
-    if (!op.notification_webhook_url) continue;
+    const webhook = resolveOperationWebhook(op.notification_webhook_url);
+    if (!webhook) continue;
     const client = pickOne(op.client);
     if (!client) continue;
     const breach = detectSlaBreach(r, op);
@@ -164,7 +166,7 @@ export async function listOpenSlaIncidentsPendingNotification(
       operation_name: op.name,
       client_id: client.id,
       client_name: client.name,
-      webhook_url: op.notification_webhook_url,
+      webhook_url: webhook,
     });
   }
 
