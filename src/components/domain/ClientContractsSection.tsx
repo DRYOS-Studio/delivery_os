@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createClientContractAction, deleteClientContractAction } from "@/lib/actions/client-contracts";
 import type { ClientContractRow } from "@/lib/db/queries/client-contracts";
 import { Button } from "@/components/ui/Button";
@@ -22,6 +22,7 @@ const STATUS_LABEL: Record<ClientContractRow["status"], string> = {
 
 export function ClientContractsSection({ clientId, contracts }: Props): React.JSX.Element {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,6 +35,7 @@ export function ClientContractsSection({ clientId, contracts }: Props): React.JS
       setError(res.error);
       return;
     }
+    formRef.current?.reset();
     router.refresh();
   }
 
@@ -66,7 +68,7 @@ export function ClientContractsSection({ clientId, contracts }: Props): React.JS
       )}
       <div className="border border-line rounded p-4 bg-card mb-6">
         <h3 className="text-sm font-semibold text-ink mb-3">Novo contrato</h3>
-        <form action={onUpload} className="grid gap-3 max-w-xl">
+        <form ref={formRef} action={onUpload} className="grid gap-3 max-w-xl">
           <div>
             <label htmlFor="cc_label" className="block text-xs text-mute mb-1">
               Nome / referência
