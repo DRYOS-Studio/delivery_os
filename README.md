@@ -47,6 +47,8 @@ inicialização do cliente Supabase, de propósito.
 
 `gen:types` roda **depois de cada migration**, e o resultado é commitado.
 
+**Notificações / cron:** defina `CRON_SECRET` e, para enviar o resumo diário agregado e usar webhook global quando a Operação não tem URL, `NOTIFICATION_WEBHOOK_URL` (HTTPS, ver `checkWebhookUrl`). Ver `docs/DATABASE_SCHEMA.md` (`notifications_log`).
+
 ## Documentação canônica
 
 Leia antes de mexer no código — nesta ordem:

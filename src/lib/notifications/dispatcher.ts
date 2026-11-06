@@ -7,7 +7,8 @@ const TIMEOUT_MS = 10_000;
 
 export type DispatchInput = {
   webhookUrl: string;
-  operationId: string;
+  /** NULL somente para daily_digest (webhook global). */
+  operationId: string | null;
   subjectKind: SubjectKind;
   subjectId: string;
   payload: NotificationPayload;
@@ -61,7 +62,7 @@ export async function dispatch(
   const { error: logErr } = await input.supabaseAdmin
     .from("notifications_log")
     .insert({
-      operation_id: input.operationId,
+      operation_id: input.operationId ?? null,
       event_type: input.payload.event,
       subject_kind: input.subjectKind,
       subject_id: input.subjectId,

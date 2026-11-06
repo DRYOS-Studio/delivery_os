@@ -6,9 +6,11 @@
  * futura sem quebrar n8n existente.
  */
 
-export type NotificationEvent = "frente_stale" | "sla_breach";
+import type { DailyDigestData } from "./digest-types";
 
-export type SubjectKind = "frente" | "sla_incident";
+export type NotificationEvent = "frente_stale" | "sla_breach" | "daily_digest";
+
+export type SubjectKind = "frente" | "sla_incident" | "daily_digest";
 
 export type FrenteStaleContext = {
   actionable_status: string;
@@ -24,23 +26,35 @@ export type SlaBreachContext = {
 
 export type NotificationContext = FrenteStaleContext | SlaBreachContext;
 
-export type NotificationPayload = {
-  event: NotificationEvent;
-  v: 1;
-  operation: {
-    id: string;
-    name: string;
-    client: {
-      id: string;
-      name: string;
+export type NotificationPayload =
+  | {
+      event: "frente_stale" | "sla_breach";
+      v: 1;
+      operation: {
+        id: string;
+        name: string;
+        client: {
+          id: string;
+          name: string;
+        };
+      };
+      subject: {
+        kind: Exclude<SubjectKind, "daily_digest">;
+        id: string;
+        name: string;
+      };
+      context: NotificationContext;
+      url: string;
+      ts: string;
+    }
+  | {
+      event: "daily_digest";
+      v: 1;
+      digest: DailyDigestData;
+      window: {
+        due_soon_days: number;
+        stale_days_threshold: number;
+        timezone: string;
+      };
+      ts: string;
     };
-  };
-  subject: {
-    kind: SubjectKind;
-    id: string;
-    name: string;
-  };
-  context: NotificationContext;
-  url: string;
-  ts: string;
-};

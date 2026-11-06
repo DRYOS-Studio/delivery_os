@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/db/types";
+import { resolveOperationWebhook } from "@/lib/notifications/webhook-resolve";
 
 const STALE_DAYS_THRESHOLD = 7;
 const DEDUP_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -88,7 +89,8 @@ export async function listStaleFrentesPendingNotification(
     .map((f) => {
       const op = pickOne(f.operation);
       if (!op || op.archived_at !== null) return null;
-      if (!op.notification_webhook_url) return null;
+      const webhook = resolveOperationWebhook(op.notification_webhook_url);
+      if (!webhook) return null;
       const client = pickOne(op.client);
       if (!client) return null;
       const staleMs = Date.now() - new Date(f.actionable_status_since).getTime();
@@ -102,7 +104,7 @@ export async function listStaleFrentesPendingNotification(
         operation_name: op.name,
         client_id: client.id,
         client_name: client.name,
-        webhook_url: op.notification_webhook_url,
+        webhook_url: webhook,
       };
     })
     .filter((v): v is StaleFrenteToNotify => v !== null);

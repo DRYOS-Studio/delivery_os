@@ -1,12 +1,20 @@
 import { NextResponse } from "next/server";
 import { createAdmin } from "@/lib/db/client";
 import { dispatch } from "@/lib/notifications/dispatcher";
+import {
+  collectDailyDigest,
+  dailyDigestAlreadySent,
+  getDigestSubjectId,
+  hasDigestContent,
+} from "@/lib/notifications/detectors/daily-digest";
 import { listStaleFrentesPendingNotification } from "@/lib/notifications/detectors/frente-stale";
 import { listOpenSlaIncidentsPendingNotification } from "@/lib/notifications/detectors/sla-breach";
 import {
+  buildDailyDigestPayload,
   buildFrenteStalePayload,
   buildSlaBreachPayload,
 } from "@/lib/notifications/payload";
+import { resolveGlobalDigestWebhook } from "@/lib/notifications/webhook-resolve";
 
 export const dynamic = "force-dynamic";
 
@@ -114,8 +122,58 @@ export async function GET(req: Request) {
     );
   }
 
+  // === 3. Resumo diário (webhook global) ===
+  let digestSkipped = false;
+  let digestDetected = 0;
+  let digestSuccess = 0;
+  let digestFail = 0;
+  try {
+    const digestUrl = resolveGlobalDigestWebhook();
+    if (!digestUrl) {
+      digestSkipped = true;
+    } else if (await dailyDigestAlreadySent(supabase)) {
+      digestSkipped = true;
+    } else {
+      const digestData = await collectDailyDigest(supabase);
+      if (!hasDigestContent(digestData)) {
+        digestSkipped = true;
+      } else {
+        digestDetected = 1;
+        const payload = buildDailyDigestPayload(digestData);
+        const result = await dispatch({
+          webhookUrl: digestUrl,
+          operationId: null,
+          subjectKind: "daily_digest",
+          subjectId: getDigestSubjectId(),
+          payload,
+          supabaseAdmin: supabase,
+        });
+        if (result.ok) digestSuccess = 1;
+        else digestFail = 1;
+      }
+    }
+  } catch (e) {
+    return NextResponse.json(
+      {
+        error: "daily_digest failed",
+        detail: e instanceof Error ? e.message : "unknown",
+        partial: {
+          stale: { detected: staleDetected, success: staleSuccess, failed: staleFail },
+          sla: { detected: slaDetected, success: slaSuccess, failed: slaFail },
+        },
+      },
+      { status: 500 },
+    );
+  }
+
   return NextResponse.json({
     stale: { detected: staleDetected, success: staleSuccess, failed: staleFail },
     sla: { detected: slaDetected, success: slaSuccess, failed: slaFail },
+    daily_digest: {
+      skipped: digestSkipped,
+      detected: digestDetected,
+      success: digestSuccess,
+      failed: digestFail,
+    },
   });
 }
