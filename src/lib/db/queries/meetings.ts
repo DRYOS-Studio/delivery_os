@@ -3,6 +3,15 @@ import type { Database } from "@/lib/db/types";
 
 export type MeetingRow = Database["public"]["Tables"]["meetings"]["Row"];
 
+export type AgendaItemRow =
+  Database["public"]["Tables"]["meeting_agenda_items"]["Row"];
+export type NextStepRow =
+  Database["public"]["Tables"]["meeting_agenda_next_steps"]["Row"];
+
+export type NextStepWithTask = NextStepRow & {
+  task: { id: string; frente_id: string | null } | null;
+};
+
 export type AttendeeRef = {
   id: string;
   name: string;
@@ -20,6 +29,8 @@ export type MeetingListItem = {
 
 export type MeetingWithAttendees = MeetingRow & {
   attendees: AttendeeRef[];
+  agenda_items: AgendaItemRow[];
+  next_steps: NextStepWithTask[];
 };
 
 export async function listMeetingsByOperation(
@@ -84,6 +95,13 @@ export async function getMeeting(
       *,
       meeting_attendees!fk_meeting_attendees_meeting_id (
         person:persons!fk_meeting_attendees_person_id (id, name, kind)
+      ),
+      meeting_agenda_items!fk_meeting_agenda_items_meeting (
+        id, meeting_id, sort_order, title, notes, source, granola_line, created_at, updated_at
+      ),
+      meeting_agenda_next_steps!fk_meeting_agenda_next_steps_meeting (
+        id, meeting_id, sort_order, description, due_date, task_id, created_at, updated_at,
+        task:tasks!fk_meeting_agenda_next_steps_task ( id, frente_id )
       )
       `,
     )
@@ -92,14 +110,75 @@ export async function getMeeting(
   if (error) throw new Error(`getMeeting: ${error.message}`);
   if (!data) return null;
 
-  const { meeting_attendees, ...meeting } = data;
+  const {
+    meeting_attendees,
+    meeting_agenda_items,
+    meeting_agenda_next_steps,
+    ...meeting
+  } = data;
+  const agendaItems = (meeting_agenda_items ?? []) as AgendaItemRow[];
+  agendaItems.sort((a, b) => a.sort_order - b.sort_order);
+  const rawNext = (meeting_agenda_next_steps ?? []) as (NextStepRow & {
+    task: { id: string; frente_id: string | null } | null;
+  })[];
+  rawNext.sort((a, b) => a.sort_order - b.sort_order);
+  const nextSteps: NextStepWithTask[] = rawNext.map((row) => {
+    const { task, ...rest } = row;
+    return {
+      ...rest,
+      task: task ?? null,
+    };
+  });
   return {
     ...meeting,
     attendees: (meeting_attendees ?? [])
       .map((row) => row.person)
       .filter((p): p is NonNullable<typeof p> => p !== null)
       .map((p) => ({ id: p.id, name: p.name, kind: p.kind })),
+    agenda_items: agendaItems,
+    next_steps: nextSteps,
   };
+}
+
+export async function listAgendaItemsByMeeting(
+  meetingId: string,
+): Promise<{ id: string; title: string }[]> {
+  const supabase = await createServer();
+  const { data, error } = await supabase
+    .from("meeting_agenda_items")
+    .select("id, title, sort_order")
+    .eq("meeting_id", meetingId)
+    .order("sort_order", { ascending: true });
+  if (error) throw new Error(`listAgendaItemsByMeeting: ${error.message}`);
+  return (data ?? []).map((r) => ({ id: r.id, title: r.title }));
+}
+
+export type MeetingNextStepDetail = NextStepRow & {
+  operation_id: string;
+};
+
+export async function getMeetingNextStep(
+  id: string,
+): Promise<MeetingNextStepDetail | null> {
+  const supabase = await createServer();
+  const { data, error } = await supabase
+    .from("meeting_agenda_next_steps")
+    .select(
+      `
+      *,
+      meeting:meetings!fk_meeting_agenda_next_steps_meeting (operation_id)
+      `,
+    )
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(`getMeetingNextStep: ${error.message}`);
+  if (!data) return null;
+  const row = data as NextStepRow & {
+    meeting: { operation_id: string } | null;
+  };
+  if (!row.meeting?.operation_id) return null;
+  const { meeting: _m, ...step } = row;
+  return { ...step, operation_id: row.meeting.operation_id };
 }
 
 export async function listAttendeeCandidates(

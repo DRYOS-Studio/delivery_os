@@ -560,6 +560,7 @@ export type Database = {
       }
       decisions: {
         Row: {
+          agenda_item_id: string | null
           context: string | null
           created_at: string
           decided_at: string
@@ -572,6 +573,7 @@ export type Database = {
           visibility: Database["public"]["Enums"]["decision_visibility"]
         }
         Insert: {
+          agenda_item_id?: string | null
           context?: string | null
           created_at?: string
           decided_at?: string
@@ -584,6 +586,7 @@ export type Database = {
           visibility?: Database["public"]["Enums"]["decision_visibility"]
         }
         Update: {
+          agenda_item_id?: string | null
           context?: string | null
           created_at?: string
           decided_at?: string
@@ -596,6 +599,13 @@ export type Database = {
           visibility?: Database["public"]["Enums"]["decision_visibility"]
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_decisions_agenda_item_id"
+            columns: ["agenda_item_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_agenda_items"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fk_decisions_meeting_id"
             columns: ["meeting_id"]
@@ -759,6 +769,98 @@ export type Database = {
           },
         ]
       }
+      meeting_agenda_items: {
+        Row: {
+          created_at: string
+          granola_line: string | null
+          id: string
+          meeting_id: string
+          notes: string | null
+          sort_order: number
+          source: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          granola_line?: string | null
+          id?: string
+          meeting_id: string
+          notes?: string | null
+          sort_order?: number
+          source?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          granola_line?: string | null
+          id?: string
+          meeting_id?: string
+          notes?: string | null
+          sort_order?: number
+          source?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_meeting_agenda_items_meeting"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_agenda_next_steps: {
+        Row: {
+          created_at: string
+          description: string
+          due_date: string | null
+          id: string
+          meeting_id: string
+          sort_order: number
+          task_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          due_date?: string | null
+          id?: string
+          meeting_id: string
+          sort_order?: number
+          task_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          due_date?: string | null
+          id?: string
+          meeting_id?: string
+          sort_order?: number
+          task_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_meeting_agenda_next_steps_meeting"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_meeting_agenda_next_steps_task"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_attendees: {
         Row: {
           created_at: string
@@ -795,6 +897,9 @@ export type Database = {
       meetings: {
         Row: {
           created_at: string
+          granola_captured_at: string | null
+          granola_source_ref: string | null
+          granola_suggestion_text: string | null
           id: string
           notes: string | null
           operation_id: string
@@ -805,6 +910,9 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          granola_captured_at?: string | null
+          granola_source_ref?: string | null
+          granola_suggestion_text?: string | null
           id?: string
           notes?: string | null
           operation_id: string
@@ -815,6 +923,9 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          granola_captured_at?: string | null
+          granola_source_ref?: string | null
+          granola_suggestion_text?: string | null
           id?: string
           notes?: string | null
           operation_id?: string
