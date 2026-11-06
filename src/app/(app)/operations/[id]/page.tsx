@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ActivityFeedSection } from "@/components/domain/ActivityFeedSection";
 import { AreaTasksSection } from "@/components/domain/AreaTasksSection";
 import { AttachmentsSection } from "@/components/domain/AttachmentsSection";
 import { CostsTab } from "@/components/domain/CostsTab";
@@ -21,6 +22,7 @@ import {
   countOperationAttachments,
   listAttachmentsByOperation,
 } from "@/lib/db/queries/attachments";
+import { listActivityForOperation } from "@/lib/db/queries/activity";
 import { getBriefingFreshness } from "@/lib/db/queries/briefings";
 import {
   countDecisionsByOperation,
@@ -110,6 +112,7 @@ type TabContent = {
   areaTasks: Awaited<ReturnType<typeof listAreaTasksByOperation>>;
   publicLinks: Awaited<ReturnType<typeof listPublicLinksByOperation>>;
   baseUrl: string;
+  activityEvents: Awaited<ReturnType<typeof listActivityForOperation>>;
 };
 
 function emptyTabContent(): TabContent {
@@ -127,6 +130,7 @@ function emptyTabContent(): TabContent {
     areaTasks: [],
     publicLinks: [],
     baseUrl: "",
+    activityEvents: [],
   };
 }
 
@@ -144,12 +148,14 @@ async function loadTabContent(
         quickWins,
         villainNarratives,
         quickWinCatalogItems,
+        activityEvents,
       ] = await Promise.all([
         listVillainsByOperation(id),
         listAvailableVillains(id),
         listQuickWinsByOperation(id),
         listVillainNarratives(id, yyyymm),
         listActiveQuickWinCatalog(),
+        listActivityForOperation(id),
       ]);
       return {
         ...base,
@@ -158,6 +164,7 @@ async function loadTabContent(
         quickWins,
         villainNarratives,
         quickWinCatalogItems,
+        activityEvents,
       };
     }
     case "eventos": {
@@ -278,6 +285,7 @@ export default async function Page({
     areaTasks,
     publicLinks,
     baseUrl,
+    activityEvents,
   } = tabContent;
 
   const margin: MarginResult | null =
@@ -354,6 +362,7 @@ export default async function Page({
             isAdmin={isAdmin}
           />
           <FinanceCards op={op} isAdmin={isAdmin} />
+          <ActivityFeedSection events={activityEvents} />
         </>
       )}
 

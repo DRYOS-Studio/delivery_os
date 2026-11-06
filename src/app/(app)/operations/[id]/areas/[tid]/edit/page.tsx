@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation";
+import { ActivityFeedSection } from "@/components/domain/ActivityFeedSection";
 import { AreaTaskForm } from "@/components/domain/AreaTaskForm";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { getProfile, requireUser } from "@/lib/auth/server";
 import { listAreas } from "@/lib/db/queries/areas";
 import { getOperation } from "@/lib/db/queries/operations";
 import { listInternalPersons } from "@/lib/db/queries/persons";
+import { listActivityForTask } from "@/lib/db/queries/activity";
 import { getTask } from "@/lib/db/queries/tasks";
 
 export default async function Page({
@@ -14,13 +16,15 @@ export default async function Page({
 }) {
   await requireUser();
   const { id, tid } = await params;
-  const [profile, operation, task, assignees, areas] = await Promise.all([
-    getProfile(),
-    getOperation(id),
-    getTask(tid),
-    listInternalPersons(),
-    listAreas(),
-  ]);
+  const [profile, operation, task, assignees, areas, activityEvents] =
+    await Promise.all([
+      getProfile(),
+      getOperation(id),
+      getTask(tid),
+      listInternalPersons(),
+      listAreas(),
+      listActivityForTask(tid),
+    ]);
   if (!operation) notFound();
   // Só tarefa de área desta Operação.
   if (!task || task.operationId !== id || task.areaId === null) notFound();
@@ -39,6 +43,7 @@ export default async function Page({
         areas={areas.map((a) => ({ id: a.id, name: a.name }))}
         isAdmin={profile?.role === "admin"}
       />
+      <ActivityFeedSection events={activityEvents} />
     </>
   );
 }

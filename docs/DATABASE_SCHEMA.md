@@ -1,6 +1,6 @@
 # Database Schema
 
-**Última análise**: 2026-10-16 (clients-management-diagnostic — issue #166)
+**Última análise**: 2026-11-06 (activity trail — PR agent)
 **Projeto Supabase**: `Delivery OS` (`tmsaucxoeqpfluzwrwkc`)
 **Schema**: `public`
 
@@ -31,7 +31,8 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 | **Catálogo · Produtos** | `service_products` | 1 |
 | **Catálogo · Quick Wins** | `quick_win_catalog` | 1 |
 | **Notificações** | `notifications_log` | 1 |
-| **Total atual** | | **31** |
+| **Auditoria** | `activity_events` | 1 |
+| **Total atual** | | **32** |
 
 ---
 
@@ -62,6 +63,28 @@ Origem de Operações, Pessoas externas, Credenciais (v2).
 
 CHECKs: `cnpj`, `address_state`, `address_zip` (length), `primary_contact_email` (shape).
 RLS: `authenticated_full_access` (sem 1). Granularidade Admin/Membro entra com `profiles` (sem 2+).
+
+---
+
+### `activity_events` — histórico de mudanças (audit trail)
+
+Eventos gerados por triggers em `clients`, `operations`, `frentes`, `tasks` e `task_assignees` (responsáveis). Cada linha referencia o assunto (`subject_type` + `subject_id`), denormaliza `operation_id` / `client_id` quando aplicável e guarda `actor_profile_id` = `auth.uid()` no momento da mudança.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `subject_type` | enum `activity_subject_type` | client \| operation \| frente \| task |
+| `subject_id` | uuid NOT NULL | id do registro no tipo acima |
+| `operation_id` | uuid → operations | nullable (client puro) |
+| `client_id` | uuid → clients | nullable |
+| `action` | text | ex.: `created`, `updated`, `assignee_added` |
+| `field_key` | text | coluna lógica alterada, se houver |
+| `old_value`, `new_value` | jsonb | snapshot compacto; null em creates |
+| `metadata` | jsonb | reservado |
+| `actor_profile_id` | uuid → profiles | FK opcional (SET NULL) |
+| `created_at` | timestamptz | |
+
+RLS: SELECT quando `can_read_activity_subject(subject_type, subject_id)`. Inserts via funções/triggers SECURITY DEFINER (`log_activity_event_system`); não há policy de INSERT para `authenticated` direto na tabela.
 
 ---
 
