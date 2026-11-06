@@ -393,6 +393,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS trg_activity_operations_aiud ON public.operations;
 CREATE TRIGGER trg_activity_operations_aiud
   AFTER INSERT OR UPDATE ON public.operations
   FOR EACH ROW EXECUTE FUNCTION public.trg_log_activity_operations();

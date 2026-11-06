@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import {
   createTaskCommentAction,
   deleteTaskCommentAction,
@@ -25,6 +25,7 @@ export function TaskCommentsSection({
   isAdmin,
 }: Props): React.JSX.Element {
   const router = useRouter();
+  const createFormRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -34,7 +35,10 @@ export function TaskCommentsSection({
     startTransition(async () => {
       const res = await createTaskCommentAction(taskId, formData);
       if (!res.ok) setError(res.error);
-      else router.refresh();
+      else {
+        createFormRef.current?.reset();
+        router.refresh();
+      }
     });
   }
 
@@ -147,7 +151,7 @@ export function TaskCommentsSection({
         })}
       </ul>
 
-      <form action={onCreate} className="space-y-2">
+      <form ref={createFormRef} action={onCreate} className="space-y-2">
         <label htmlFor={`task-comment-${taskId}`} className="sr-only">
           Novo comentário
         </label>
