@@ -59,6 +59,7 @@ Leia antes de mexer no código — nesta ordem:
 | [`docs/prd.md`](docs/prd.md) | domínio, escopo, decisões de produto |
 | [`docs/mockup-v2.html`](docs/mockup-v2.html) | referência visual canônica |
 | [`docs/DATABASE_SCHEMA.md`](docs/DATABASE_SCHEMA.md) | catálogo de tabelas por módulo |
+| [`docs/agent-supabase.md`](docs/agent-supabase.md) | usuário agente (IA) e Supabase — papel, RLS, o que ler/escrever |
 | [`docs/workflows/`](docs/workflows/) | fluxos end-to-end |
 | [`docs/audits/`](docs/audits/) | auditorias — registro datado, não se edita |
 | [`.specs/project/STATE.md`](.specs/project/STATE.md) | estado atual e histórico de decisões (AD-s) |
