@@ -1,10 +1,11 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useFieldArray, useForm } from "react-hook-form";
 import { Button } from "@/components/ui/Button";
 import {
   createMeetingAction,
@@ -14,14 +15,16 @@ import {
 import { VISIBILITY_LABEL } from "@/lib/constants/visibility";
 import type { AttendeeRef, MeetingWithAttendees } from "@/lib/db/queries/meetings";
 import {
-  isoToDateTimeLocal,
   dateTimeLocalToISO,
+  isoToDateTimeLocal,
 } from "@/lib/utils/datetime";
 import {
-  meetingSchema,
-  type MeetingInput,
-  type MeetingOutput,
-} from "@/lib/validators/meeting";
+  appendMeetingOutputToFormData,
+  buildMeetingFormPayload,
+  meetingFormClientSchema,
+  type MeetingFormClientInput,
+  type MeetingFormClientOutput,
+} from "@/lib/validators/meeting-form";
 
 type Props = (
   | {
@@ -42,12 +45,12 @@ type Props = (
 function mapErrorToFields(
   code: string | undefined,
   message: string,
-  setError: ReturnType<typeof useForm<MeetingInput>>["setError"],
+  setError: ReturnType<typeof useForm<MeetingFormClientInput>>["setError"],
   setGeneral: (m: string | null) => void,
 ): void {
   if (!code) return setGeneral(message);
   if (code.startsWith("validation_")) {
-    const field = code.replace("validation_", "") as keyof MeetingInput;
+    const field = code.replace("validation_", "") as keyof MeetingFormClientInput;
     setError(field, { message });
     return;
   }
@@ -64,14 +67,34 @@ export function MeetingForm(props: Props): React.JSX.Element {
   const isAdmin = props.isAdmin ?? false;
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [granolaPaste, setGranolaPaste] = useState("");
 
-  const defaultValues: MeetingInput = isEdit
+  const defaultValues: MeetingFormClientInput = isEdit
     ? {
         title: props.initialData.title,
         scheduled_at: isoToDateTimeLocal(props.initialData.scheduled_at),
         notes: props.initialData.notes ?? "",
         visibility: props.initialData.visibility,
         attendee_ids: props.initialData.attendees.map((a) => a.id),
+        granola_suggestion_text:
+          props.initialData.granola_suggestion_text ?? "",
+        granola_source_ref: props.initialData.granola_source_ref ?? "",
+        agenda_items:
+          props.initialData.agenda_items.length > 0
+            ? props.initialData.agenda_items.map((i) => ({
+                id: i.id,
+                title: i.title,
+                notes: i.notes ?? "",
+              }))
+            : [{ title: "", notes: "" }],
+        next_steps:
+          props.initialData.next_steps.length > 0
+            ? props.initialData.next_steps.map((s) => ({
+                id: s.id,
+                description: s.description,
+                due_date: s.due_date ?? "",
+              }))
+            : [{ description: "", due_date: "" }],
       }
     : {
         title: "",
@@ -79,33 +102,55 @@ export function MeetingForm(props: Props): React.JSX.Element {
         notes: "",
         visibility: "interno",
         attendee_ids: [],
+        granola_suggestion_text: "",
+        granola_source_ref: "",
+        agenda_items: [{ title: "", notes: "" }],
+        next_steps: [{ description: "", due_date: "" }],
       };
 
   const {
     register,
     handleSubmit,
+    control,
     setError,
     formState: { errors, isSubmitting },
-  } = useForm<MeetingInput, undefined, MeetingOutput>({
-    resolver: zodResolver(meetingSchema),
+  } = useForm<MeetingFormClientInput, undefined, MeetingFormClientOutput>({
+    resolver: zodResolver(meetingFormClientSchema),
     defaultValues,
   });
+
+  const {
+    fields: agendaFields,
+    append: appendAgenda,
+    remove: removeAgenda,
+  } = useFieldArray({ control, name: "agenda_items" });
+
+  const {
+    fields: nextFields,
+    append: appendNext,
+    remove: removeNext,
+  } = useFieldArray({ control, name: "next_steps" });
 
   const busy = isSubmitting || isDeleting;
 
   const internals = props.attendeeCandidates.filter((a) => a.kind === "internal");
   const externals = props.attendeeCandidates.filter((a) => a.kind === "external");
 
-  async function onSubmit(data: MeetingOutput) {
+  async function onSubmit(data: MeetingFormClientOutput) {
     setGeneralError(null);
-    const fd = new FormData();
-    fd.set("title", data.title);
-    fd.set("scheduled_at", dateTimeLocalToISO(data.scheduled_at));
-    fd.set("notes", data.notes ?? "");
-    fd.set("visibility", data.visibility);
-    for (const id of data.attendee_ids) {
-      fd.append("attendee_ids", id);
+    const scheduledIso = dateTimeLocalToISO(data.scheduled_at);
+    const built = buildMeetingFormPayload(
+      { ...data, scheduled_at: scheduledIso },
+      granolaPaste,
+    );
+    if (!built.ok) {
+      setGeneralError(built.message);
+      return;
     }
+    const fd = new FormData();
+    appendMeetingOutputToFormData(fd, built.data, {
+      granolaHasPaste: granolaPaste.trim().length > 0,
+    });
 
     const result = isEdit
       ? await updateMeetingAction(props.initialData.id, fd)
@@ -184,15 +229,195 @@ export function MeetingForm(props: Props): React.JSX.Element {
         </Field>
       </div>
 
-      <Field label="Notas" htmlFor="notes" error={errors.notes?.message} hint="Pauta, decisões, próximos passos.">
+      <Field label="Notas" htmlFor="notes" error={errors.notes?.message} hint="Contexto livre da reunião (além da pauta estruturada abaixo).">
         <textarea
           id="notes"
           {...register("notes")}
           disabled={busy}
-          rows={6}
+          rows={4}
           className={textareaCn}
         />
       </Field>
+
+      <section className="space-y-3 border border-line rounded-lg p-4 bg-card/40">
+        <h3 className="font-mono text-[10px] text-mute uppercase tracking-wide">
+          Pauta
+        </h3>
+        <p className="text-sm text-mute">
+          Itens ordenados. Decisões podem referenciar um item específico após salvar.
+        </p>
+        <div className="space-y-3">
+          {agendaFields.map((field, index) => (
+            <div
+              key={field.id}
+              className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_1fr_auto] md:items-start"
+            >
+              <input type="hidden" {...register(`agenda_items.${index}.id`)} />
+              <Field
+                label="Título do item"
+                htmlFor={`agenda_title_${index}`}
+                error={errors.agenda_items?.[index]?.title?.message}
+              >
+                <input
+                  id={`agenda_title_${index}`}
+                  type="text"
+                  {...register(`agenda_items.${index}.title`)}
+                  disabled={busy}
+                  placeholder="Tópico"
+                  className={inputCn}
+                />
+              </Field>
+              <Field
+                label="Detalhe (opcional)"
+                htmlFor={`agenda_notes_${index}`}
+                error={errors.agenda_items?.[index]?.notes?.message}
+              >
+                <input
+                  id={`agenda_notes_${index}`}
+                  type="text"
+                  {...register(`agenda_items.${index}.notes`)}
+                  disabled={busy}
+                  placeholder="Notas"
+                  className={inputCn}
+                />
+              </Field>
+              <div className="flex md:pt-6">
+                <button
+                  type="button"
+                  onClick={() => removeAgenda(index)}
+                  disabled={busy || agendaFields.length <= 1}
+                  className="p-2 text-mute hover:text-critical disabled:opacity-30"
+                  aria-label="Remover item da pauta"
+                >
+                  <Trash2 className="w-4 h-4" strokeWidth={1.75} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={busy}
+          onClick={() => appendAgenda({ title: "", notes: "" })}
+          className="gap-1.5"
+        >
+          <Plus className="w-4 h-4" strokeWidth={1.75} />
+          Adicionar item
+        </Button>
+      </section>
+
+      <section className="space-y-3 border border-line rounded-lg p-4 bg-card/40">
+        <h3 className="font-mono text-[10px] text-mute uppercase tracking-wide">
+          Próximos passos
+        </h3>
+        <div className="space-y-3">
+          {nextFields.map((field, index) => (
+            <div
+              key={field.id}
+              className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_auto_auto] md:items-start"
+            >
+              <input type="hidden" {...register(`next_steps.${index}.id`)} />
+              <Field
+                label="Descrição"
+                htmlFor={`next_desc_${index}`}
+                error={errors.next_steps?.[index]?.description?.message}
+              >
+                <textarea
+                  id={`next_desc_${index}`}
+                  {...register(`next_steps.${index}.description`)}
+                  disabled={busy}
+                  rows={2}
+                  placeholder="O que fazer depois"
+                  className={textareaCn}
+                />
+              </Field>
+              <Field
+                label="Prazo"
+                htmlFor={`next_due_${index}`}
+                error={errors.next_steps?.[index]?.due_date?.message}
+              >
+                <input
+                  id={`next_due_${index}`}
+                  type="date"
+                  {...register(`next_steps.${index}.due_date`)}
+                  disabled={busy}
+                  className={inputCn}
+                />
+              </Field>
+              <div className="flex md:pt-6">
+                <button
+                  type="button"
+                  onClick={() => removeNext(index)}
+                  disabled={busy || nextFields.length <= 1}
+                  className="p-2 text-mute hover:text-critical disabled:opacity-30"
+                  aria-label="Remover próximo passo"
+                >
+                  <Trash2 className="w-4 h-4" strokeWidth={1.75} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={busy}
+          onClick={() => appendNext({ description: "", due_date: "" })}
+          className="gap-1.5"
+        >
+          <Plus className="w-4 h-4" strokeWidth={1.75} />
+          Adicionar próximo passo
+        </Button>
+      </section>
+
+      <section className="space-y-3 border border-line rounded-lg p-4 bg-card/40">
+        <h3 className="font-mono text-[10px] text-mute uppercase tracking-wide">
+          Sugestão (Granola / cola)
+        </h3>
+        <p className="text-sm text-mute">
+          Cole linhas brutas; cada linha vira um item extra na pauta ao salvar (editável depois). O texto consolidado fica gravado na reunião.
+        </p>
+        <Field label="Colar agora" htmlFor="granola_paste">
+          <textarea
+            id="granola_paste"
+            value={granolaPaste}
+            onChange={(e) => setGranolaPaste(e.target.value)}
+            disabled={busy}
+            rows={4}
+            className={textareaCn}
+            placeholder="Uma linha por tópico..."
+          />
+        </Field>
+        <Field
+          label="Referência da fonte (opcional)"
+          htmlFor="granola_source_ref"
+          error={errors.granola_source_ref?.message}
+        >
+          <input
+            id="granola_source_ref"
+            type="text"
+            {...register("granola_source_ref")}
+            disabled={busy}
+            placeholder="ex.: id da nota no Granola"
+            className={inputCn}
+          />
+        </Field>
+        <Field
+          label="Texto consolidado (editável)"
+          htmlFor="granola_suggestion_text"
+          hint="Preenchido automaticamente ao colar linhas; pode editar antes de salvar."
+          error={errors.granola_suggestion_text?.message}
+        >
+          <textarea
+            id="granola_suggestion_text"
+            {...register("granola_suggestion_text")}
+            disabled={busy}
+            rows={3}
+            className={textareaCn}
+          />
+        </Field>
+      </section>
 
       <fieldset className="space-y-3">
         <legend className="block font-mono text-[10px] text-mute uppercase tracking-wide mb-2">
@@ -257,7 +482,7 @@ function AttendeeGroup({
 }: {
   title: string;
   persons: AttendeeRef[];
-  register: ReturnType<typeof useForm<MeetingInput>>["register"];
+  register: ReturnType<typeof useForm<MeetingFormClientInput>>["register"];
   disabled: boolean;
 }) {
   return (

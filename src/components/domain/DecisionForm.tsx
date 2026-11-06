@@ -3,9 +3,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/Button";
+import { listAgendaItemsForMeetingAction } from "@/lib/actions/meeting-agenda-items";
 import {
   createDecisionAction,
   deleteDecisionAction,
@@ -55,6 +56,10 @@ function mapErrorToFields(
     setError("meeting_id", { message });
     return;
   }
+  if (code === "invalid_agenda_item") {
+    setError("agenda_item_id", { message });
+    return;
+  }
   setGeneral(message);
 }
 
@@ -77,6 +82,7 @@ export function DecisionForm(props: Props): React.JSX.Element {
         visibility: props.initialData.visibility,
         decided_at: isoToDateTimeLocal(props.initialData.decided_at),
         meeting_id: props.initialData.meeting_id ?? "",
+        agenda_item_id: props.initialData.agenda_item_id ?? "",
       }
     : {
         title: "",
@@ -85,17 +91,48 @@ export function DecisionForm(props: Props): React.JSX.Element {
         visibility: "cliente",
         decided_at: defaultDecidedAt(),
         meeting_id: "",
+        agenda_item_id: "",
       };
 
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     setError,
     formState: { errors, isSubmitting },
   } = useForm<DecisionInput, undefined, DecisionOutput>({
     resolver: zodResolver(decisionSchema),
     defaultValues,
   });
+
+  const meetingIdWatch = String(watch("meeting_id") ?? "").trim();
+  const [agendaItems, setAgendaItems] = useState<{ id: string; title: string }[]>(
+    [],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      const mid = meetingIdWatch;
+      if (!mid) {
+        setAgendaItems([]);
+        setValue("agenda_item_id", "");
+        return;
+      }
+      const result = await listAgendaItemsForMeetingAction(mid);
+      if (cancelled) return;
+      if (result.ok) {
+        setAgendaItems(result.data);
+      } else {
+        setAgendaItems([]);
+      }
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [meetingIdWatch, setValue]);
 
   const busy = isSubmitting || isDeleting;
 
@@ -108,6 +145,7 @@ export function DecisionForm(props: Props): React.JSX.Element {
     fd.set("visibility", data.visibility);
     fd.set("decided_at", dateTimeLocalToISO(data.decided_at));
     fd.set("meeting_id", data.meeting_id ?? "");
+    fd.set("agenda_item_id", data.agenda_item_id ?? "");
 
     const result = isEdit
       ? await updateDecisionAction(props.initialData.id, fd)
@@ -230,7 +268,9 @@ export function DecisionForm(props: Props): React.JSX.Element {
       >
         <select
           id="meeting_id"
-          {...register("meeting_id")}
+          {...register("meeting_id", {
+            onChange: () => setValue("agenda_item_id", ""),
+          })}
           disabled={busy}
           className={inputCn}
         >
@@ -238,6 +278,29 @@ export function DecisionForm(props: Props): React.JSX.Element {
           {props.meetings.map((m) => (
             <option key={m.id} value={m.id}>
               {m.title} · {formatDateTimeBR(m.scheduledAt)}
+            </option>
+          ))}
+        </select>
+      </Field>
+
+      <Field
+        label="Item da pauta (opcional)"
+        htmlFor="agenda_item_id"
+        error={errors.agenda_item_id?.message}
+        hint="Só faz sentido com reunião e pauta preenchida."
+      >
+        <select
+          id="agenda_item_id"
+          {...register("agenda_item_id")}
+            disabled={
+            busy || meetingIdWatch.length === 0 || agendaItems.length === 0
+          }
+          className={inputCn}
+        >
+          <option value="">— Sem item específico —</option>
+          {agendaItems.map((i) => (
+            <option key={i.id} value={i.id}>
+              {i.title}
             </option>
           ))}
         </select>
