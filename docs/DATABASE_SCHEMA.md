@@ -703,14 +703,14 @@ RLS:
 
 ### `notifications_log` — audit + dedup de notificações outbound (#90)
 
-Registra cada disparo (sucesso ou falha) pra `operations.notification_webhook_url` via n8n. Index dedup permite checar "já enviei esse evento pra esse subject nas últimas 24h?".
+Registra cada disparo (sucesso ou falha) pra webhook n8n (por Operação ou global — ver abaixo). Index dedup permite checar "já enviei esse evento pra esse subject nas últimas 24h?". O resumo diário (`daily_digest`) usa `operation_id` NULL e `subject_kind` `daily_digest`.
 
 | Coluna | Tipo | Notas |
 |---|---|---|
 | `id` | uuid PK | |
-| `operation_id` | uuid → operations (CASCADE) | |
-| `event_type` | text NOT NULL | CHECK in `('frente_stale', 'sla_breach')` |
-| `subject_kind` | text NOT NULL | CHECK in `('frente', 'sla_incident')` |
+| `operation_id` | uuid → operations (CASCADE), **nullable** | NULL só quando `event_type = 'daily_digest'` |
+| `event_type` | text NOT NULL | CHECK in `('frente_stale', 'sla_breach', 'daily_digest')` |
+| `subject_kind` | text NOT NULL | CHECK in `('frente', 'sla_incident', 'daily_digest')` |
 | `subject_id` | uuid NOT NULL | id da Frente ou do incidente |
 | `sent_at` | timestamptz default now() | |
 | `payload` | jsonb NOT NULL | snapshot do JSON enviado (payload v1) |
@@ -723,7 +723,7 @@ Index dedup: `(operation_id, event_type, subject_id, sent_at DESC)`.
 - INSERT: admin-only via policy (Server Actions); cron usa `createAdmin()` (service-role bypassa RLS).
 - Member não vê — notificações são internas.
 
-**Coluna relacionada:** `operations.notification_webhook_url` (text NULL) — URL n8n por Operação; NULL = no-op silencioso. Destino é validado por `checkWebhookUrl` (`src/lib/notifications/webhook-url.ts`) **duas vezes**: no validator da Operação (escrita) e no `dispatch` (envio) — só `https`, porta 443, host público, e o `fetch` não segue redirect. O destino é arbitrário de propósito (é o n8n do cliente), então não há allowlist de host. DNS rebinding segue descoberto — precisa de validação no connect.
+**Webhooks:** `operations.notification_webhook_url` por Operação. Variável de ambiente **`NOTIFICATION_WEBHOOK_URL`** (server-only) é fallback para `frente_stale` e `sla_breach` quando a Operação não tem URL; é **obrigatória** para o resumo diário agregado (`daily_digest`) no cron `/api/cron/notifications`. Destino validado por `checkWebhookUrl` no `dispatch` — só `https`, porta 443, host público, `fetch` sem redirect.
 
 **Dispatcher:** `src/lib/notifications/dispatcher.ts` POSTa + loga aqui em uma transação lógica (POST → registra status). Timeout 10s. Nunca lança — notificação não pode quebrar fluxo principal.
 

@@ -1,3 +1,5 @@
+import type { DailyDigestData } from "./digest-types";
+import { DAILY_DIGEST_DUE_SOON_DAYS, DAILY_DIGEST_STALE_DAYS } from "./digest-types";
 import type {
   FrenteStaleContext,
   NotificationPayload,
@@ -48,6 +50,20 @@ export function buildSlaBreachPayload(input: {
     },
     context: input.context,
     url: `${APP_URL}/operations/${input.operation.id}`,
+    ts: new Date().toISOString(),
+  };
+}
+
+export function buildDailyDigestPayload(digest: DailyDigestData): NotificationPayload {
+  return {
+    event: "daily_digest",
+    v: 1,
+    digest,
+    window: {
+      due_soon_days: DAILY_DIGEST_DUE_SOON_DAYS,
+      stale_days_threshold: DAILY_DIGEST_STALE_DAYS,
+      timezone: "America/Sao_Paulo",
+    },
     ts: new Date().toISOString(),
   };
 }
