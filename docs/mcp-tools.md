@@ -1,47 +1,75 @@
-# MCP DeliveryOS — matriz de cobertura
+# MCP DeliveryOS — matriz de cobertura (v0.4)
 
-Servidor: `POST /api/mcp` (JSON-RPC 2.0). Auth: JWT Supabase ou token `mcp_agt_…` (scopes `read` | `write`). **Sem SQL genérico**, sem bypass RLS, sem gestão de tokens MCP/credenciais por ferramenta.
+Servidor: `POST /api/mcp` (JSON-RPC 2.0). **Sem SQL genérico**, sem bypass RLS.
 
-## Escopos
+## Escopos token `mcp_agt_`
 
-| Scope token | Leitura (`read` tools) | Escrita (`write` + `admin` tools) |
+| Scope | `read` tools | `write` + `admin` tools |
 |---|---|---|
-| `read` | Sim | Não |
-| `write` | Sim | Sim (admin ainda exige `profiles.role = admin` no banco) |
+| `read` | Sim | **Não** (teste: `mcp-dispatch-access.test.ts`) |
+| `write` | Sim | Sim — ferramentas `admin` ainda exigem `profiles.role = admin` |
 
-## Matriz resumida UI → ferramentas
+## Cobertura UI → ferramentas (implementado)
 
-| Domínio UI | List / get | Create / update | Arquivo / confirmação | Storage assinado |
-|---|---|---|---|---|
-| Clientes | `list_clients`, `get_client` | `create_client`, `update_client` (admin) | `archive_client` (`confirm`) | — |
-| Contratos cliente | `list_client_contracts`, `get_client_contract` (admin) | `update_client_contract`, `upload_client_contract`, `finalize_*` (admin) | — | `begin_client_contract_upload`, `get_client_contract_download_url` |
-| Operações | `list_operations`, `get_operation` | `create_operation`, `update_operation` (admin) | `archive_operation` (`confirm`) | — |
-| Membros op | `list_operation_members` | `add/remove_operation_member` (admin) | — | — |
-| Frentes | `list_frentes`, `get_frente` | `create_frente`, `update_frente` | `archive_frente` (`confirm`) | — |
-| Tarefas | `list_tasks`, `get_task` | `create_task`, `update_task`, `change_task_status`, `add_task_comment` | — | — |
-| Pessoas | `list_persons` | `create_person` | — | — |
-| Reuniões / decisões | `list_meetings`, `list_decisions` | `create_meeting`, `create_decision` | — | — |
-| Briefing | `get_operation_briefing` | `upsert_operation_briefing` | — | — |
-| Catálogo | `list_service_products`, `list_villains`, `list_quick_win_catalog` | — (CRUD catálogo só UI admin) | — | — |
-| Anexos op | `list_attachments` | `upload_attachment` | — | `get_attachment_download_url` |
+| Domínio | Leitura | Escrita / transição |
+|---|---|---|
+| Clientes | `list_clients`, `get_client` | `create/update_client`, `archive_client` (`confirm`), `restore_client` |
+| Contratos | `list/get_client_contract` (admin) | `update_client_contract`, upload base64 / signed upload, `finalize_*`, download URL |
+| Operações | `list/get_operation` | `create/update/archive_operation` (admin, `confirm` arquivar) |
+| Membros | `list_operation_members` | `add/remove_operation_member` (admin) |
+| Frentes | `list/get_frente` | `create/update_frente`, `archive_frente` (`confirm`) |
+| Tarefas | `list/get_task` | `create/update_task`, `change_task_status`, `add_task_comment` |
+| Alocações | `list_allocations` | `create/update_allocation` |
+| Quick wins (op) | `list_quick_wins`, `list_operation_villains` | `create_quick_win` (+ impactos) |
+| SLA | `list_sla_incidents` | `create/update_sla_incident` |
+| Custos op | `list_operation_costs` | `create/update_operation_cost` |
+| Pessoas | `list_persons` | `create_person` |
+| Reuniões | `list_meetings` | `create_meeting` |
+| Pauta | `list_meeting_agenda_items` | `add/update_meeting_agenda_item` |
+| Próximos passos | `list_meeting_next_steps` | `add/update_meeting_next_step` |
+| Decisões | `list_decisions` | `create_decision` |
+| Briefing | `get_operation_briefing` | `upsert_operation_briefing` (versões) |
+| Catálogo produtos | `list_service_products` | `create/update/archive/restore_service_product` (admin) |
+| Catálogo QW tipos | `list_quick_win_catalog` | `create_quick_win_catalog_item`, `archive_quick_win_catalog_item` (admin) |
+| Vilões (marca) | `list_villains` | — (atribuição vilão×op: ver gaps) |
+| Anexos | `list_attachments` | `upload_attachment`, `get_attachment_download_url` |
 
-## Limitações honestas (v0.3)
+## Exclusões deliberadas (segurança / fora de escopo)
 
-- **Não exposto:** convite de usuários, tokens MCP, credenciais Bitwarden, custos avançados, quick wins em operação, alocações, SLA/incidentes, pauta/próximos passos Granola item-a-item, arquivamento em massa, delete destrutivo de contratos.
-- **Upload MCP:** contrato/anexo via base64 limitado a **5MB**; maiores usam URL assinada de upload (`begin_client_contract_upload`).
-- **Contrato sem PDF:** ainda exige arquivo no Storage (placeholder mínimo via upload) — metadados `implementation_fee` + `notes` cobrem aceite WhatsApp.
-- **Admin:** ferramentas `admin` retornam erro se o JWT não for de administrador, mesmo com scope `write`.
-
-## Caso Assis Sat (modelo)
-
-| Fato | Campo |
+| Área | Motivo |
 |---|---|
-| R$397/m | `client_contracts.monthly_value` + opcional `operations.monthly_recurring_revenue` |
-| Taxa R$1000 | `client_contracts.implementation_fee` (migration `20261107040000`) |
-| Onboarding 04/11/2026 | `start_date` contrato/operação |
-| 1ª cobrança dia 14 | `payment_day_of_month: 14` + `notes` |
-| Aceite WhatsApp | `client_contracts.notes` |
-| Vinicius | `clients.primary_contact_name` |
-| Produto OS Basic | `frentes.product_id` → slug `dryos-os-basic` (após catálogo v2) |
+| Convites / e-mail de usuário | Disparo outbound não autorizado |
+| Tokens MCP (`create/revoke`) | Superfície sensível — só UI admin |
+| Credenciais Bitwarden | Princípio 01 — nunca secret no Delivery |
+| `execute_sql` / raw query | Proibido no briefing |
+| Delete destrutivo (contratos, etc.) | Só soft-archive onde a UI arquiva |
+| Envio automático Discord/n8n | Webhook é write na operação, não “enviar agora” via MCP |
 
-Teste unitário: `src/lib/mcp/assis-sat-field-mapping.test.ts`.
+## Gaps honestos (fluxo UI existe, MCP ainda não)
+
+| Fluxo | Nota |
+|---|---|
+| Atribuir vilão à operação (`assignVillain`) | Leitura via `list_operation_villains`; write não exposto nesta rodada |
+| Diagnóstico cliente / management diagnostic | Entidade pesada — usar UI |
+| Granola sync fields em reunião | Só pauta/next-step manual MCP |
+| Tarefas de área (back-office) | XOR área×frente — escopo membro+área |
+| `operation_comments` / threads | Não exposto |
+| Restore QW catálogo arquivado | Só archive no catálogo QW |
+| Links públicos | Geração/revogação token — sensível |
+
+## Contrato — semântica de datas (Assis Sat)
+
+| Campo | Uso |
+|---|---|
+| `start_date` | Onboarding / início contrato (ex. 2026-11-04) |
+| `first_billing_date` | **Primeira cobrança calendário** (ex. 2026-12-14) — migration `20261107050000` |
+| `payment_day_of_month` | Dia fixo mensal recorrente (14), não substitui `first_billing_date` |
+| `implementation_fee` + `implementation_fee_paid` | Taxa R$1000 **paga** sem obrigar data de pagamento |
+| `notes` | Aceite WhatsApp (não assinatura formal) |
+
+Testes: `assis-sat-field-mapping.test.ts`, RLS: `npm run test:mcp-expanded-rls`.
+
+## Migrations deste épico MCP
+
+1. `20261107040000_client_contracts_implementation_fee.sql`
+2. `20261107050000_client_contracts_billing_semantics.sql`

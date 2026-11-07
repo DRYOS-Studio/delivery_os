@@ -26,10 +26,11 @@ describe("Assis Sat field mapping (validators only)", () => {
       implementation_fee: "1000",
       currency: "BRL",
       start_date: "2026-11-04",
+      first_billing_date: "2026-12-14",
       payment_day_of_month: "14",
+      implementation_fee_paid: true,
       status: "vigente",
-      notes:
-        "Primeira cobrança prevista 2026-12-14 (40 dias corridos pós onboarding). Aceite por WhatsApp, sem assinatura formal.",
+      notes: "Aceite por WhatsApp, sem assinatura formal.",
     });
     expect(contract.success).toBe(true);
 

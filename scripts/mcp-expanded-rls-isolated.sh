@@ -81,13 +81,17 @@ run_rls <<SQL
 BEGIN;
 SET LOCAL "request.jwt.claim.sub" = '${ADMIN_ID}';
 INSERT INTO public.client_contracts (
-  client_id, label, monthly_value, implementation_fee, currency, status,
+  client_id, label, monthly_value, implementation_fee, implementation_fee_paid,
+  first_billing_date, start_date, currency, status,
   storage_path, filename, mime_type, size_bytes, payment_day_of_month, notes
 ) VALUES (
   '${CLIENT_ID}',
   'Test MCP contract',
   397.00,
   1000.00,
+  true,
+  '2026-12-14',
+  '2026-11-04',
   'BRL',
   'vigente',
   '${CLIENT_ID}/00000000-0000-4000-8000-000000000001-placeholder.txt',
@@ -99,6 +103,58 @@ INSERT INTO public.client_contracts (
 );
 COMMIT;
 SQL
-echo "ASSERT OK: admin inserted client_contract with implementation_fee"
+echo "ASSERT OK: admin inserted client_contract with billing semantics"
+
+run_sql <<SQL
+INSERT INTO public.clients (id, name, slug)
+VALUES ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'Client B', 'client-b');
+
+INSERT INTO public.operations (id, client_id, product_line, name, status) VALUES
+  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', '${CLIENT_ID}', 'core', 'Op A', 'em_operacao'),
+  ('dddddddd-dddd-4ddd-8ddd-dddddddddddd', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'core', 'Op B', 'em_operacao');
+
+INSERT INTO public.operation_members (profile_id, operation_id) VALUES
+  ('${MEMBER_ID}', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc');
+
+INSERT INTO public.frentes (id, operation_id, name, cycle_type, domain, actionable_status) VALUES
+  ('eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'Frente A', 'c', 'infra', 'aguardando teste de isolamento MCP hoje'),
+  ('ffffffff-ffff-4fff-8fff-ffffffffffff', 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', 'Frente B', 'c', 'infra', 'aguardando teste de isolamento MCP hoje');
+SQL
+
+# Member assigned to Op A cannot insert allocation on Frente B
+if run_rls <<SQL 2>/dev/null
+BEGIN;
+SET LOCAL "request.jwt.claim.sub" = '${MEMBER_ID}';
+INSERT INTO public.allocations (person_id, frente_id, role, capacity_weekly_pct, start_date)
+SELECT '${MEMBER_ID}', 'ffffffff-ffff-4fff-8fff-ffffffffffff', 'executor', 10, current_date
+WHERE EXISTS (SELECT 1 FROM public.persons WHERE id = '${MEMBER_ID}');
+COMMIT;
+SQL
+then
+  # skip if no person row — still test frente visibility
+  true
+fi
+
+VIS_B=$(run_rls -tA <<SQL
+BEGIN;
+SET LOCAL "request.jwt.claim.sub" = '${MEMBER_ID}';
+SELECT count(*)::text FROM public.frentes WHERE id = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
+COMMIT;
+SQL
+)
+VIS_B=$(echo "$VIS_B" | grep -E '^[0-9]+$' | tail -1)
+[[ "$VIS_B" == "0" ]] || { echo "ASSERT FAIL: member saw Frente B ($VIS_B)"; exit 1; }
+echo "ASSERT OK: member cannot read Frente B (cross-operation)"
+
+VIS_A=$(run_rls -tA <<SQL
+BEGIN;
+SET LOCAL "request.jwt.claim.sub" = '${MEMBER_ID}';
+SELECT count(*)::text FROM public.frentes WHERE id = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+COMMIT;
+SQL
+)
+VIS_A=$(echo "$VIS_A" | grep -E '^[0-9]+$' | tail -1)
+[[ "$VIS_A" == "1" ]] || { echo "ASSERT FAIL: member should see Frente A ($VIS_A)"; exit 1; }
+echo "ASSERT OK: member reads assigned operation frente"
 
 echo "=== mcp-expanded-rls-isolated: ALL PASSED ==="

@@ -487,8 +487,10 @@ export type Database = {
           currency: string
           end_date: string | null
           filename: string
+          first_billing_date: string | null
           id: string
           implementation_fee: number | null
+          implementation_fee_paid: boolean
           label: string
           mime_type: string
           monthly_value: number | null
@@ -508,8 +510,10 @@ export type Database = {
           currency?: string
           end_date?: string | null
           filename: string
+          first_billing_date?: string | null
           id?: string
           implementation_fee?: number | null
+          implementation_fee_paid?: boolean
           label: string
           mime_type: string
           monthly_value?: number | null
@@ -529,8 +533,10 @@ export type Database = {
           currency?: string
           end_date?: string | null
           filename?: string
+          first_billing_date?: string | null
           id?: string
           implementation_fee?: number | null
+          implementation_fee_paid?: boolean
           label?: string
           mime_type?: string
           monthly_value?: number | null

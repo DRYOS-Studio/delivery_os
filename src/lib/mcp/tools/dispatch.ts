@@ -36,6 +36,34 @@ import {
   mcpUpsertOperationBriefing,
 } from "@/lib/mcp/tools/collaboration-tools";
 import {
+  mcpArchiveQuickWinCatalogItem,
+  mcpArchiveServiceProduct,
+  mcpCreateQuickWinCatalogItem,
+  mcpCreateServiceProduct,
+  mcpRestoreServiceProduct,
+  mcpUpdateServiceProduct,
+} from "@/lib/mcp/tools/catalog-admin-tools";
+import {
+  mcpAddMeetingAgendaItem,
+  mcpAddMeetingNextStep,
+  mcpCreateAllocation,
+  mcpCreateOperationCost,
+  mcpCreateQuickWin,
+  mcpCreateSlaIncident,
+  mcpListAllocations,
+  mcpListMeetingAgendaItems,
+  mcpListMeetingNextSteps,
+  mcpListOperationCosts,
+  mcpListOperationVillains,
+  mcpListQuickWins,
+  mcpListSlaIncidents,
+  mcpUpdateAllocation,
+  mcpUpdateMeetingAgendaItem,
+  mcpUpdateMeetingNextStep,
+  mcpUpdateOperationCost,
+  mcpUpdateSlaIncident,
+} from "@/lib/mcp/tools/delivery-ops-tools";
+import {
   mcpArchiveFrente,
   mcpCreateFrente,
   mcpGetFrente,
@@ -288,6 +316,78 @@ export async function dispatchMcpTool(input: DispatchInput): Promise<unknown> {
     case "get_attachment_download_url": {
       const r = await mcpGetAttachmentDownloadUrl(ctx, args);
       return flattenResult(r);
+    }
+    case "create_service_product": {
+      return flattenResult(await mcpCreateServiceProduct(ctx, args));
+    }
+    case "update_service_product": {
+      return flattenResult(await mcpUpdateServiceProduct(ctx, args));
+    }
+    case "archive_service_product": {
+      return flattenResult(await mcpArchiveServiceProduct(ctx, args));
+    }
+    case "restore_service_product": {
+      return flattenResult(await mcpRestoreServiceProduct(ctx, args));
+    }
+    case "create_quick_win_catalog_item": {
+      return flattenResult(await mcpCreateQuickWinCatalogItem(ctx, args));
+    }
+    case "archive_quick_win_catalog_item": {
+      return flattenResult(await mcpArchiveQuickWinCatalogItem(ctx, args));
+    }
+    case "list_allocations": {
+      return flattenResult(await mcpListAllocations(ctx, args));
+    }
+    case "create_allocation": {
+      return flattenResult(await mcpCreateAllocation(ctx, args));
+    }
+    case "update_allocation": {
+      return flattenResult(await mcpUpdateAllocation(ctx, args));
+    }
+    case "list_quick_wins": {
+      return flattenResult(await mcpListQuickWins(ctx, args));
+    }
+    case "create_quick_win": {
+      return flattenResult(await mcpCreateQuickWin(ctx, args));
+    }
+    case "list_sla_incidents": {
+      return flattenResult(await mcpListSlaIncidents(ctx, args));
+    }
+    case "create_sla_incident": {
+      return flattenResult(await mcpCreateSlaIncident(ctx, args));
+    }
+    case "update_sla_incident": {
+      return flattenResult(await mcpUpdateSlaIncident(ctx, args));
+    }
+    case "list_operation_costs": {
+      return flattenResult(await mcpListOperationCosts(ctx, args));
+    }
+    case "create_operation_cost": {
+      return flattenResult(await mcpCreateOperationCost(ctx, args));
+    }
+    case "update_operation_cost": {
+      return flattenResult(await mcpUpdateOperationCost(ctx, args));
+    }
+    case "list_meeting_agenda_items": {
+      return flattenResult(await mcpListMeetingAgendaItems(ctx, args));
+    }
+    case "add_meeting_agenda_item": {
+      return flattenResult(await mcpAddMeetingAgendaItem(ctx, args));
+    }
+    case "update_meeting_agenda_item": {
+      return flattenResult(await mcpUpdateMeetingAgendaItem(ctx, args));
+    }
+    case "list_meeting_next_steps": {
+      return flattenResult(await mcpListMeetingNextSteps(ctx, args));
+    }
+    case "add_meeting_next_step": {
+      return flattenResult(await mcpAddMeetingNextStep(ctx, args));
+    }
+    case "update_meeting_next_step": {
+      return flattenResult(await mcpUpdateMeetingNextStep(ctx, args));
+    }
+    case "list_operation_villains": {
+      return flattenResult(await mcpListOperationVillains(ctx, args));
     }
     default:
       return { ok: false, error: `Ferramenta desconhecida: ${toolName}` };

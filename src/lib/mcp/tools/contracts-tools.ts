@@ -12,7 +12,7 @@ const BUCKET = "contracts";
 export const MCP_CONTRACT_MAX_BYTES = 5 * 1024 * 1024;
 
 const CONTRACT_SELECT =
-  "id, client_id, label, monthly_value, implementation_fee, currency, reajuste_notes, start_date, end_date, payment_day_of_month, status, notes, filename, mime_type, size_bytes, storage_path, created_at, updated_at";
+  "id, client_id, label, monthly_value, implementation_fee, implementation_fee_paid, first_billing_date, currency, reajuste_notes, start_date, end_date, payment_day_of_month, status, notes, filename, mime_type, size_bytes, storage_path, created_at, updated_at";
 
 const feeSchema = z
   .union([z.number(), z.string()])
@@ -45,6 +45,8 @@ function metaToRow(
     currency: d.currency ?? "BRL",
     reajuste_notes: d.reajuste_notes ?? null,
     start_date: d.start_date ?? null,
+    first_billing_date: d.first_billing_date ?? null,
+    implementation_fee_paid: d.implementation_fee_paid ?? false,
     end_date: d.end_date ?? null,
     payment_day_of_month: d.payment_day_of_month,
     status: d.status,
@@ -115,6 +117,8 @@ export async function mcpUpdateClientContract(
       currency: d.currency ?? "BRL",
       reajuste_notes: d.reajuste_notes ?? null,
       start_date: d.start_date ?? null,
+      first_billing_date: d.first_billing_date ?? null,
+      implementation_fee_paid: d.implementation_fee_paid ?? false,
       end_date: d.end_date ?? null,
       payment_day_of_month: d.payment_day_of_month,
       status: d.status,
