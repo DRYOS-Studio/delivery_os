@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:mcp-isolated": "bash scripts/mcp-isolated-rls-test.sh",
     "test:catalog-isolated": "bash scripts/catalog-conteudo-v2-isolated-test.sh",
+    "test:mcp-expanded-rls": "bash scripts/mcp-expanded-rls-isolated.sh",
     "gen:types": "supabase gen types typescript --project-id tmsaucxoeqpfluzwrwkc > src/lib/db/types.ts"
   },
   "dependencies": {

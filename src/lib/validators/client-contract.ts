@@ -20,6 +20,15 @@ export const clientContractFormSchema = z
     .transform((s) => (s == null || s.trim() === "" ? null : Number(s)))
     .refine((n) => n === null || Number.isFinite(n), "Valor inválido.")
     .refine((n) => n === null || n >= 0, "Valor não pode ser negativo."),
+  implementation_fee: z
+    .union([z.string(), z.number()])
+    .optional()
+    .transform((v) => {
+      if (v === undefined || v === "") return null;
+      const n = typeof v === "number" ? v : Number(String(v).replace(",", "."));
+      return Number.isFinite(n) ? n : null;
+    })
+    .refine((n) => n === null || n >= 0, "Taxa de implantação não pode ser negativa."),
   currency: z.string().trim().default("BRL"),
   reajuste_notes: z
     .string()

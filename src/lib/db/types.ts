@@ -488,6 +488,7 @@ export type Database = {
           end_date: string | null
           filename: string
           id: string
+          implementation_fee: number | null
           label: string
           mime_type: string
           monthly_value: number | null
@@ -508,6 +509,7 @@ export type Database = {
           end_date?: string | null
           filename: string
           id?: string
+          implementation_fee?: number | null
           label: string
           mime_type: string
           monthly_value?: number | null
@@ -528,6 +530,7 @@ export type Database = {
           end_date?: string | null
           filename?: string
           id?: string
+          implementation_fee?: number | null
           label?: string
           mime_type?: string
           monthly_value?: number | null

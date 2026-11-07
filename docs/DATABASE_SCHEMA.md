@@ -78,6 +78,7 @@ Metadados financeiros e PDF/arquivo no bucket privado `contracts` (Storage path 
 | `client_id` | uuid NOT NULL → clients (CASCADE) | |
 | `label` | text NOT NULL | CHECK trim length ≥ 2 |
 | `monthly_value` | numeric(14,2) | nullable |
+| `implementation_fee` | numeric(14,2) | nullable; taxa de implantação única (≥0) |
 | `currency` | text NOT NULL default `BRL` | |
 | `reajuste_notes` | text | nullable |
 | `start_date`, `end_date` | date | nullable; CHECK `end >= start` quando ambos |
@@ -931,6 +932,7 @@ cross-tenant.
 | 20261106220100 | mcp_idempotent_calls | repo — `mcp_idempotent_responses` (cache idempotency MCP; só service_role) |
 | 20261106220200 | verify_mcp_agent_token_auth_user | repo — `verify_mcp_agent_token` recusa `auth.users` inexistente ou banido |
 | 20261107013000 | catalog_conteudo_v2 | repo — enums `catalog_offer_*`, colunas em `service_products`, seed dryos-conteudo, arquivo slugs legado |
+| 20261107040000 | client_contracts_implementation_fee | repo — coluna `implementation_fee` opcional |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações
