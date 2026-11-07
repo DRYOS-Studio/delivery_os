@@ -65,6 +65,49 @@ export async function listActiveServiceProducts(): Promise<
   return items;
 }
 
+function rowToListItem(row: ServiceProductRow, nameSuffix = ""): ServiceProductListItem {
+  return {
+    id: row.id,
+    name: nameSuffix ? `${row.name}${nameSuffix}` : row.name,
+    slug: row.slug,
+    defaultCycleType: row.default_cycle_type,
+    catalogGroup: row.catalog_group,
+    catalogKind: row.catalog_kind,
+    sortOrder: row.sort_order,
+  };
+}
+
+/** Ativos para picker de Frente; inclui produto já vinculado se estiver arquivado (histórico). */
+export async function listServiceProductsForFrenteForm(
+  linkedProductId?: string | null,
+): Promise<ServiceProductListItem[]> {
+  const active = await listActiveServiceProducts();
+  if (!linkedProductId || active.some((p) => p.id === linkedProductId)) {
+    return active;
+  }
+  const linked = await getServiceProduct(linkedProductId);
+  if (!linked) return active;
+  const withLinked = [
+    ...active,
+    rowToListItem(linked, " (arquivado — vinculado)"),
+  ];
+  withLinked.sort((a, b) =>
+    compareCatalogProducts(
+      {
+        catalog_group: a.catalogGroup,
+        sort_order: a.sortOrder,
+        name: a.name,
+      },
+      {
+        catalog_group: b.catalogGroup,
+        sort_order: b.sortOrder,
+        name: b.name,
+      },
+    ),
+  );
+  return withLinked;
+}
+
 export async function getServiceProduct(
   id: string,
 ): Promise<ServiceProductRow | null> {
