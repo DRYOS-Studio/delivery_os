@@ -14,6 +14,7 @@ import {
 } from "@/lib/actions/frentes";
 import type { FrenteRow } from "@/lib/db/queries/frentes";
 import type { InternalPersonItem } from "@/lib/db/queries/persons";
+import { groupActiveServiceProductSections } from "@/lib/catalog/group-service-products";
 import type { ServiceProductListItem } from "@/lib/db/queries/service-products";
 import {
   CYCLE_TYPE_VALUES,
@@ -235,10 +236,18 @@ export function FrenteForm(props: Props): React.JSX.Element {
           className={inputCn}
         >
           <option value="">— sem produto —</option>
-          {props.products.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
+          {groupActiveServiceProductSections(props.products).map((section) => (
+            <optgroup key={section.groupKey} label={section.label}>
+              {section.products.map((summary) => {
+                const p = props.products.find((x) => x.id === summary.id);
+                if (!p) return null;
+                return (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                );
+              })}
+            </optgroup>
           ))}
         </select>
       </Field>

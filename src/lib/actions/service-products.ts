@@ -13,7 +13,13 @@ function parseFormData(formData: FormData) {
     name: ((formData.get("name") as string | null) ?? "").trim(),
     slug: ((formData.get("slug") as string | null) ?? "").trim(),
     description: ((formData.get("description") as string | null) ?? "").trim(),
-    default_cycle_type: ((formData.get("default_cycle_type") as string | null) ?? "").trim(),
+    default_cycle_type: (
+      (formData.get("default_cycle_type") as string | null) ?? ""
+    ).trim(),
+    catalog_group: ((formData.get("catalog_group") as string | null) ?? "").trim(),
+    catalog_kind: ((formData.get("catalog_kind") as string | null) ?? "").trim(),
+    content_ref: ((formData.get("content_ref") as string | null) ?? "").trim(),
+    sort_order: ((formData.get("sort_order") as string | null) ?? "").trim(),
   };
 }
 
@@ -59,6 +65,10 @@ export async function createServiceProductAction(
       slug: data.slug,
       description: data.description ?? null,
       default_cycle_type: data.default_cycle_type ?? null,
+      catalog_group: data.catalog_group ?? null,
+      catalog_kind: data.catalog_kind ?? "product",
+      content_ref: data.content_ref ?? null,
+      sort_order: data.sort_order ?? 0,
     })
     .select("id")
     .single();
@@ -93,6 +103,10 @@ export async function updateServiceProductAction(
       slug: data.slug,
       description: data.description ?? null,
       default_cycle_type: data.default_cycle_type ?? null,
+      catalog_group: data.catalog_group ?? null,
+      catalog_kind: data.catalog_kind ?? "product",
+      content_ref: data.content_ref ?? null,
+      sort_order: data.sort_order ?? 0,
     })
     .eq("id", id);
 

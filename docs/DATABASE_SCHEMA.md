@@ -607,7 +607,7 @@ RLS `ovn_authenticated_full` (Inv. 12); leitura pública via `createAdmin` serve
 
 ### `service_products` — catálogo de produtos comerciais DRYOS
 
-12 produtos canônicos (Core, 5 Sparks, 5 Studios, Evergreen) seedados na migration. Referenciado opcionalmente por Frentes via `frentes.product_id`. Archive-only via `archived_at` (Frente que aponta pra produto arquivado continua válida; pill no select filtra ativos).
+Ofertas canônicas alinhadas ao repo **dryos-conteudo** (`funcionarios_digitais`, `automacoes`, `dryos_os`, `studio` + 6 categorias Studio). O seed legado Core/Spark/Studio/Evergreen (`20260519160001`) é **arquivado por slug explícito** na migration `20261107013000_catalog_conteudo_v2`; itens custom/desconhecidos não são tocados. Referenciado opcionalmente por Frentes via `frentes.product_id`. Archive-only via `archived_at` (Frente que aponta pra produto arquivado continua válida; select de novas Frentes filtra ativos).
 
 | Coluna | Tipo | Notas |
 |---|---|---|
@@ -616,6 +616,10 @@ RLS `ovn_authenticated_full` (Inv. 12); leitura pública via `createAdmin` serve
 | `slug` | text NOT NULL UNIQUE | CHECK regex `^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$` (URL-safe kebab-case) |
 | `description` | text | opcional, livre |
 | `default_cycle_type` | enum `frente_cycle_type` | nullable; sugestão de ciclo ao usar este produto na Frente |
+| `catalog_group` | enum `catalog_offer_group` | nullable; grupo comercial (FD, Automações, DRYOS OS, Studio) |
+| `catalog_kind` | enum `catalog_offer_kind` | `product` / `plan` / `studio_category`; default `product` |
+| `sort_order` | smallint NOT NULL default 0 | ordem dentro do grupo na UI |
+| `content_ref` | text | path relativo no dryos-conteudo (referência, sem preço) |
 | `archived_at` | timestamptz | soft delete |
 | `created_at`, `updated_at` | timestamptz | trigger updated_at |
 
@@ -926,6 +930,7 @@ cross-tenant.
 | 20261106220000 | mcp_agent_tokens | repo — `profile_agent_tokens`, enum `mcp_agent_token_scope`, RPCs create/revoke/verify (verify service_role) |
 | 20261106220100 | mcp_idempotent_calls | repo — `mcp_idempotent_responses` (cache idempotency MCP; só service_role) |
 | 20261106220200 | verify_mcp_agent_token_auth_user | repo — `verify_mcp_agent_token` recusa `auth.users` inexistente ou banido |
+| 20261107013000 | catalog_conteudo_v2 | repo — enums `catalog_offer_*`, colunas em `service_products`, seed dryos-conteudo, arquivo slugs legado |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações

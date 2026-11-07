@@ -2,6 +2,11 @@ import { Package } from "lucide-react";
 import Link from "next/link";
 import { ArchiveServiceProductButton } from "@/components/domain/ArchiveServiceProductButton";
 import { Pill } from "@/components/ui/Pill";
+import {
+  CATALOG_GROUP_LABELS,
+  CATALOG_KIND_LABELS,
+  isCatalogOfferGroup,
+} from "@/lib/catalog/catalog-offer";
 import type { ServiceProductRow } from "@/lib/db/queries/service-products";
 import { formatCycleTypeShort } from "@/lib/utils/cycle-type";
 
@@ -27,6 +32,14 @@ export function ProductRow({
         <h3 className="font-display text-sm font-semibold text-ink truncate">
           {product.name}
         </h3>
+        {product.catalog_group && isCatalogOfferGroup(product.catalog_group) && (
+          <Pill variant="sage">
+            {CATALOG_GROUP_LABELS[product.catalog_group]}
+          </Pill>
+        )}
+        {product.catalog_kind !== "product" && (
+          <Pill variant="oak">{CATALOG_KIND_LABELS[product.catalog_kind]}</Pill>
+        )}
         <Pill variant="neutral">{product.slug}</Pill>
         {product.default_cycle_type && (
           <span className="font-mono text-[10px] text-mute uppercase tracking-wide">

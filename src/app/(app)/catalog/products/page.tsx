@@ -1,5 +1,6 @@
 import { Plus } from "lucide-react";
 import Link from "next/link";
+import { CatalogProductsSections } from "@/components/domain/CatalogProductsSections";
 import { ProductCard } from "@/components/domain/ProductCard";
 import { ProductRow } from "@/components/domain/ProductRow";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -30,7 +31,7 @@ export default async function Page({
     <>
       <PageHeader
         title="Catálogo · Produtos & Serviços"
-        subtitle={`${active.length} ativos. Catálogo da DRYOS — referência pra Frentes.`}
+        subtitle={`${active.length} ativos. Fonte canônica: repo dryos-conteudo (main) — referência pra Frentes.`}
         actions={
           <>
             <CatalogViewToggle basePath="/catalog/products" current={view} />
@@ -58,18 +59,12 @@ export default async function Page({
             Nenhum produto ativo. Cadastre o primeiro.
           </p>
         </div>
-      ) : view === "list" ? (
-        <div className="bg-card border border-line rounded divide-y divide-line">
-          {active.map((p) => (
-            <ProductRow key={p.id} product={p} isAdmin={isAdmin} />
-          ))}
-        </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {active.map((p) => (
-            <ProductCard key={p.id} product={p} isAdmin={isAdmin} />
-          ))}
-        </div>
+        <CatalogProductsSections
+          products={active}
+          view={view === "list" ? "list" : "grid"}
+          isAdmin={isAdmin}
+        />
       )}
 
       {archived.length > 0 && (

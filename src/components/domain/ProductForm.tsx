@@ -12,6 +12,12 @@ import {
 } from "@/lib/actions/service-products";
 import type { ServiceProductRow } from "@/lib/db/queries/service-products";
 import {
+  CATALOG_GROUP_LABELS,
+  CATALOG_KIND_LABELS,
+  CATALOG_OFFER_GROUPS,
+  CATALOG_OFFER_KINDS,
+} from "@/lib/catalog/catalog-offer";
+import {
   CYCLE_TYPE_VALUES,
   formatCycleTypeLong,
 } from "@/lib/utils/cycle-type";
@@ -57,12 +63,20 @@ export function ProductForm(props: Props): React.JSX.Element {
         slug: props.initialData.slug,
         description: props.initialData.description ?? undefined,
         default_cycle_type: props.initialData.default_cycle_type ?? undefined,
+        catalog_group: props.initialData.catalog_group ?? undefined,
+        catalog_kind: props.initialData.catalog_kind ?? undefined,
+        content_ref: props.initialData.content_ref ?? undefined,
+        sort_order: props.initialData.sort_order ?? undefined,
       }
     : {
         name: "",
         slug: "",
         description: undefined,
         default_cycle_type: undefined,
+        catalog_group: undefined,
+        catalog_kind: "product",
+        content_ref: undefined,
+        sort_order: undefined,
       };
 
   const {
@@ -92,6 +106,13 @@ export function ProductForm(props: Props): React.JSX.Element {
     fd.set("slug", data.slug);
     fd.set("description", data.description ?? "");
     fd.set("default_cycle_type", data.default_cycle_type ?? "");
+    fd.set("catalog_group", data.catalog_group ?? "");
+    fd.set("catalog_kind", data.catalog_kind ?? "product");
+    fd.set("content_ref", data.content_ref ?? "");
+    fd.set(
+      "sort_order",
+      data.sort_order !== undefined ? String(data.sort_order) : "",
+    );
 
     const result = isEdit
       ? await updateServiceProductAction(props.initialData.id, fd)
@@ -142,6 +163,82 @@ export function ProductForm(props: Props): React.JSX.Element {
             {...register("slug", {
               onChange: () => setIsSlugDirty(true),
             })}
+            disabled={isSubmitting}
+            className={inputCn}
+          />
+        </Field>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Field
+          label="Grupo (catálogo)"
+          htmlFor="catalog_group"
+          error={errors.catalog_group?.message}
+          hint="Opcional. Alinha o card e o select da Frente ao grupo dryos-conteudo."
+        >
+          <select
+            id="catalog_group"
+            {...register("catalog_group")}
+            disabled={isSubmitting}
+            className={inputCn}
+          >
+            <option value="">— sem grupo —</option>
+            {CATALOG_OFFER_GROUPS.map((g) => (
+              <option key={g} value={g}>
+                {CATALOG_GROUP_LABELS[g]}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field
+          label="Tipo no catálogo"
+          htmlFor="catalog_kind"
+          error={errors.catalog_kind?.message}
+        >
+          <select
+            id="catalog_kind"
+            {...register("catalog_kind")}
+            disabled={isSubmitting}
+            className={inputCn}
+          >
+            {CATALOG_OFFER_KINDS.map((k) => (
+              <option key={k} value={k}>
+                {CATALOG_KIND_LABELS[k]}
+              </option>
+            ))}
+          </select>
+        </Field>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Field
+          label="Ordem no grupo"
+          htmlFor="sort_order"
+          error={errors.sort_order?.message}
+          hint="Menor aparece primeiro dentro do grupo."
+        >
+          <input
+            id="sort_order"
+            type="number"
+            min={0}
+            max={32767}
+            {...register("sort_order")}
+            disabled={isSubmitting}
+            className={inputCn}
+          />
+        </Field>
+
+        <Field
+          label="Ref. conteúdo"
+          htmlFor="content_ref"
+          error={errors.content_ref?.message}
+          hint="Path no dryos-conteudo (sem URL completa)."
+        >
+          <input
+            id="content_ref"
+            type="text"
+            {...register("content_ref")}
             disabled={isSubmitting}
             className={inputCn}
           />

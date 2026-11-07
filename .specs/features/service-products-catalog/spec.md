@@ -5,22 +5,22 @@
 
 ## Problem Statement
 
-Hoje a Frente não referencia o produto comercial DRYOS que ela entrega (Core, Spark Inbox, Studio Launch, Evergreen, etc). O usuário escolhe `cycle_type` + `domain` na mão, sem saber qual produto está sendo materializado. Falta o link entre a oferta comercial (catálogo do site) e a entrega operacional (Frente).
+Hoje a Frente não referencia o produto comercial DRYOS que ela entrega. O usuário escolhe `cycle_type` + `domain` na mão, sem saber qual oferta está sendo materializada. Falta o link entre a oferta comercial (conteúdo canônico) e a entrega operacional (Frente).
 
-Esta feature cria o catálogo administrativo de produtos/serviços DRYOS — 12 produtos seed do site — e adiciona FK opcional `product_id` em Frente. Quando o admin escolhe um produto no form da Frente, o `cycle_type` é auto-preenchido com o ciclo natural daquele produto (Core → C, Studio Custom → A, etc), mas continua editável.
+Esta feature mantém o catálogo administrativo em `service_products` + FK opcional `product_id` em Frente. **Fonte canônica de ofertas (pós v2):** repo `DRYOS-Studio/dryos-conteudo` (main) — grupos Funcionários Digitais, Automações, DRYOS OS (planos), Studio (6 categorias + projetos sob medida). O seed legado Core/Spark/Studio do site fica arquivado por slug; não é mais fonte. Quando o admin escolhe um produto no form da Frente, o `cycle_type` é auto-preenchido via `default_cycle_type`, mas continua editável.
 
 ## Goals
 
 - [ ] Admin cria/edita/arquiva produtos em `/catalog/products`
 - [ ] Frente referencia opcionalmente um produto via `product_id` FK nullable
 - [ ] Select de Produto no `FrenteForm` filtra `archived_at IS NULL` e auto-preenche `cycle_type` ao escolher
-- [ ] 12 produtos seed aparecem após migration (Core, 5 Sparks, 5 Studios, Evergreen)
+- [ ] Ofertas canônicas dryos-conteudo aparecem ativas após migration `catalog_conteudo_v2` (slugs legado arquivados)
 - [ ] Frente que aponta pra produto arquivado **continua funcionando** (FK preserva histórico)
 
 ## Out of Scope
 
 - **Migration retroativa de Frentes existentes** — `product_id` fica null pras antigas. Admin pode editar e atribuir produto se quiser.
-- **Catálogo público** — produtos só aparecem internamente. Site DRYOS continua sendo a fonte de marca/oferta.
+- **Catálogo público** — produtos só aparecem internamente. Marca/oferta canônica vive em dryos-conteudo, não no site como fonte operacional.
 - **Pricing/billing** — produtos aqui são taxonomia operacional, não SKU comercial.
 - **Variantes por cliente** — produto é universal (como vilões). Sem custom per client.
 - **Estatísticas de uso por produto** (quantas Frentes referenciam X) — v2/dashboard.
