@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import { MCP_TOOL_DEFINITIONS } from "@/lib/mcp/tools/registry";
 import { MCP_TOOL_ZOD_ARGS } from "@/lib/mcp/tool-args/bindings";
 import { mcpInputSchemaFromZod } from "@/lib/mcp/tool-args/mcp-json-schema";
-import { createClientContractMcpSchema } from "@/lib/mcp/tool-args/contracts";
+import {
+  createClientContractMcpSchema,
+  updateClientContractMcpSchema,
+} from "@/lib/mcp/tool-args/contracts";
 
 function toolSchema(name: string) {
   const t = MCP_TOOL_DEFINITIONS.find((d) => d.name === name);
@@ -47,6 +50,22 @@ describe("MCP tools/list schema parity (Zod-derived)", () => {
     expect(schema.required).toEqual(
       expect.arrayContaining(["contract_id", "label", "status"]),
     );
+  });
+
+  it("update_client_contract parser matches full snapshot update (same as main form handler)", () => {
+    const partial = updateClientContractMcpSchema.safeParse({
+      contract_id: "11111111-1111-4111-8111-222222222222",
+      label: "só label",
+    });
+    expect(partial.success).toBe(false);
+    const full = updateClientContractMcpSchema.safeParse({
+      contract_id: "11111111-1111-4111-8111-222222222222",
+      label: "DRYOS OS Basic",
+      status: "vigente",
+      monthly_value: 397,
+      notes: "unchanged",
+    });
+    expect(full.success).toBe(true);
   });
 
   it("update_operation exposes writable status enum (not truncated client_id-only)", () => {

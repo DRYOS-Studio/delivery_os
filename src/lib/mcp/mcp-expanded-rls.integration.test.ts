@@ -3,13 +3,16 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const SCRIPT = join(process.cwd(), "scripts/mcp-expanded-rls-isolated.sh");
+const EXPANDED_SCRIPT_MS = 240_000;
 
 describe("mcp expanded RLS (integration)", () => {
-  it("runs scripts/mcp-expanded-rls-isolated.sh", () => {
+  it(
+    "runs scripts/mcp-expanded-rls-isolated.sh",
+    () => {
     try {
       const out = execFileSync("bash", [SCRIPT], {
         encoding: "utf8",
-        timeout: 240_000,
+        timeout: EXPANDED_SCRIPT_MS,
       });
       expect(out).toContain("ALL PASSED");
     } catch (err: unknown) {
@@ -17,5 +20,7 @@ describe("mcp expanded RLS (integration)", () => {
       if (e.status === 2) return;
       throw new Error(`${e.stdout ?? ""}\n${e.stderr ?? ""}`);
     }
-  });
+    },
+    EXPANDED_SCRIPT_MS,
+  );
 });
