@@ -5,6 +5,7 @@ import { operationCostSchema } from "@/lib/validators/operationCost";
 import { quickWinSchema } from "@/lib/validators/quick-win";
 import {
   clampLimit,
+  mcpRequireAdmin,
   type McpHandlerContext,
   type McpToolResult,
 } from "@/lib/mcp/tools/shared";
@@ -105,6 +106,39 @@ export async function mcpUpdateAllocation(
   return { ok: true, data: { id: allocId } };
 }
 
+export async function mcpGetAllocation(
+  ctx: McpHandlerContext,
+  args: Record<string, unknown>,
+): Promise<McpToolResult<{ allocation: unknown }>> {
+  const id = typeof args.allocation_id === "string" ? args.allocation_id.trim() : "";
+  if (!id) return { ok: false, message: "allocation_id obrigatório." };
+  const { data, error } = await ctx.supabase
+    .from("allocations")
+    .select(
+      "id, person_id, frente_id, role, capacity_weekly_pct, weekly_hours, monthly_cost, start_date, end_date",
+    )
+    .eq("id", id)
+    .maybeSingle();
+  if (error) return { ok: false, message: error.message };
+  if (!data) return { ok: false, message: "Alocação não encontrada.", notFound: true };
+  return { ok: true, data: { allocation: data } };
+}
+
+export async function mcpEndAllocation(
+  ctx: McpHandlerContext,
+  args: Record<string, unknown>,
+): Promise<McpToolResult<{ id: string }>> {
+  const id = typeof args.allocation_id === "string" ? args.allocation_id.trim() : "";
+  const endDate = typeof args.end_date === "string" ? args.end_date.trim() : "";
+  if (!id || !endDate) return { ok: false, message: "allocation_id e end_date obrigatórios." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
+    return { ok: false, message: "end_date inválida (YYYY-MM-DD)." };
+  }
+  const { error } = await ctx.supabase.from("allocations").update({ end_date: endDate }).eq("id", id);
+  if (error) return { ok: false, message: error.message };
+  return { ok: true, data: { id } };
+}
+
 export async function mcpListQuickWins(
   ctx: McpHandlerContext,
   args: Record<string, unknown>,
@@ -155,6 +189,62 @@ export async function mcpCreateQuickWin(
     if (iErr) return { ok: false, message: iErr.message };
   }
   return { ok: true, data: { id: data.id } };
+}
+
+export async function mcpGetQuickWin(
+  ctx: McpHandlerContext,
+  args: Record<string, unknown>,
+): Promise<McpToolResult<{ quick_win: unknown; impacts: unknown[] }>> {
+  const id = typeof args.quick_win_id === "string" ? args.quick_win_id.trim() : "";
+  if (!id) return { ok: false, message: "quick_win_id obrigatório." };
+  const { data, error } = await ctx.supabase
+    .from("quick_wins")
+    .select("id, operation_id, frente_id, title, description, happened_at, created_at, updated_at")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) return { ok: false, message: error.message };
+  if (!data) return { ok: false, message: "Quick win não encontrado.", notFound: true };
+  const { data: impacts, error: iErr } = await ctx.supabase
+    .from("quick_win_impacts")
+    .select("id, operation_villain_id, impact_pct")
+    .eq("quick_win_id", id);
+  if (iErr) return { ok: false, message: iErr.message };
+  return { ok: true, data: { quick_win: data, impacts: impacts ?? [] } };
+}
+
+export async function mcpUpdateQuickWin(
+  ctx: McpHandlerContext,
+  args: Record<string, unknown>,
+): Promise<McpToolResult<{ id: string }>> {
+  const id = typeof args.quick_win_id === "string" ? args.quick_win_id.trim() : "";
+  if (!id) return { ok: false, message: "quick_win_id obrigatório." };
+  const { quick_win_id: _q, operation_id: _o, idempotency_key: _ik, ...rest } = args;
+  const parsed = quickWinSchema.safeParse(rest);
+  if (!parsed.success) {
+    return { ok: false, message: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  }
+  const q = parsed.data;
+  const { error: upErr } = await ctx.supabase
+    .from("quick_wins")
+    .update({
+      frente_id: q.frente_id ?? null,
+      title: q.title,
+      description: q.description ?? null,
+      happened_at: q.happened_at,
+    })
+    .eq("id", id);
+  if (upErr) return { ok: false, message: upErr.message };
+  const { error: delErr } = await ctx.supabase.from("quick_win_impacts").delete().eq("quick_win_id", id);
+  if (delErr) return { ok: false, message: delErr.message };
+  for (const imp of q.impacts) {
+    const { error: iErr } = await ctx.supabase.from("quick_win_impacts").insert({
+      quick_win_id: id,
+      operation_villain_id: imp.operation_villain_id,
+      impact_pct: imp.impact_pct,
+    });
+    if (iErr) return { ok: false, message: iErr.message };
+  }
+  return { ok: true, data: { id } };
 }
 
 export async function mcpListSlaIncidents(
@@ -253,6 +343,8 @@ export async function mcpCreateOperationCost(
   ctx: McpHandlerContext,
   args: Record<string, unknown>,
 ): Promise<McpToolResult<{ id: string }>> {
+  const denied = await mcpRequireAdmin(ctx);
+  if (denied) return denied;
   const parsed = costCreate.safeParse(args);
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Dados inválidos." };
@@ -280,6 +372,8 @@ export async function mcpUpdateOperationCost(
   ctx: McpHandlerContext,
   args: Record<string, unknown>,
 ): Promise<McpToolResult<{ id: string }>> {
+  const denied = await mcpRequireAdmin(ctx);
+  if (denied) return denied;
   const id = typeof args.cost_id === "string" ? args.cost_id.trim() : "";
   if (!id) return { ok: false, message: "cost_id obrigatório." };
   const { cost_id: _c, operation_id: _o, idempotency_key: _ik, ...rest } = args;
@@ -299,6 +393,23 @@ export async function mcpUpdateOperationCost(
       notes: c.notes ?? null,
     })
     .eq("id", id);
+  if (error) return { ok: false, message: error.message };
+  return { ok: true, data: { id } };
+}
+
+export async function mcpEndOperationCost(
+  ctx: McpHandlerContext,
+  args: Record<string, unknown>,
+): Promise<McpToolResult<{ id: string }>> {
+  const denied = await mcpRequireAdmin(ctx);
+  if (denied) return denied;
+  const id = typeof args.cost_id === "string" ? args.cost_id.trim() : "";
+  const endedAt = typeof args.ended_at === "string" ? args.ended_at.trim() : "";
+  if (!id || !endedAt) return { ok: false, message: "cost_id e ended_at obrigatórios." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(endedAt)) {
+    return { ok: false, message: "ended_at inválida (YYYY-MM-DD)." };
+  }
+  const { error } = await ctx.supabase.from("operation_costs").update({ ended_at: endedAt }).eq("id", id);
   if (error) return { ok: false, message: error.message };
   return { ok: true, data: { id } };
 }

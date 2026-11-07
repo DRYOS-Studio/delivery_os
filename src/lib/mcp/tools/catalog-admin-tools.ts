@@ -131,6 +131,22 @@ export async function mcpCreateQuickWinCatalogItem(
   return { ok: true, data: { id: data.id } };
 }
 
+export async function mcpRestoreQuickWinCatalogItem(
+  ctx: McpHandlerContext,
+  args: Record<string, unknown>,
+): Promise<McpToolResult<{ id: string }>> {
+  const denied = await mcpRequireAdmin(ctx);
+  if (denied) return denied;
+  const id = typeof args.catalog_item_id === "string" ? args.catalog_item_id.trim() : "";
+  if (!id) return { ok: false, message: "catalog_item_id obrigatório." };
+  const { error } = await ctx.supabase
+    .from("quick_win_catalog")
+    .update({ archived_at: null })
+    .eq("id", id);
+  if (error) return { ok: false, message: error.message };
+  return { ok: true, data: { id } };
+}
+
 export async function mcpArchiveQuickWinCatalogItem(
   ctx: McpHandlerContext,
   args: Record<string, unknown>,

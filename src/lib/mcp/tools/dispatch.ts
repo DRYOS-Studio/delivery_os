@@ -18,6 +18,7 @@ import {
 } from "@/lib/mcp/tools/clients-tools";
 import {
   mcpBeginClientContractUpload,
+  mcpCreateClientContract,
   mcpFinalizeClientContractUpload,
   mcpGetClientContract,
   mcpGetClientContractDownloadUrl,
@@ -40,6 +41,7 @@ import {
   mcpArchiveServiceProduct,
   mcpCreateQuickWinCatalogItem,
   mcpCreateServiceProduct,
+  mcpRestoreQuickWinCatalogItem,
   mcpRestoreServiceProduct,
   mcpUpdateServiceProduct,
 } from "@/lib/mcp/tools/catalog-admin-tools";
@@ -50,6 +52,10 @@ import {
   mcpCreateOperationCost,
   mcpCreateQuickWin,
   mcpCreateSlaIncident,
+  mcpEndAllocation,
+  mcpEndOperationCost,
+  mcpGetAllocation,
+  mcpGetQuickWin,
   mcpListAllocations,
   mcpListMeetingAgendaItems,
   mcpListMeetingNextSteps,
@@ -61,6 +67,7 @@ import {
   mcpUpdateMeetingAgendaItem,
   mcpUpdateMeetingNextStep,
   mcpUpdateOperationCost,
+  mcpUpdateQuickWin,
   mcpUpdateSlaIncident,
 } from "@/lib/mcp/tools/delivery-ops-tools";
 import {
@@ -80,11 +87,29 @@ import {
   mcpRemoveOperationMember,
   mcpUpdateOperation,
 } from "@/lib/mcp/tools/operations-tools";
+import {
+  mcpAddOperationComment,
+  mcpArchivePerson,
+  mcpAssignOperationVillain,
+  mcpGetClientDiagnostic,
+  mcpGetDecision,
+  mcpGetMeeting,
+  mcpGetPerson,
+  mcpListOperationComments,
+  mcpSaveManagementDiagnostic,
+  mcpUpdateDecision,
+  mcpUpdateMeeting,
+  mcpUpdateOperationComment,
+  mcpUpdateOperationVillain,
+  mcpUpdatePerson,
+  mcpUpsertClientDiagnostic,
+} from "@/lib/mcp/tools/parity-tools";
 import { mcpToolAccess } from "@/lib/mcp/tools/registry";
 import { idempotencyKeyFromArgs, type McpHandlerContext } from "@/lib/mcp/tools/shared";
 import {
   mcpAddTaskComment,
   mcpChangeTaskStatus,
+  mcpCreateAreaTask,
   mcpCreateDeliveryTask,
   mcpGetTask,
   mcpListTasks,
@@ -197,6 +222,10 @@ export async function dispatchMcpTool(input: DispatchInput): Promise<unknown> {
       const r = await mcpGetClientContract(ctx, args);
       return flattenResult(r);
     }
+    case "create_client_contract": {
+      const r = await mcpCreateClientContract(ctx, args);
+      return flattenResult(r);
+    }
     case "update_client_contract": {
       const r = await mcpUpdateClientContract(ctx, args);
       return flattenResult(r);
@@ -249,6 +278,10 @@ export async function dispatchMcpTool(input: DispatchInput): Promise<unknown> {
       const r = await mcpCreateDeliveryTask(ctx.supabase, args);
       return r;
     }
+    case "create_area_task": {
+      const r = await mcpCreateAreaTask(ctx.supabase, args);
+      return r;
+    }
     case "update_task": {
       const r = await mcpUpdateTask(ctx.supabase, args);
       return r;
@@ -269,6 +302,15 @@ export async function dispatchMcpTool(input: DispatchInput): Promise<unknown> {
       const r = await mcpCreatePerson(ctx, args);
       return flattenResult(r);
     }
+    case "get_person": {
+      return flattenResult(await mcpGetPerson(ctx, args));
+    }
+    case "update_person": {
+      return flattenResult(await mcpUpdatePerson(ctx, args));
+    }
+    case "archive_person": {
+      return flattenResult(await mcpArchivePerson(ctx, args));
+    }
     case "list_meetings": {
       const r = await mcpListMeetings(ctx, args);
       return flattenResult(r);
@@ -277,6 +319,12 @@ export async function dispatchMcpTool(input: DispatchInput): Promise<unknown> {
       const r = await mcpCreateMeeting(ctx, args);
       return flattenResult(r);
     }
+    case "get_meeting": {
+      return flattenResult(await mcpGetMeeting(ctx, args));
+    }
+    case "update_meeting": {
+      return flattenResult(await mcpUpdateMeeting(ctx, args));
+    }
     case "list_decisions": {
       const r = await mcpListDecisions(ctx, args);
       return flattenResult(r);
@@ -284,6 +332,12 @@ export async function dispatchMcpTool(input: DispatchInput): Promise<unknown> {
     case "create_decision": {
       const r = await mcpCreateDecision(ctx, args);
       return flattenResult(r);
+    }
+    case "get_decision": {
+      return flattenResult(await mcpGetDecision(ctx, args));
+    }
+    case "update_decision": {
+      return flattenResult(await mcpUpdateDecision(ctx, args));
     }
     case "get_operation_briefing": {
       const r = await mcpGetOperationBriefing(ctx, args);
@@ -335,6 +389,9 @@ export async function dispatchMcpTool(input: DispatchInput): Promise<unknown> {
     case "archive_quick_win_catalog_item": {
       return flattenResult(await mcpArchiveQuickWinCatalogItem(ctx, args));
     }
+    case "restore_quick_win_catalog_item": {
+      return flattenResult(await mcpRestoreQuickWinCatalogItem(ctx, args));
+    }
     case "list_allocations": {
       return flattenResult(await mcpListAllocations(ctx, args));
     }
@@ -344,11 +401,23 @@ export async function dispatchMcpTool(input: DispatchInput): Promise<unknown> {
     case "update_allocation": {
       return flattenResult(await mcpUpdateAllocation(ctx, args));
     }
+    case "get_allocation": {
+      return flattenResult(await mcpGetAllocation(ctx, args));
+    }
+    case "end_allocation": {
+      return flattenResult(await mcpEndAllocation(ctx, args));
+    }
     case "list_quick_wins": {
       return flattenResult(await mcpListQuickWins(ctx, args));
     }
     case "create_quick_win": {
       return flattenResult(await mcpCreateQuickWin(ctx, args));
+    }
+    case "get_quick_win": {
+      return flattenResult(await mcpGetQuickWin(ctx, args));
+    }
+    case "update_quick_win": {
+      return flattenResult(await mcpUpdateQuickWin(ctx, args));
     }
     case "list_sla_incidents": {
       return flattenResult(await mcpListSlaIncidents(ctx, args));
@@ -367,6 +436,9 @@ export async function dispatchMcpTool(input: DispatchInput): Promise<unknown> {
     }
     case "update_operation_cost": {
       return flattenResult(await mcpUpdateOperationCost(ctx, args));
+    }
+    case "end_operation_cost": {
+      return flattenResult(await mcpEndOperationCost(ctx, args));
     }
     case "list_meeting_agenda_items": {
       return flattenResult(await mcpListMeetingAgendaItems(ctx, args));
@@ -388,6 +460,30 @@ export async function dispatchMcpTool(input: DispatchInput): Promise<unknown> {
     }
     case "list_operation_villains": {
       return flattenResult(await mcpListOperationVillains(ctx, args));
+    }
+    case "assign_operation_villain": {
+      return flattenResult(await mcpAssignOperationVillain(ctx, args));
+    }
+    case "update_operation_villain": {
+      return flattenResult(await mcpUpdateOperationVillain(ctx, args));
+    }
+    case "list_operation_comments": {
+      return flattenResult(await mcpListOperationComments(ctx, args));
+    }
+    case "add_operation_comment": {
+      return flattenResult(await mcpAddOperationComment(ctx, args));
+    }
+    case "update_operation_comment": {
+      return flattenResult(await mcpUpdateOperationComment(ctx, args));
+    }
+    case "get_client_diagnostic": {
+      return flattenResult(await mcpGetClientDiagnostic(ctx, args));
+    }
+    case "upsert_client_diagnostic": {
+      return flattenResult(await mcpUpsertClientDiagnostic(ctx, args));
+    }
+    case "save_management_diagnostic": {
+      return flattenResult(await mcpSaveManagementDiagnostic(ctx, args));
     }
     default:
       return { ok: false, error: `Ferramenta desconhecida: ${toolName}` };

@@ -117,6 +117,28 @@ COMMIT;
 SQL
 echo "ASSERT OK: admin inserted client_contract with billing semantics"
 
+run_rls <<SQL
+BEGIN;
+SET LOCAL "request.jwt.claim.sub" = '${ADMIN_ID}';
+INSERT INTO public.client_contracts (
+  client_id, label, monthly_value, implementation_fee_paid, first_billing_date, start_date,
+  currency, status, notes, storage_path, filename, mime_type, size_bytes
+) VALUES (
+  '${CLIENT_ID}',
+  'WhatsApp only',
+  397.00,
+  true,
+  '2026-12-14',
+  '2026-11-04',
+  'BRL',
+  'vigente',
+  'aceite WhatsApp sem PDF',
+  NULL, NULL, NULL, 0
+);
+COMMIT;
+SQL
+echo "ASSERT OK: admin inserted metadata-only client_contract"
+
 run_sql <<SQL
 INSERT INTO public.clients (id, name, slug)
 VALUES ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'Client B', 'client-b');

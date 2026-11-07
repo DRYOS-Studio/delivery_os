@@ -83,7 +83,9 @@ export async function mcpListMeetings(
   if (!opId) return { ok: false, message: "operation_id obrigatório." };
   const { data, error } = await ctx.supabase
     .from("meetings")
-    .select("id, operation_id, title, scheduled_at, visibility, notes, created_at")
+    .select(
+      "id, operation_id, title, scheduled_at, visibility, notes, granola_suggestion_text, granola_source_ref, granola_captured_at, created_at",
+    )
     .eq("operation_id", opId)
     .order("scheduled_at", { ascending: false })
     .limit(clampLimit(args.limit));

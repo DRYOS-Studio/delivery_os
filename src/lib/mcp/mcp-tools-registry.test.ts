@@ -3,7 +3,7 @@ import { MCP_TOOL_DEFINITIONS, mcpToolAccess } from "@/lib/mcp/tools/registry";
 
 describe("MCP tool registry", () => {
   it("exposes expanded tool surface (>8)", () => {
-    expect(MCP_TOOL_DEFINITIONS.length).toBeGreaterThan(65);
+    expect(MCP_TOOL_DEFINITIONS.length).toBeGreaterThan(90);
   });
 
   it("tags every tool with access level", () => {

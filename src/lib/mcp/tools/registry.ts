@@ -641,7 +641,7 @@ export const MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
   },
   {
     name: "create_operation_cost",
-    access: "write",
+    access: "admin",
     idempotent: true,
     description: "Adiciona custo à operação.",
     inputSchema: {
@@ -652,7 +652,7 @@ export const MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
   },
   {
     name: "update_operation_cost",
-    access: "write",
+    access: "admin",
     idempotent: true,
     description: "Atualiza custo.",
     inputSchema: {
@@ -733,6 +733,255 @@ export const MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
       type: "object",
       properties: { operation_id: { type: "string" } },
       required: ["operation_id"],
+    },
+  },
+  {
+    name: "create_client_contract",
+    access: "admin",
+    idempotent: true,
+    description:
+      "Cria contrato só metadados (sem arquivo). Para PDF use upload_client_contract.",
+    inputSchema: {
+      type: "object",
+      properties: { client_id: { type: "string" }, ...idem },
+      required: ["client_id", "label"],
+    },
+  },
+  {
+    name: "get_person",
+    access: "read",
+    description: "Detalhe de pessoa.",
+    inputSchema: {
+      type: "object",
+      properties: { person_id: { type: "string" } },
+      required: ["person_id"],
+    },
+  },
+  {
+    name: "update_person",
+    access: "write",
+    idempotent: true,
+    description: "Atualiza pessoa (= updatePersonAction).",
+    inputSchema: {
+      type: "object",
+      properties: { person_id: { type: "string" }, ...idem },
+      required: ["person_id"],
+    },
+  },
+  {
+    name: "archive_person",
+    access: "admin",
+    idempotent: true,
+    description: "Arquiva pessoa (= archivePersonAction).",
+    inputSchema: {
+      type: "object",
+      properties: { person_id: { type: "string" }, ...idem },
+      required: ["person_id"],
+    },
+  },
+  {
+    name: "get_meeting",
+    access: "read",
+    description: "Reunião + participantes.",
+    inputSchema: {
+      type: "object",
+      properties: { meeting_id: { type: "string" } },
+      required: ["meeting_id"],
+    },
+  },
+  {
+    name: "update_meeting",
+    access: "write",
+    idempotent: true,
+    description:
+      "Atualiza reunião, campos Granola (texto/ref), participantes. Sem sync externo.",
+    inputSchema: {
+      type: "object",
+      properties: { meeting_id: { type: "string" }, ...idem },
+      required: ["meeting_id"],
+    },
+  },
+  {
+    name: "get_decision",
+    access: "read",
+    description: "Detalhe de decisão.",
+    inputSchema: {
+      type: "object",
+      properties: { decision_id: { type: "string" } },
+      required: ["decision_id"],
+    },
+  },
+  {
+    name: "update_decision",
+    access: "write",
+    idempotent: true,
+    description: "Atualiza decisão (= updateDecisionAction).",
+    inputSchema: {
+      type: "object",
+      properties: { decision_id: { type: "string" }, ...idem },
+      required: ["decision_id"],
+    },
+  },
+  {
+    name: "get_allocation",
+    access: "read",
+    description: "Detalhe de alocação.",
+    inputSchema: {
+      type: "object",
+      properties: { allocation_id: { type: "string" } },
+      required: ["allocation_id"],
+    },
+  },
+  {
+    name: "end_allocation",
+    access: "write",
+    idempotent: true,
+    description: "Encerra alocação (end_date). Substitui deleteAllocationAction no MCP.",
+    inputSchema: {
+      type: "object",
+      properties: { allocation_id: { type: "string" }, end_date: { type: "string" }, ...idem },
+      required: ["allocation_id", "end_date"],
+    },
+  },
+  {
+    name: "get_quick_win",
+    access: "read",
+    description: "Quick win + impactos.",
+    inputSchema: {
+      type: "object",
+      properties: { quick_win_id: { type: "string" } },
+      required: ["quick_win_id"],
+    },
+  },
+  {
+    name: "update_quick_win",
+    access: "write",
+    idempotent: true,
+    description: "Atualiza quick win (= updateQuickWinAction).",
+    inputSchema: {
+      type: "object",
+      properties: { quick_win_id: { type: "string" }, ...idem },
+      required: ["quick_win_id"],
+    },
+  },
+  {
+    name: "end_operation_cost",
+    access: "admin",
+    idempotent: true,
+    description: "Encerra custo (ended_at). Substitui delete no MCP.",
+    inputSchema: {
+      type: "object",
+      properties: { cost_id: { type: "string" }, ended_at: { type: "string" }, ...idem },
+      required: ["cost_id", "ended_at"],
+    },
+  },
+  {
+    name: "create_area_task",
+    access: "write",
+    idempotent: true,
+    description: "Tarefa de área XOR frente (= createAreaTaskAction).",
+    inputSchema: {
+      type: "object",
+      properties: { operation_id: { type: "string" }, area_id: { type: "string" }, ...idem },
+      required: ["operation_id", "area_id", "title", "status"],
+    },
+  },
+  {
+    name: "list_operation_comments",
+    access: "read",
+    description: "Thread de comentários da operação.",
+    inputSchema: {
+      type: "object",
+      properties: { operation_id: { type: "string" } },
+      required: ["operation_id"],
+    },
+  },
+  {
+    name: "add_operation_comment",
+    access: "write",
+    idempotent: true,
+    description: "Comentário na operação (= createOperationCommentAction).",
+    inputSchema: {
+      type: "object",
+      properties: { operation_id: { type: "string" }, body: { type: "string" }, ...idem },
+      required: ["operation_id", "body"],
+    },
+  },
+  {
+    name: "update_operation_comment",
+    access: "write",
+    idempotent: true,
+    description: "Edita comentário (= updateOperationCommentAction, RLS autor).",
+    inputSchema: {
+      type: "object",
+      properties: { comment_id: { type: "string" }, body: { type: "string" }, ...idem },
+      required: ["comment_id", "body"],
+    },
+  },
+  {
+    name: "assign_operation_villain",
+    access: "write",
+    idempotent: true,
+    description: "Atribui vilão (= assignVillainAction).",
+    inputSchema: {
+      type: "object",
+      properties: { operation_id: { type: "string" }, ...idem },
+      required: ["operation_id", "villain_id", "initial_severity", "progress_pct"],
+    },
+  },
+  {
+    name: "update_operation_villain",
+    access: "write",
+    idempotent: true,
+    description: "Atualiza evidência (= updateOperationVillainAction).",
+    inputSchema: {
+      type: "object",
+      properties: { operation_villain_id: { type: "string" }, ...idem },
+      required: ["operation_villain_id"],
+    },
+  },
+  {
+    name: "restore_quick_win_catalog_item",
+    access: "admin",
+    idempotent: true,
+    description: "Restaura item QW catálogo (= restoreQuickWinCatalogAction).",
+    inputSchema: {
+      type: "object",
+      properties: { catalog_item_id: { type: "string" }, ...idem },
+      required: ["catalog_item_id"],
+    },
+  },
+  {
+    name: "get_client_diagnostic",
+    access: "read",
+    description: "Diagnóstico do cliente (simples ou gestão, último registro).",
+    inputSchema: {
+      type: "object",
+      properties: { client_id: { type: "string" } },
+      required: ["client_id"],
+    },
+  },
+  {
+    name: "upsert_client_diagnostic",
+    access: "write",
+    idempotent: true,
+    description: "Notas diagnóstico simples (= upsertDiagnosticAction).",
+    inputSchema: {
+      type: "object",
+      properties: { client_id: { type: "string" }, ...idem },
+      required: ["client_id", "notes"],
+    },
+  },
+  {
+    name: "save_management_diagnostic",
+    access: "write",
+    idempotent: true,
+    description:
+      "Diagnóstico gestão: persiste respostas e recomputa scores localmente (sem API externa).",
+    inputSchema: {
+      type: "object",
+      properties: { client_id: { type: "string" }, diagnostic_id: { type: "string" }, ...idem },
+      required: ["client_id"],
     },
   },
 ];

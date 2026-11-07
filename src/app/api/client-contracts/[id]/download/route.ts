@@ -27,7 +27,7 @@ export async function GET(
     .eq("id", id)
     .maybeSingle();
 
-  if (error || !row) {
+  if (error || !row || !row.storage_path || !row.filename) {
     return new NextResponse("Not found", { status: 404 });
   }
 

@@ -189,8 +189,8 @@ export async function mcpUploadClientContract(
     await ctx.supabase.storage.from(BUCKET).remove([storagePath]);
     return { ok: false, message: error.message };
   }
-  if (!data) return { ok: false, message: "Falha ao registrar contrato." };
-  return { ok: true, data };
+  if (!data?.storage_path) return { ok: false, message: "Falha ao registrar contrato." };
+  return { ok: true, data: { id: data.id, storage_path: data.storage_path } };
 }
 
 export async function mcpBeginClientContractUpload(
@@ -257,6 +257,47 @@ export async function mcpFinalizeClientContractUpload(
   return { ok: true, data: { id: data.id } };
 }
 
+/** Metadados sem arquivo (aceite WhatsApp, etc.). Campos = createClientContractAction sem file. */
+export async function mcpCreateClientContract(
+  ctx: McpHandlerContext,
+  args: Record<string, unknown>,
+): Promise<McpToolResult<{ id: string }>> {
+  const denied = await mcpRequireAdmin(ctx);
+  if (denied) return denied;
+  const parsed = contractMetaArgs.safeParse(args);
+  if (!parsed.success) {
+    return { ok: false, message: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  }
+  const d = parsed.data;
+  const { data, error } = await ctx.supabase
+    .from("client_contracts")
+    .insert({
+      client_id: d.client_id,
+      label: d.label,
+      monthly_value: d.monthly_value,
+      implementation_fee: d.implementation_fee ?? null,
+      implementation_fee_paid: d.implementation_fee_paid ?? false,
+      currency: d.currency ?? "BRL",
+      reajuste_notes: d.reajuste_notes ?? null,
+      start_date: d.start_date ?? null,
+      first_billing_date: d.first_billing_date ?? null,
+      end_date: d.end_date ?? null,
+      payment_day_of_month: d.payment_day_of_month,
+      status: d.status,
+      notes: d.notes ?? null,
+      storage_path: null,
+      filename: null,
+      mime_type: null,
+      size_bytes: 0,
+      uploaded_by: ctx.callerUserId,
+    })
+    .select("id")
+    .single();
+  if (error) return { ok: false, message: error.message };
+  if (!data) return { ok: false, message: "Falha ao registrar contrato." };
+  return { ok: true, data: { id: data.id } };
+}
+
 export async function mcpGetClientContractDownloadUrl(
   ctx: McpHandlerContext,
   args: Record<string, unknown>,
@@ -272,6 +313,9 @@ export async function mcpGetClientContractDownloadUrl(
     .maybeSingle();
   if (error) return { ok: false, message: error.message };
   if (!row) return { ok: false, message: "Contrato não encontrado.", notFound: true };
+  if (!row.storage_path) {
+    return { ok: false, message: "Contrato sem arquivo anexo.", notFound: true };
+  }
   const expiresIn = 3600;
   const { data: signed, error: signErr } = await ctx.supabase.storage
     .from(BUCKET)

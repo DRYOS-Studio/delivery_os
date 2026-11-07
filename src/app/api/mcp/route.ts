@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
       return jsonRpcResult(id ?? null, {
         protocolVersion: "2024-11-05",
         capabilities: { tools: {} },
-        serverInfo: { name: "dryos-delivery-mcp", version: "0.4.0" },
+        serverInfo: { name: "dryos-delivery-mcp", version: "0.5.0" },
       });
 
     case "notifications/initialized":

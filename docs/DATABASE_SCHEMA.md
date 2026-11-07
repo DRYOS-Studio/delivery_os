@@ -936,6 +936,7 @@ cross-tenant.
 | 20261107013000 | catalog_conteudo_v2 | repo — enums `catalog_offer_*`, colunas em `service_products`, seed dryos-conteudo, arquivo slugs legado |
 | 20261107040000 | client_contracts_implementation_fee | repo — coluna `implementation_fee` opcional |
 | 20261107050000 | client_contracts_billing_semantics | repo — `first_billing_date`, `implementation_fee_paid` |
+| 20261107060000 | client_contracts_metadata_only | repo — contrato sem arquivo (storage NULL) |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações
