@@ -56,9 +56,17 @@ Use **Server Actions** ou rotas que já aplicam validação e convênios do app.
 
 1. Chama `verify_mcp_agent_token` com **service role** (só no backend; a função não é exposta ao cliente).
 2. Recusa token revogado/expirado, fingerprint inválido, usuário sem linha em `auth.users`, ou conta banida (`auth.users.banned_until`).
-3. Emite um **JWT curto** (≈15 min) com `jose` + `SUPABASE_JWT_SECRET` (mesmo segredo do projeto no Dashboard), `sub` = `profile_id`, `role` = `authenticated`. O request segue com cliente **anon + esse JWT** — **mesma RLS** que o modo A.
+3. Obtém um **access token real** emitido pelo **GoTrue** (assinatura do projeto — tipicamente **ES256** com JWT Signing Keys), via Auth Admin API:
+   - `auth.admin.getUserById(profile_id)` (o usuário agente precisa de **e-mail** em `auth.users`);
+   - `auth.admin.generateLink({ type: 'magiclink', email })` (não envia e-mail ao usar `token_hash` no servidor);
+   - `auth.verifyOtp({ type: 'email', token_hash })` com chave publicável → `session.access_token`.
+   Não é possível (nem recomendado) assinar esse JWT localmente com JWKS público — a chave privada fica só no Supabase. Ver [JWT Signing Keys](https://supabase.com/docs/guides/auth/signing-keys).
 
-Variáveis necessárias no servidor para o modo B: `SUPABASE_SERVICE_ROLE_KEY` (ou legado `SUPABASE_SECRET_KEY`), `SUPABASE_JWT_SECRET`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Ver `.env.local.example`.
+4. O request segue com cliente **publishable key + access_token** — **mesma RLS** que o modo A.
+
+**Legado (JWT secret simétrico):** se `SUPABASE_JWT_SECRET` estiver definido e `MCP_SESSION_STRATEGY` não for `gotrue`, o servidor ainda pode mintar HS256 local (~15 min) para projetos não migrados. Projetos só ES256 devem **omitir** `SUPABASE_JWT_SECRET` ou forçar `MCP_SESSION_STRATEGY=gotrue`.
+
+Variáveis servidor modo B (ES256 / padrão): `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Opcional legado: `SUPABASE_JWT_SECRET`, `MCP_SESSION_STRATEGY`.
 
 **Escopos (modo B):** array `read` / `write` na linha `profile_agent_tokens`. Ferramentas que **escrevem** (`create_task`, `update_task`, `change_task_status`, `add_task_comment`) exigem escopo `write`; só `read` → 403 JSON-RPC.
 
@@ -106,7 +114,7 @@ Aplicar em ordem de timestamp no repositório; as relevantes ao MCP incluem:
 2. `20261106220100_mcp_idempotent_calls.sql` — cache de idempotency  
 3. `20261106220200_verify_mcp_agent_token_auth_user.sql` — validação contra `auth.users`
 
-Depois: `npm run gen:types` e deploy do app com `SUPABASE_JWT_SECRET` definido.
+Depois: `npm run gen:types` e deploy do app (ES256: service role + publicável + `MCP_SESSION_STRATEGY=gotrue` se necessário).
 
 ## 9. Passos para o usuário (conexão segura)
 
@@ -121,4 +129,4 @@ Senhas, service role, `SUPABASE_JWT_SECRET`, URLs de webhook com segredo embutid
 
 ## 11. Variáveis de ambiente (referência)
 
-Documentadas em `.env.local.example`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_SECRET_KEY` (legado), `SUPABASE_JWT_SECRET` (MCP troca de token), `CRON_SECRET`, `NOTIFICATION_WEBHOOK_URL`.
+Documentadas em `.env.local.example`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_SECRET_KEY` (legado), `MCP_SESSION_STRATEGY` (opcional), `SUPABASE_JWT_SECRET` (opcional, legado HS256), `CRON_SECRET`, `NOTIFICATION_WEBHOOK_URL`.

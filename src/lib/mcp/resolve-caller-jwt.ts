@@ -1,8 +1,6 @@
 import { createServiceRole } from "@/lib/db/service-role";
+import { issueMcpAccessTokenForProfile } from "@/lib/mcp/issue-mcp-access-token";
 import { isMcpAgentTokenSecret } from "@/lib/mcp/mcp-token-prefix";
-import { mintSupabaseUserAccessToken } from "@/lib/mcp/supabase-session-jwt";
-
-const MCP_JWT_TTL_SECONDS = 15 * 60;
 
 export type McpAuthContext = {
   mcpAgent: true;
@@ -44,15 +42,16 @@ export async function resolveMcpCallerJwt(
       return { ok: false, code: typeof row?.code === "string" ? row.code : "invalid_or_expired" };
     }
     const scopes = parseScopes(row.scopes);
-    let jwt: string;
-    try {
-      jwt = await mintSupabaseUserAccessToken(row.profile_id, MCP_JWT_TTL_SECONDS);
-    } catch {
-      return { ok: false, code: "server_misconfigured" };
+    const issued = await issueMcpAccessTokenForProfile(row.profile_id);
+    if (!issued.ok) {
+      return {
+        ok: false,
+        code: issued.code === "profile_unusable" ? "invalid_or_expired" : "server_misconfigured",
+      };
     }
     return {
       ok: true,
-      jwt,
+      jwt: issued.jwt,
       ctx: {
         mcpAgent: true,
         profileId: row.profile_id,
