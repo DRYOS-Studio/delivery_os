@@ -7,8 +7,8 @@ function requiredEnv(key: string): string {
 }
 
 /**
- * Emite access token no formato aceito pelo PostgREST/GoTrue (HS256, audience authenticated).
- * Usa o mesmo segredo que o projeto Supabase (JWT Secret no Dashboard), não a anon key.
+ * Legado: mint HS256 com JWT Secret simétrico (projetos antes de JWT Signing Keys / rotação ES256).
+ * Projetos só com chaves assimétricas devem usar `exchangeProfileForGoTrueAccessToken` (estratégia gotrue).
  */
 export async function mintSupabaseUserAccessToken(
   userId: string,

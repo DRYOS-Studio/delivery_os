@@ -156,7 +156,7 @@ export async function POST(req: NextRequest) {
       resolved.code === "invalid_or_expired"
         ? "Token MCP inválido, expirado ou revogado."
         : resolved.code === "server_misconfigured"
-          ? "Servidor sem SUPABASE_SERVICE_ROLE_KEY ou SUPABASE_JWT_SECRET."
+          ? "Servidor sem credenciais MCP (service role + publishable URL) ou estratégia de sessão incompatível."
           : "Falha na autenticação.";
     return jsonRpcError(null, -32001, msg, 401);
   }
@@ -342,7 +342,7 @@ export async function GET() {
     auth: {
       bearer_jwt: "Authorization: Bearer <Supabase access_token> (sessão Curta)",
       bearer_mcp:
-        "Authorization: Bearer <token MCP exibido uma vez no /admin — prefixo mcp_agt_>; o servidor troca por JWT curto com SUPABASE_JWT_SECRET",
+        "Authorization: Bearer <token mcp_agt_…>; o servidor valida no Postgres e troca por access token GoTrue (ES256/assinatura do projeto) ou HS256 legado se MCP_SESSION_STRATEGY=hs256",
     },
   });
 }

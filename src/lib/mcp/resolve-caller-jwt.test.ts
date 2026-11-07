@@ -1,18 +1,18 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-const { mockRpc, mockMint, mockCreateServiceRole } = vi.hoisted(() => {
+const { mockRpc, mockIssue, mockCreateServiceRole } = vi.hoisted(() => {
   const mockRpc = vi.fn();
-  const mockMint = vi.fn();
+  const mockIssue = vi.fn();
   const mockCreateServiceRole = vi.fn(() => ({ rpc: mockRpc }));
-  return { mockRpc, mockMint, mockCreateServiceRole };
+  return { mockRpc, mockIssue, mockCreateServiceRole };
 });
 
 vi.mock("@/lib/db/service-role", () => ({
   createServiceRole: mockCreateServiceRole,
 }));
 
-vi.mock("@/lib/mcp/supabase-session-jwt", () => ({
-  mintSupabaseUserAccessToken: mockMint,
+vi.mock("@/lib/mcp/issue-mcp-access-token", () => ({
+  issueMcpAccessTokenForProfile: mockIssue,
 }));
 
 import { resolveMcpCallerJwt } from "./resolve-caller-jwt";
@@ -22,7 +22,7 @@ describe("resolveMcpCallerJwt", () => {
 
   beforeEach(() => {
     mockRpc.mockReset();
-    mockMint.mockReset();
+    mockIssue.mockReset();
     mockCreateServiceRole.mockReset();
     mockCreateServiceRole.mockImplementation(() => ({ rpc: mockRpc }));
   });
@@ -41,7 +41,7 @@ describe("resolveMcpCallerJwt", () => {
       },
       error: null,
     });
-    mockMint.mockResolvedValue("minted-access-token");
+    mockIssue.mockResolvedValue({ ok: true, jwt: "minted-access-token" });
 
     await expect(resolveMcpCallerJwt(mcpBearer)).resolves.toEqual({
       ok: true,
@@ -56,10 +56,7 @@ describe("resolveMcpCallerJwt", () => {
     expect(mockRpc).toHaveBeenCalledWith("verify_mcp_agent_token", {
       p_token_plaintext: mcpBearer,
     });
-    expect(mockMint).toHaveBeenCalledWith(
-      "00000000-0000-4000-8000-000000000001",
-      15 * 60,
-    );
+    expect(mockIssue).toHaveBeenCalledWith("00000000-0000-4000-8000-000000000001");
   });
 
   it("defaults empty RPC scopes to read-only", async () => {
@@ -71,7 +68,7 @@ describe("resolveMcpCallerJwt", () => {
       },
       error: null,
     });
-    mockMint.mockResolvedValue("minted");
+    mockIssue.mockResolvedValue({ ok: true, jwt: "minted" });
 
     const r = await resolveMcpCallerJwt(mcpBearer);
     expect(r.ok).toBe(true);
@@ -90,7 +87,7 @@ describe("resolveMcpCallerJwt", () => {
       ok: false,
       code: "invalid_or_expired",
     });
-    expect(mockMint).not.toHaveBeenCalled();
+    expect(mockIssue).not.toHaveBeenCalled();
   });
 
   it("returns server_misconfigured when service role client cannot be created", async () => {
@@ -104,7 +101,7 @@ describe("resolveMcpCallerJwt", () => {
     });
   });
 
-  it("returns server_misconfigured when mint fails", async () => {
+  it("returns server_misconfigured when session issue fails", async () => {
     mockRpc.mockResolvedValue({
       data: {
         ok: true,
@@ -113,7 +110,7 @@ describe("resolveMcpCallerJwt", () => {
       },
       error: null,
     });
-    mockMint.mockRejectedValue(new Error("no SUPABASE_JWT_SECRET"));
+    mockIssue.mockResolvedValue({ ok: false, code: "server_misconfigured" });
 
     await expect(resolveMcpCallerJwt(mcpBearer)).resolves.toEqual({
       ok: false,
