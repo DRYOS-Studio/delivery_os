@@ -1,16 +1,11 @@
-export type McpAccess = "read" | "write" | "admin";
+import { applyZodInputSchemas } from "@/lib/mcp/tool-args/bindings";
+import type { McpAccess, McpToolDefinition } from "@/lib/mcp/tools/registry-types";
 
-export type McpToolDefinition = {
-  name: string;
-  description: string;
-  access: McpAccess;
-  inputSchema: Record<string, unknown>;
-  idempotent?: boolean;
-};
+export type { McpAccess, McpToolDefinition } from "@/lib/mcp/tools/registry-types";
 
 const idem = { idempotency_key: { type: "string", description: "Chave 8–200 chars (cache MCP)." } };
 
-export const MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
+const BASE_MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
   {
     name: "list_operations",
     access: "read",
@@ -985,6 +980,10 @@ export const MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
     },
   },
 ];
+
+export const MCP_TOOL_DEFINITIONS: McpToolDefinition[] = applyZodInputSchemas(
+  BASE_MCP_TOOL_DEFINITIONS,
+);
 
 export function mcpToolAccess(name: string): McpAccess | null {
   return MCP_TOOL_DEFINITIONS.find((t) => t.name === name)?.access ?? null;

@@ -2,6 +2,12 @@
 
 Servidor: `POST /api/mcp` v0.5.0. Paridade com **Server Actions** existentes; RLS obrigatório.
 
+## `tools/list` — inputSchema
+
+Os `inputSchema` das ferramentas de escrita/admin com binding em `src/lib/mcp/tool-args/bindings.ts` são gerados via `mcpInputSchemaFromZod()` (Zod → JSON Schema, mesmos parsers dos handlers). O catálogo publicado no conector só muda após **deploy** do app e refresh do cliente MCP — não confundir com o código já em `main`.
+
+Contratos: `create_client_contract` / `update_client_contract` expõem `status` (`rascunho` | `vigente` | `encerrada`), valores financeiros e datas — não só `client_id` + `label`.
+
 ## Escopos
 
 | Scope | Efeito |
