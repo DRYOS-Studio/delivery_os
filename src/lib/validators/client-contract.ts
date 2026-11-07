@@ -20,6 +20,15 @@ export const clientContractFormSchema = z
     .transform((s) => (s == null || s.trim() === "" ? null : Number(s)))
     .refine((n) => n === null || Number.isFinite(n), "Valor inválido.")
     .refine((n) => n === null || n >= 0, "Valor não pode ser negativo."),
+  implementation_fee: z
+    .union([z.string(), z.number()])
+    .optional()
+    .transform((v) => {
+      if (v === undefined || v === "") return null;
+      const n = typeof v === "number" ? v : Number(String(v).replace(",", "."));
+      return Number.isFinite(n) ? n : null;
+    })
+    .refine((n) => n === null || n >= 0, "Taxa de implantação não pode ser negativa."),
   currency: z.string().trim().default("BRL"),
   reajuste_notes: z
     .string()
@@ -31,6 +40,20 @@ export const clientContractFormSchema = z
     .optional()
     .transform(emptyToNull)
     .pipe(z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable()),
+  first_billing_date: z
+    .string()
+    .optional()
+    .transform(emptyToNull)
+    .pipe(z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable()),
+  implementation_fee_paid: z
+    .union([z.boolean(), z.string()])
+    .optional()
+    .transform((v) => {
+      if (v === undefined || v === "") return false;
+      if (typeof v === "boolean") return v;
+      const s = v.trim().toLowerCase();
+      return s === "true" || s === "1" || s === "sim" || s === "yes";
+    }),
   end_date: z
     .string()
     .optional()
@@ -57,6 +80,17 @@ export const clientContractFormSchema = z
         code: "custom",
         message: "Data fim antes da data início.",
         path: ["end_date"],
+      });
+    }
+    if (
+      val.start_date &&
+      val.first_billing_date &&
+      val.first_billing_date < val.start_date
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Primeira cobrança deve ser ≥ data de início (onboarding).",
+        path: ["first_billing_date"],
       });
     }
   });

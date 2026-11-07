@@ -78,6 +78,9 @@ Metadados financeiros e PDF/arquivo no bucket privado `contracts` (Storage path 
 | `client_id` | uuid NOT NULL → clients (CASCADE) | |
 | `label` | text NOT NULL | CHECK trim length ≥ 2 |
 | `monthly_value` | numeric(14,2) | nullable |
+| `implementation_fee` | numeric(14,2) | nullable; taxa de implantação única (≥0) |
+| `implementation_fee_paid` | boolean NOT NULL default false | quitada sem data obrigatória |
+| `first_billing_date` | date | nullable; 1ª cobrança (distinto de `payment_day_of_month`) |
 | `currency` | text NOT NULL default `BRL` | |
 | `reajuste_notes` | text | nullable |
 | `start_date`, `end_date` | date | nullable; CHECK `end >= start` quando ambos |
@@ -931,6 +934,9 @@ cross-tenant.
 | 20261106220100 | mcp_idempotent_calls | repo — `mcp_idempotent_responses` (cache idempotency MCP; só service_role) |
 | 20261106220200 | verify_mcp_agent_token_auth_user | repo — `verify_mcp_agent_token` recusa `auth.users` inexistente ou banido |
 | 20261107013000 | catalog_conteudo_v2 | repo — enums `catalog_offer_*`, colunas em `service_products`, seed dryos-conteudo, arquivo slugs legado |
+| 20261107040000 | client_contracts_implementation_fee | repo — coluna `implementation_fee` opcional |
+| 20261107050000 | client_contracts_billing_semantics | repo — `first_billing_date`, `implementation_fee_paid` |
+| 20261107060000 | client_contracts_metadata_only | repo — contrato sem arquivo (storage NULL) |
 
 Seeds dev (não-permanentes):
 - `supabase/seed/dev_demo.sql` — 3 Clientes + 3 Operações + 3 Frentes + 2 Pessoas + 3 Alocações

@@ -121,7 +121,9 @@ export async function deleteClientContractAction(
     .eq("id", contractId);
   if (delErr) return dbErr(delErr, "deleteClientContractAction.db");
 
-  await supabase.storage.from(BUCKET).remove([row.storage_path]).catch(() => undefined);
+  if (row.storage_path) {
+    await supabase.storage.from(BUCKET).remove([row.storage_path]).catch(() => undefined);
+  }
   revalidatePath(`/clients/${clientId}`);
   return ok({ id: contractId });
 }

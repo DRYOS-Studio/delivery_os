@@ -26,6 +26,8 @@ const listArgs = z.object({
   client_id: z.string().uuid().optional(),
   status: z.array(taskStatusEnum).max(4).optional(),
   assignee_person_id: z.string().uuid().optional(),
+  /** Quando true, só tarefas de área (area_id NOT NULL). Quando false, só entrega. Omitir = ambas (RLS). */
+  area_tasks_only: z.boolean().optional(),
 });
 
 export async function mcpListTasks(
@@ -72,6 +74,8 @@ export async function mcpListTasks(
   if (opFilterIds) q = q.in("operation_id", opFilterIds);
   if (taskIdFilter) q = q.in("id", taskIdFilter);
   if (a.status && a.status.length > 0) q = q.in("status", a.status);
+  if (a.area_tasks_only === true) q = q.not("area_id", "is", null);
+  if (a.area_tasks_only === false) q = q.is("area_id", null);
 
   const { data, error } = await q;
   if (error) return { ok: false, message: error.message };
@@ -168,6 +172,51 @@ export async function mcpCreateDeliveryTask(
   const syncErr = await syncAssignees(supabase, row.id, data.assignee_person_ids);
   if (syncErr) return { ok: false, message: syncErr };
 
+  return { ok: true, id: row.id, operation_id: row.operation_id };
+}
+
+const createAreaArgs = z
+  .object({
+    operation_id: z.string().uuid(),
+    idempotency_key: z.string().min(8).max(200).optional(),
+  })
+  .merge(taskSchema)
+  .refine((d) => Boolean(d.area_id), { message: "area_id obrigatório.", path: ["area_id"] });
+
+export async function mcpCreateAreaTask(
+  supabase: SupabaseClient<Database>,
+  rawArgs: Record<string, unknown>,
+): Promise<
+  { ok: true; id: string; operation_id: string } | { ok: false; message: string }
+> {
+  const parsed = createAreaArgs.safeParse(rawArgs);
+  if (!parsed.success) {
+    return { ok: false, message: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  }
+  const { idempotency_key: _ik, operation_id, ...data } = parsed.data;
+  void _ik;
+  if (data.area_id) {
+    // XOR: entrega vs área — já validado
+  }
+  const { data: row, error } = await supabase
+    .from("tasks")
+    .insert({
+      operation_id,
+      frente_id: null,
+      area_id: data.area_id!,
+      title: data.title,
+      description: data.description ?? null,
+      status: data.status,
+      start_date: data.start_date ?? null,
+      due_date: data.due_date ?? null,
+      tags: data.tags ?? null,
+    })
+    .select("id, operation_id")
+    .single();
+  if (error) return { ok: false, message: error.message };
+  if (!row) return { ok: false, message: "Falha ao criar." };
+  const syncErr = await syncAssignees(supabase, row.id, data.assignee_person_ids);
+  if (syncErr) return { ok: false, message: syncErr };
   return { ok: true, id: row.id, operation_id: row.operation_id };
 }
 

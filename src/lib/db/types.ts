@@ -486,10 +486,13 @@ export type Database = {
           created_at: string
           currency: string
           end_date: string | null
-          filename: string
+          filename: string | null
+          first_billing_date: string | null
           id: string
+          implementation_fee: number | null
+          implementation_fee_paid: boolean
           label: string
-          mime_type: string
+          mime_type: string | null
           monthly_value: number | null
           notes: string | null
           payment_day_of_month: number | null
@@ -497,7 +500,7 @@ export type Database = {
           size_bytes: number
           start_date: string | null
           status: Database["public"]["Enums"]["client_contract_status"]
-          storage_path: string
+          storage_path: string | null
           updated_at: string
           uploaded_by: string | null
         }
@@ -506,18 +509,21 @@ export type Database = {
           created_at?: string
           currency?: string
           end_date?: string | null
-          filename: string
+          filename?: string | null
+          first_billing_date?: string | null
           id?: string
+          implementation_fee?: number | null
+          implementation_fee_paid?: boolean
           label: string
-          mime_type: string
+          mime_type?: string | null
           monthly_value?: number | null
           notes?: string | null
           payment_day_of_month?: number | null
           reajuste_notes?: string | null
-          size_bytes: number
+          size_bytes?: number
           start_date?: string | null
           status?: Database["public"]["Enums"]["client_contract_status"]
-          storage_path: string
+          storage_path?: string | null
           updated_at?: string
           uploaded_by?: string | null
         }
@@ -526,8 +532,11 @@ export type Database = {
           created_at?: string
           currency?: string
           end_date?: string | null
-          filename?: string
+          filename?: string | null
+          first_billing_date?: string | null
           id?: string
+          implementation_fee?: number | null
+          implementation_fee_paid?: boolean
           label?: string
           mime_type?: string
           monthly_value?: number | null
