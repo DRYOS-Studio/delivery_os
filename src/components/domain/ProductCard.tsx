@@ -3,6 +3,11 @@ import Link from "next/link";
 import { ArchiveServiceProductButton } from "@/components/domain/ArchiveServiceProductButton";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
+import {
+  CATALOG_GROUP_LABELS,
+  CATALOG_KIND_LABELS,
+  isCatalogOfferGroup,
+} from "@/lib/catalog/catalog-offer";
 import type { ServiceProductRow } from "@/lib/db/queries/service-products";
 import { formatCycleTypeShort } from "@/lib/utils/cycle-type";
 
@@ -23,6 +28,16 @@ export function ProductCard({
             <Package className="w-6 h-6" strokeWidth={1.75} />
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            {product.catalog_group && isCatalogOfferGroup(product.catalog_group) && (
+              <Pill variant="sage">
+                {CATALOG_GROUP_LABELS[product.catalog_group]}
+              </Pill>
+            )}
+            {product.catalog_kind !== "product" && (
+              <Pill variant="oak">
+                {CATALOG_KIND_LABELS[product.catalog_kind]}
+              </Pill>
+            )}
             <Pill variant="neutral">{product.slug}</Pill>
             {archived && <Pill variant="warning">Arquivado</Pill>}
           </div>

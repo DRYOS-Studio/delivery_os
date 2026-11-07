@@ -1644,6 +1644,11 @@ export type Database = {
       service_products: {
         Row: {
           archived_at: string | null
+          catalog_group:
+            | Database["public"]["Enums"]["catalog_offer_group"]
+            | null
+          catalog_kind: Database["public"]["Enums"]["catalog_offer_kind"]
+          content_ref: string | null
           created_at: string
           default_cycle_type:
             | Database["public"]["Enums"]["frente_cycle_type"]
@@ -1652,10 +1657,16 @@ export type Database = {
           id: string
           name: string
           slug: string
+          sort_order: number
           updated_at: string
         }
         Insert: {
           archived_at?: string | null
+          catalog_group?:
+            | Database["public"]["Enums"]["catalog_offer_group"]
+            | null
+          catalog_kind?: Database["public"]["Enums"]["catalog_offer_kind"]
+          content_ref?: string | null
           created_at?: string
           default_cycle_type?:
             | Database["public"]["Enums"]["frente_cycle_type"]
@@ -1664,10 +1675,16 @@ export type Database = {
           id?: string
           name: string
           slug: string
+          sort_order?: number
           updated_at?: string
         }
         Update: {
           archived_at?: string | null
+          catalog_group?:
+            | Database["public"]["Enums"]["catalog_offer_group"]
+            | null
+          catalog_kind?: Database["public"]["Enums"]["catalog_offer_kind"]
+          content_ref?: string | null
           created_at?: string
           default_cycle_type?:
             | Database["public"]["Enums"]["frente_cycle_type"]
@@ -1676,6 +1693,7 @@ export type Database = {
           id?: string
           name?: string
           slug?: string
+          sort_order?: number
           updated_at?: string
         }
         Relationships: []
@@ -2083,6 +2101,12 @@ export type Database = {
         | "profile"
       allocation_role: "responsavel" | "executor" | "aprovador" | "plantao"
       attachment_visibility: "interno" | "cliente"
+      catalog_offer_group:
+        | "funcionarios_digitais"
+        | "automacoes"
+        | "dryos_os"
+        | "studio"
+      catalog_offer_kind: "product" | "plan" | "studio_category"
       cost_recurrence: "mensal" | "unica"
       decision_visibility: "interno" | "cliente"
       frente_cycle_type: "a" | "b" | "c" | "d" | "e"
@@ -2244,6 +2268,13 @@ export const Constants = {
       ],
       allocation_role: ["responsavel", "executor", "aprovador", "plantao"],
       attachment_visibility: ["interno", "cliente"],
+      catalog_offer_group: [
+        "funcionarios_digitais",
+        "automacoes",
+        "dryos_os",
+        "studio",
+      ],
+      catalog_offer_kind: ["product", "plan", "studio_category"],
       cost_recurrence: ["mensal", "unica"],
       decision_visibility: ["interno", "cliente"],
       frente_cycle_type: ["a", "b", "c", "d", "e"],

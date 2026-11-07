@@ -1,5 +1,7 @@
 import { createServer } from "@/lib/db/client";
 import type { Database } from "@/lib/db/types";
+import { compareCatalogProducts } from "@/lib/catalog/group-service-products";
+import type { CatalogOfferGroup, CatalogOfferKind } from "@/lib/catalog/catalog-offer";
 import type { CycleType } from "@/lib/utils/cycle-type";
 
 export type ServiceProductRow =
@@ -10,16 +12,20 @@ export type ServiceProductListItem = {
   name: string;
   slug: string;
   defaultCycleType: CycleType | null;
+  catalogGroup: CatalogOfferGroup | null;
+  catalogKind: CatalogOfferKind;
+  sortOrder: number;
 };
+
+function sortRows(rows: ServiceProductRow[]): ServiceProductRow[] {
+  return [...rows].sort(compareCatalogProducts);
+}
 
 export async function listServiceProducts(): Promise<ServiceProductRow[]> {
   const supabase = await createServer();
-  const { data, error } = await supabase
-    .from("service_products")
-    .select("*")
-    .order("name", { ascending: true });
+  const { data, error } = await supabase.from("service_products").select("*");
   if (error) throw new Error(`listServiceProducts: ${error.message}`);
-  return data ?? [];
+  return sortRows(data ?? []);
 }
 
 export async function listActiveServiceProducts(): Promise<
@@ -28,16 +34,35 @@ export async function listActiveServiceProducts(): Promise<
   const supabase = await createServer();
   const { data, error } = await supabase
     .from("service_products")
-    .select("id, name, slug, default_cycle_type")
-    .is("archived_at", null)
-    .order("name", { ascending: true });
+    .select(
+      "id, name, slug, default_cycle_type, catalog_group, catalog_kind, sort_order",
+    )
+    .is("archived_at", null);
   if (error) throw new Error(`listActiveServiceProducts: ${error.message}`);
-  return (data ?? []).map((r) => ({
+  const items: ServiceProductListItem[] = (data ?? []).map((r) => ({
     id: r.id,
     name: r.name,
     slug: r.slug,
     defaultCycleType: r.default_cycle_type,
+    catalogGroup: r.catalog_group,
+    catalogKind: r.catalog_kind,
+    sortOrder: r.sort_order,
   }));
+  items.sort((a, b) =>
+    compareCatalogProducts(
+      {
+        catalog_group: a.catalogGroup,
+        sort_order: a.sortOrder,
+        name: a.name,
+      },
+      {
+        catalog_group: b.catalogGroup,
+        sort_order: b.sortOrder,
+        name: b.name,
+      },
+    ),
+  );
+  return items;
 }
 
 export async function getServiceProduct(
