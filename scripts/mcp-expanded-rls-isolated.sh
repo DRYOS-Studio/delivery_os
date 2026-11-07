@@ -52,6 +52,18 @@ then
 fi
 echo "ASSERT OK: member blocked on clients INSERT"
 
+if run_rls <<SQL 2>/dev/null
+BEGIN;
+SET LOCAL "request.jwt.claim.sub" = '${MEMBER_ID}';
+INSERT INTO public.service_products (name, slug, default_cycle_type)
+VALUES ('MCP member blocked', 'mcp-member-blocked', 'c');
+COMMIT;
+SQL
+then
+  echo "ASSERT FAIL: member inserted service_product"; exit 1
+fi
+echo "ASSERT OK: member blocked on service_products INSERT"
+
 # Admin can insert client
 run_rls <<SQL
 BEGIN;
