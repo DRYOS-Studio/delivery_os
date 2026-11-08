@@ -1,10 +1,10 @@
 -- Repositórios Git (múltiplos, por escopo) + stack técnica + softwares do cliente.
 --
--- Ordem para Rafael:
--- 1) Opcional: `20261108030000_git_repository_url.sql` (se já aplicou, ok).
--- 2) Obrigatório: este arquivo — cria tabelas, importa URLs singulares legadas
---    (label `Principal`) se as colunas existirem, depois DROP das colunas.
---    Se (1) nunca rodou, pule direto para (2); não há perda de dados novos.
+-- Fase 1 (aditiva, segura com app antigo ainda no ar):
+-- 1) Opcional: `20261108030000_git_repository_url.sql`
+-- 2) Este arquivo — cria tabelas + importa URLs singulares para `repository_links`
+--    (label `Principal`) se as colunas existirem. **Não remove** colunas legadas.
+-- 3) Após merge + deploy do app novo: `20261108050000_drop_legacy_git_repository_url_columns.sql`
 
 -- ─── repository_links ─────────────────────────────────────────────────────
 
@@ -145,7 +145,6 @@ BEGIN
         WHERE rl.client_id = c.id AND rl.operation_id IS NULL AND rl.frente_id IS NULL
           AND rl.url = trim(c.git_repository_url)
       );
-    ALTER TABLE public.clients DROP COLUMN IF EXISTS git_repository_url;
   END IF;
 
   IF EXISTS (
@@ -161,7 +160,6 @@ BEGIN
         WHERE rl.operation_id = o.id AND rl.frente_id IS NULL
           AND rl.url = trim(o.git_repository_url)
       );
-    ALTER TABLE public.operations DROP COLUMN IF EXISTS git_repository_url;
   END IF;
 
   IF EXISTS (
@@ -175,16 +173,10 @@ BEGIN
     WHERE f.git_repository_url IS NOT NULL AND trim(f.git_repository_url) <> ''
       AND NOT EXISTS (
         SELECT 1 FROM public.repository_links rl
-        WHERE rl.frente_id = f.id AND rl.url = trim(f.git_repository_url)
+        WHERE rl.frente_id = f.id           AND rl.url = trim(f.git_repository_url)
       );
-    ALTER TABLE public.frentes DROP COLUMN IF EXISTS git_repository_url;
   END IF;
 END $$;
-
--- Drop constraints legados das colunas singulares
-ALTER TABLE public.clients DROP CONSTRAINT IF EXISTS check_clients_git_repository_url;
-ALTER TABLE public.operations DROP CONSTRAINT IF EXISTS check_operations_git_repository_url;
-ALTER TABLE public.frentes DROP CONSTRAINT IF EXISTS check_frentes_git_repository_url;
 
 -- ─── RLS ──────────────────────────────────────────────────────────────────
 

@@ -10,6 +10,7 @@ import {
   createFrenteRepositoryLinkAction,
   createOperationRepositoryLinkAction,
   deleteRepositoryLinkAction,
+  updateRepositoryLinkAction,
 } from "@/lib/actions/repository-links";
 import type { RepositoryLinkRow } from "@/lib/db/queries/repository-links";
 import { repositoryLinkScope } from "@/lib/utils/repository-link-scope";
@@ -45,6 +46,7 @@ export function RepositoryLinksPanel({
   const formRef = useRef<HTMLFormElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   async function onCreate(formData: FormData) {
     setError(null);
@@ -88,6 +90,19 @@ export function RepositoryLinksPanel({
       setError(res.error);
       return;
     }
+    router.refresh();
+  }
+
+  async function onUpdate(linkId: string, formData: FormData) {
+    setError(null);
+    setBusy(true);
+    const res = await updateRepositoryLinkAction(linkId, formData);
+    setBusy(false);
+    if (!res.ok) {
+      setError(res.error);
+      return;
+    }
+    setEditingId(null);
     router.refresh();
   }
 
@@ -145,21 +160,87 @@ export function RepositoryLinksPanel({
           </form>
           {manageableLinks.length > 0 && (
             <ul className="mt-3 space-y-1">
-              {manageableLinks.map((link) => (
-                <li key={link.id} className="flex items-center justify-between gap-2">
-                  <span className="text-sm text-ink-soft truncate">{link.label}</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    disabled={busy}
-                    onClick={() => onDelete(link)}
-                    className="text-critical"
+              {manageableLinks.map((link) =>
+                editingId === link.id ? (
+                  <li key={link.id} className="py-2">
+                    <form
+                      action={(fd) => onUpdate(link.id, fd)}
+                      className="grid gap-2 max-w-xl"
+                    >
+                      <input
+                        name="label"
+                        required
+                        defaultValue={link.label}
+                        className={inputCn}
+                        disabled={busy}
+                      />
+                      <input
+                        name="url"
+                        required
+                        type="url"
+                        defaultValue={link.url}
+                        className={inputCn}
+                        disabled={busy}
+                      />
+                      <input
+                        name="notes"
+                        defaultValue={link.notes ?? ""}
+                        className={inputCn}
+                        disabled={busy}
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          type="submit"
+                          variant="primary"
+                          size="sm"
+                          disabled={busy}
+                        >
+                          Salvar
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          disabled={busy}
+                          onClick={() => setEditingId(null)}
+                        >
+                          Cancelar
+                        </Button>
+                      </div>
+                    </form>
+                  </li>
+                ) : (
+                  <li
+                    key={link.id}
+                    className="flex items-center justify-between gap-2"
                   >
-                    Remover
-                  </Button>
-                </li>
-              ))}
+                    <span className="text-sm text-ink-soft truncate">
+                      {link.label}
+                    </span>
+                    <div className="flex gap-1 shrink-0">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={busy}
+                        onClick={() => setEditingId(link.id)}
+                      >
+                        Editar
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={busy}
+                        onClick={() => onDelete(link)}
+                        className="text-critical"
+                      >
+                        Remover
+                      </Button>
+                    </div>
+                  </li>
+                ),
+              )}
             </ul>
           )}
         </div>

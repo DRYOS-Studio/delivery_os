@@ -37,3 +37,8 @@ export const clientTechItemSchema = z.object({
 
 export type ClientTechItemInput = z.input<typeof clientTechItemSchema>;
 export type ClientTechItemOutput = z.output<typeof clientTechItemSchema>;
+
+export const clientTechItemUpdateSchema = clientTechItemSchema.extend({
+  item_id: z.string().uuid("item_id inválido."),
+  client_id: z.string().uuid("client_id inválido."),
+});

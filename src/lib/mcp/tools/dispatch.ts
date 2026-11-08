@@ -23,6 +23,8 @@ import {
   mcpDeleteClientTechItem,
   mcpListClientSoftwareItems,
   mcpListClientTechItems,
+  mcpUpdateClientSoftwareItem,
+  mcpUpdateClientTechItem,
 } from "@/lib/mcp/tools/client-tooling-tools";
 import {
   mcpCreateRepositoryLink,
@@ -252,6 +254,10 @@ export async function dispatchMcpTool(input: DispatchInput): Promise<unknown> {
       const r = await mcpCreateClientTechItem(ctx, args);
       return flattenResult(r);
     }
+    case "update_client_tech_item": {
+      const r = await mcpUpdateClientTechItem(ctx, args);
+      return flattenResult(r);
+    }
     case "delete_client_tech_item": {
       const r = await mcpDeleteClientTechItem(ctx, args);
       return flattenResult(r);
@@ -262,6 +268,10 @@ export async function dispatchMcpTool(input: DispatchInput): Promise<unknown> {
     }
     case "create_client_software_item": {
       const r = await mcpCreateClientSoftwareItem(ctx, args);
+      return flattenResult(r);
+    }
+    case "update_client_software_item": {
+      const r = await mcpUpdateClientSoftwareItem(ctx, args);
       return flattenResult(r);
     }
     case "delete_client_software_item": {

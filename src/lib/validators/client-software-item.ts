@@ -37,3 +37,8 @@ export const clientSoftwareItemSchema = z.object({
 
 export type ClientSoftwareItemInput = z.input<typeof clientSoftwareItemSchema>;
 export type ClientSoftwareItemOutput = z.output<typeof clientSoftwareItemSchema>;
+
+export const clientSoftwareItemUpdateSchema = clientSoftwareItemSchema.extend({
+  item_id: z.string().uuid("item_id inválido."),
+  client_id: z.string().uuid("client_id inválido."),
+});

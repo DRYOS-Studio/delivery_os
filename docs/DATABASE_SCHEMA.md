@@ -76,7 +76,7 @@ RLS: `authenticated_full_access` (sem 1). Granularidade Admin/Membro entra com `
 | `url` | text NOT NULL | https, validado no app |
 | `notes` | text | opcional, curto |
 
-Migration `20261108040000` importa colunas legadas `git_repository_url` (se existirem) com label `Principal` e remove as colunas singulares.
+Migration `20261108040000` importa colunas legadas `git_repository_url` (se existirem) com label `Principal` **sem** remover as colunas singulares. A remoção fica em `20261108050000_drop_legacy_git_repository_url_columns.sql` (após deploy do app novo). Ver `docs/ROLLOUT_REPOSITORY_TOOLING.md`.
 
 ### `client_tech_items` — stack técnica (dev/infra)
 

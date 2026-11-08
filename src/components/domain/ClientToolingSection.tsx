@@ -10,6 +10,8 @@ import {
   createClientTechItemAction,
   deleteClientSoftwareItemAction,
   deleteClientTechItemAction,
+  updateClientSoftwareItemAction,
+  updateClientTechItemAction,
 } from "@/lib/actions/client-tooling";
 import type {
   ClientSoftwareItemRow,
@@ -66,16 +68,19 @@ export function ClientToolingSection({
           ) : (
             <ul className="space-y-3">
               {techItems.map((item) => (
-                <ItemRow
+                <EditableToolingRow
                   key={item.id}
                   name={item.name}
                   meta={item.category}
                   notes={item.notes}
                   url={item.url}
-                  onDelete={
-                    isAdmin
-                      ? () => deleteClientTechItemAction(item.id, clientId)
-                      : undefined
+                  isAdmin={isAdmin}
+                  fieldMeta="category"
+                  metaPlaceholder="Categoria"
+                  urlHint={undefined}
+                  onDelete={() => deleteClientTechItemAction(item.id, clientId)}
+                  onSave={(fd) =>
+                    updateClientTechItemAction(item.id, clientId, fd)
                   }
                 />
               ))}
@@ -96,17 +101,21 @@ export function ClientToolingSection({
           ) : (
             <ul className="space-y-3">
               {softwareItems.map((item) => (
-                <ItemRow
+                <EditableToolingRow
                   key={item.id}
                   name={item.name}
                   meta={item.purpose}
                   notes={item.notes}
                   url={item.url}
+                  isAdmin={isAdmin}
+                  fieldMeta="purpose"
+                  metaPlaceholder="Finalidade"
                   urlHint="Acesso ao sistema"
-                  onDelete={
-                    isAdmin
-                      ? () => deleteClientSoftwareItemAction(item.id, clientId)
-                      : undefined
+                  onDelete={() =>
+                    deleteClientSoftwareItemAction(item.id, clientId)
+                  }
+                  onSave={(fd) =>
+                    updateClientSoftwareItemAction(item.id, clientId, fd)
                   }
                 />
               ))}
@@ -140,32 +149,114 @@ function ToolingBlock({
   );
 }
 
-function ItemRow({
+function EditableToolingRow({
   name,
   meta,
   notes,
   url,
   urlHint,
+  isAdmin,
+  fieldMeta,
+  metaPlaceholder,
   onDelete,
+  onSave,
 }: {
   name: string;
   meta: string | null;
   notes: string | null;
   url: string | null;
   urlHint?: string | undefined;
-  onDelete?: (() => Promise<{ ok: boolean; error?: string }>) | undefined;
+  isAdmin: boolean;
+  fieldMeta: "category" | "purpose";
+  metaPlaceholder: string;
+  onDelete: () => Promise<{ ok: boolean; error?: string }>;
+  onSave: (
+    fd: FormData,
+  ) => Promise<{ ok: boolean; error?: string }>;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleDelete() {
-    if (!onDelete) return;
     if (!globalThis.confirm(`Remover "${name}"?`)) return;
     setBusy(true);
     const res = await onDelete();
     setBusy(false);
-    if (!res.ok) return;
+    if (!res.ok) {
+      setError(res.error ?? "Falha ao remover.");
+      return;
+    }
     router.refresh();
+  }
+
+  async function handleSave(formData: FormData) {
+    setError(null);
+    setBusy(true);
+    const res = await onSave(formData);
+    setBusy(false);
+    if (!res.ok) {
+      setError(res.error ?? "Falha ao salvar.");
+      return;
+    }
+    setEditing(false);
+    router.refresh();
+  }
+
+  if (editing && isAdmin) {
+    return (
+      <li className="border-b border-line pb-3 last:border-0">
+        <form action={handleSave} className="grid gap-2 max-w-xl">
+          {error && (
+            <p className="text-sm text-critical" role="alert">
+              {error}
+            </p>
+          )}
+          <input
+            name="name"
+            required
+            defaultValue={name}
+            className={inputCn}
+            disabled={busy}
+          />
+          <input
+            name={fieldMeta}
+            defaultValue={meta ?? ""}
+            placeholder={metaPlaceholder}
+            className={inputCn}
+            disabled={busy}
+          />
+          <input
+            name="url"
+            type="url"
+            defaultValue={url ?? ""}
+            className={inputCn}
+            disabled={busy}
+          />
+          <input
+            name="notes"
+            defaultValue={notes ?? ""}
+            className={inputCn}
+            disabled={busy}
+          />
+          <div className="flex gap-2">
+            <Button type="submit" size="sm" variant="primary" disabled={busy}>
+              Salvar
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={busy}
+              onClick={() => setEditing(false)}
+            >
+              Cancelar
+            </Button>
+          </div>
+        </form>
+      </li>
+    );
   }
 
   return (
@@ -177,17 +268,28 @@ function ItemRow({
             {meta}
           </span>
         )}
-        {onDelete && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="ml-auto text-critical"
-            disabled={busy}
-            onClick={handleDelete}
-          >
-            Remover
-          </Button>
+        {isAdmin && (
+          <div className="ml-auto flex gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={busy}
+              onClick={() => setEditing(true)}
+            >
+              Editar
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-critical"
+              disabled={busy}
+              onClick={handleDelete}
+            >
+              Remover
+            </Button>
+          </div>
         )}
       </div>
       {url && (
@@ -197,6 +299,11 @@ function ItemRow({
         </div>
       )}
       {notes && <p className="text-xs text-mute">{notes}</p>}
+      {error && !editing && (
+        <p className="text-sm text-critical" role="alert">
+          {error}
+        </p>
+      )}
     </li>
   );
 }

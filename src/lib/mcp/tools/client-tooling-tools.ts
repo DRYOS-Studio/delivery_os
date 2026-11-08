@@ -1,5 +1,11 @@
-import { clientSoftwareItemSchema } from "@/lib/validators/client-software-item";
-import { clientTechItemSchema } from "@/lib/validators/client-tech-item";
+import {
+  clientSoftwareItemSchema,
+  clientSoftwareItemUpdateSchema,
+} from "@/lib/validators/client-software-item";
+import {
+  clientTechItemSchema,
+  clientTechItemUpdateSchema,
+} from "@/lib/validators/client-tech-item";
 import {
   mcpRequireAdmin,
   type McpHandlerContext,
@@ -54,6 +60,37 @@ export async function mcpCreateClientTechItem(
     .single();
   if (error) return { ok: false, message: error.message };
   if (!data) return { ok: false, message: "Falha ao criar." };
+  return { ok: true, data: { id: data.id } };
+}
+
+export async function mcpUpdateClientTechItem(
+  ctx: McpHandlerContext,
+  args: Record<string, unknown>,
+): Promise<McpToolResult<{ id: string }>> {
+  const denied = await mcpRequireAdmin(ctx);
+  if (denied) return denied;
+  const parsed = clientTechItemUpdateSchema.safeParse(args);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      message: parsed.error.issues[0]?.message ?? "Dados inválidos.",
+    };
+  }
+  const { item_id, client_id, ...row } = parsed.data;
+  const { data, error } = await ctx.supabase
+    .from("client_tech_items")
+    .update({
+      name: row.name,
+      category: row.category ?? null,
+      url: row.url ?? null,
+      notes: row.notes ?? null,
+    })
+    .eq("id", item_id)
+    .eq("client_id", client_id)
+    .select("id")
+    .maybeSingle();
+  if (error) return { ok: false, message: error.message };
+  if (!data) return { ok: false, message: "Item não encontrado.", notFound: true };
   return { ok: true, data: { id: data.id } };
 }
 
@@ -123,6 +160,37 @@ export async function mcpCreateClientSoftwareItem(
     .single();
   if (error) return { ok: false, message: error.message };
   if (!data) return { ok: false, message: "Falha ao criar." };
+  return { ok: true, data: { id: data.id } };
+}
+
+export async function mcpUpdateClientSoftwareItem(
+  ctx: McpHandlerContext,
+  args: Record<string, unknown>,
+): Promise<McpToolResult<{ id: string }>> {
+  const denied = await mcpRequireAdmin(ctx);
+  if (denied) return denied;
+  const parsed = clientSoftwareItemUpdateSchema.safeParse(args);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      message: parsed.error.issues[0]?.message ?? "Dados inválidos.",
+    };
+  }
+  const { item_id, client_id, ...row } = parsed.data;
+  const { data, error } = await ctx.supabase
+    .from("client_software_items")
+    .update({
+      name: row.name,
+      purpose: row.purpose ?? null,
+      url: row.url ?? null,
+      notes: row.notes ?? null,
+    })
+    .eq("id", item_id)
+    .eq("client_id", client_id)
+    .select("id")
+    .maybeSingle();
+  if (error) return { ok: false, message: error.message };
+  if (!data) return { ok: false, message: "Item não encontrado.", notFound: true };
   return { ok: true, data: { id: data.id } };
 }
 

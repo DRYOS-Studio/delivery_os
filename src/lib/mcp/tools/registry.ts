@@ -209,6 +209,13 @@ const BASE_MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
     inputSchema: { type: "object", properties: { ...idem } },
   },
   {
+    name: "update_client_tech_item",
+    access: "admin",
+    idempotent: true,
+    description: "Atualiza item da stack técnica (admin; preserva id).",
+    inputSchema: { type: "object", properties: { ...idem } },
+  },
+  {
     name: "delete_client_tech_item",
     access: "admin",
     idempotent: true,
@@ -235,6 +242,13 @@ const BASE_MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
     idempotent: true,
     description:
       "Adiciona software do cliente (nome/finalidade/url workspace opcional; admin).",
+    inputSchema: { type: "object", properties: { ...idem } },
+  },
+  {
+    name: "update_client_software_item",
+    access: "admin",
+    idempotent: true,
+    description: "Atualiza software do cliente (admin; preserva id).",
     inputSchema: { type: "object", properties: { ...idem } },
   },
   {

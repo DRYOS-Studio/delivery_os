@@ -33,6 +33,23 @@ function validateBody(formData: FormData): ActionResult<RepositoryLinkBody> {
   return ok(parsed.data);
 }
 
+async function assertOperationBelongsToClient(
+  clientId: string,
+  operationId: string,
+): Promise<ActionResult<undefined>> {
+  const supabase = await createServer();
+  const { data, error } = await supabase
+    .from("operations")
+    .select("client_id")
+    .eq("id", operationId)
+    .maybeSingle();
+  if (error) return dbErr(error, "assertOperationBelongsToClient");
+  if (!data || data.client_id !== clientId) {
+    return err("Operação não pertence ao Cliente.", "invalid_scope");
+  }
+  return ok(undefined);
+}
+
 async function assertFrenteBelongs(
   frenteId: string,
   operationId: string,
@@ -87,6 +104,9 @@ export async function createOperationRepositoryLinkAction(
   const user = await requireUserAction();
   if (!user.ok) return user;
 
+  const op = await assertOperationBelongsToClient(clientId, operationId);
+  if (!op.ok) return op;
+
   const body = validateBody(formData);
   if (!body.ok) return body;
 
@@ -117,6 +137,8 @@ export async function createFrenteRepositoryLinkAction(
   const user = await requireUserAction();
   if (!user.ok) return user;
 
+  const op = await assertOperationBelongsToClient(clientId, operationId);
+  if (!op.ok) return op;
   const scope = await assertFrenteBelongs(frenteId, operationId);
   if (!scope.ok) return scope;
 
@@ -153,16 +175,19 @@ export async function updateRepositoryLinkAction(
   if (!body.ok) return body;
 
   const supabase = await createServer();
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("repository_links")
     .update({
       label: body.data.label,
       url: body.data.url,
       notes: body.data.notes ?? null,
     })
-    .eq("id", linkId);
+    .eq("id", linkId)
+    .select("id")
+    .maybeSingle();
 
   if (error) return dbErr(error as PostgresError, "updateRepositoryLink");
+  if (!updated) return err("Link não encontrado ou sem permissão.", "not_found");
   return ok({ id: linkId });
 }
 
