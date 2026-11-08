@@ -423,6 +423,7 @@ export type Database = {
           archived_at: string | null
           cnpj: string | null
           created_at: string
+          git_repository_url: string | null
           id: string
           inscricao_estadual: string | null
           legal_name: string | null
@@ -445,6 +446,7 @@ export type Database = {
           archived_at?: string | null
           cnpj?: string | null
           created_at?: string
+          git_repository_url?: string | null
           id?: string
           inscricao_estadual?: string | null
           legal_name?: string | null
@@ -467,6 +469,7 @@ export type Database = {
           archived_at?: string | null
           cnpj?: string | null
           created_at?: string
+          git_repository_url?: string | null
           id?: string
           inscricao_estadual?: string | null
           legal_name?: string | null
@@ -711,6 +714,7 @@ export type Database = {
           cycle_type: Database["public"]["Enums"]["frente_cycle_type"]
           domain: Database["public"]["Enums"]["frente_domain"]
           end_date: string | null
+          git_repository_url: string | null
           id: string
           name: string
           operation_id: string
@@ -728,6 +732,7 @@ export type Database = {
           cycle_type: Database["public"]["Enums"]["frente_cycle_type"]
           domain: Database["public"]["Enums"]["frente_domain"]
           end_date?: string | null
+          git_repository_url?: string | null
           id?: string
           name: string
           operation_id: string
@@ -745,6 +750,7 @@ export type Database = {
           cycle_type?: Database["public"]["Enums"]["frente_cycle_type"]
           domain?: Database["public"]["Enums"]["frente_domain"]
           end_date?: string | null
+          git_repository_url?: string | null
           id?: string
           name?: string
           operation_id?: string
@@ -1184,6 +1190,7 @@ export type Database = {
           created_at: string
           diagnostic_id: string | null
           end_date: string | null
+          git_repository_url: string | null
           id: string
           monthly_fixed_cost: number | null
           monthly_recurring_revenue: number | null
@@ -1203,6 +1210,7 @@ export type Database = {
           created_at?: string
           diagnostic_id?: string | null
           end_date?: string | null
+          git_repository_url?: string | null
           id?: string
           monthly_fixed_cost?: number | null
           monthly_recurring_revenue?: number | null
@@ -1222,6 +1230,7 @@ export type Database = {
           created_at?: string
           diagnostic_id?: string | null
           end_date?: string | null
+          git_repository_url?: string | null
           id?: string
           monthly_fixed_cost?: number | null
           monthly_recurring_revenue?: number | null

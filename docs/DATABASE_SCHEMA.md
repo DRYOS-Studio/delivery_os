@@ -61,6 +61,7 @@ Origem de Operações, Pessoas externas, Credenciais (v2).
 | `address_state` | text | UF 2 chars maiúsculas; CHECK length=2 |
 | `address_zip` | text | só dígitos (8); CHECK length=8; display formata |
 | `notes` | text | livre, max 1000 chars (validado no app) |
+| `git_repository_url` | text | nullable; link https do repositório Git principal (opcional) |
 | `created_at`, `updated_at`, `archived_at` | timestamptz | soft-delete via `archived_at` |
 
 CHECKs: `cnpj`, `address_state`, `address_zip` (length), `primary_contact_email` (shape).
@@ -184,6 +185,8 @@ CHECK `chk_persons_kind_consistency`: garante exclusividade.
 | `start_date`, `end_date` | date | nullable; Tipo C/E não tem fim (validado via Frente) |
 | `response_hours` | int | SLA prometido pra primeira resposta. CHECK 0-720. Null = sem SLA |
 | `resolution_hours` | int | SLA prometido pra resolução total. CHECK 0-720. Null = sem SLA |
+| `notification_webhook_url` | text | nullable; webhook n8n por Operação |
+| `git_repository_url` | text | nullable; link https de repo específico da Operação (opcional) |
 | `created_at`, `updated_at`, `archived_at` | timestamptz | |
 
 ---
@@ -205,6 +208,7 @@ Status acionável validado no banco (CHECK).
 | `responsible_person_id` | uuid → persons (SET NULL) | |
 | `product_id` | uuid → service_products (SET NULL) | opcional; produto comercial DRYOS associado |
 | `start_date`, `end_date` | date | |
+| `git_repository_url` | text | nullable; link https de repo específico da Frente (opcional) |
 | `created_at`, `updated_at`, `archived_at` | timestamptz | |
 
 CHECKs `chk_frentes_actionable_status_min_length` + `chk_frentes_actionable_status_not_generic` garantem "status acionável" (princípio 04).

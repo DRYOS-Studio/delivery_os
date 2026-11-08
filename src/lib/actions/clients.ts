@@ -51,6 +51,7 @@ function formDataToClientInput(formData: FormData) {
     address_city: get(formData, "address_city"),
     address_state: stateRaw,
     address_zip: zipRaw,
+    git_repository_url: get(formData, "git_repository_url"),
   };
 }
 
@@ -72,6 +73,7 @@ function toDbPayload(data: ClientOutput) {
     address_city: data.address_city ?? null,
     address_state: data.address_state ?? null,
     address_zip: data.address_zip ?? null,
+    git_repository_url: data.git_repository_url ?? null,
   };
 }
 

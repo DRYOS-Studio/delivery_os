@@ -26,6 +26,7 @@ import {
   updateClientContractMcpSchema,
 } from "@/lib/mcp/tool-args/contracts";
 import { mcpInputSchemaFromZod } from "@/lib/mcp/tool-args/mcp-json-schema";
+import { optionalGitRepositoryUrlSchema } from "@/lib/utils/git-repository-url";
 
 const uuid = z.string().uuid();
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -45,6 +46,7 @@ const operationMcpBody = z
     monthly_fixed_cost: z.number().nonnegative().nullable().optional(),
     diagnostic_id: uuid.optional(),
     notification_webhook_url: z.string().max(500).optional(),
+    git_repository_url: optionalGitRepositoryUrlSchema,
   })
   .superRefine((d, ctx) => {
     if (d.start_date && d.end_date && d.end_date < d.start_date) {

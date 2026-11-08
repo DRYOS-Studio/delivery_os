@@ -83,6 +83,9 @@ export type FrenteDetail = {
   endDate: string | null;
   responsiblePersonId: string | null;
   responsibleName: string | null;
+  gitRepositoryUrl: string | null;
+  operationGitRepositoryUrl: string | null;
+  clientGitRepositoryUrl: string | null;
 };
 
 export async function getFrenteDetail(
@@ -95,7 +98,11 @@ export async function getFrenteDetail(
       `
       id, operation_id, name, cycle_type, domain, phase,
       actionable_status, actionable_status_since,
-      start_date, end_date, responsible_person_id,
+      start_date, end_date, responsible_person_id, git_repository_url,
+      operation:operations!fk_frentes_operation_id (
+        git_repository_url,
+        client:clients!fk_operations_client_id ( git_repository_url )
+      ),
       responsible:persons!fk_frentes_responsible_person_id(name)
       `,
     )
@@ -107,6 +114,14 @@ export async function getFrenteDetail(
   const resp = Array.isArray(data.responsible)
     ? (data.responsible[0] ?? null)
     : data.responsible;
+  const operation = Array.isArray(data.operation)
+    ? (data.operation[0] ?? null)
+    : data.operation;
+  const client = operation?.client
+    ? Array.isArray(operation.client)
+      ? (operation.client[0] ?? null)
+      : operation.client
+    : null;
   return {
     id: data.id,
     operationId: data.operation_id,
@@ -120,6 +135,9 @@ export async function getFrenteDetail(
     endDate: data.end_date,
     responsiblePersonId: data.responsible_person_id,
     responsibleName: resp?.name ?? null,
+    gitRepositoryUrl: data.git_repository_url,
+    operationGitRepositoryUrl: operation?.git_repository_url ?? null,
+    clientGitRepositoryUrl: client?.git_repository_url ?? null,
   };
 }
 

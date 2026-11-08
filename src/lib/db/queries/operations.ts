@@ -266,8 +266,14 @@ export type OperationDetail = {
   startDate: string | null;
   endDate: string | null;
   notificationWebhookUrl: string | null;
+  gitRepositoryUrl: string | null;
   createdAt: string;
-  client: { id: string; name: string; slug: string };
+  client: {
+    id: string;
+    name: string;
+    slug: string;
+    gitRepositoryUrl: string | null;
+  };
   frentes: FrenteListItem[];
 };
 
@@ -287,9 +293,9 @@ export async function getOperation(
       id, name, product_line, status, recurrence,
       monthly_recurring_revenue, monthly_fixed_cost,
       response_hours, resolution_hours,
-      diagnostic_id, start_date, end_date, notification_webhook_url,
+      diagnostic_id, start_date, end_date, notification_webhook_url, git_repository_url,
       created_at,
-      client:clients!inner(id, name, slug, archived_at),
+      client:clients!inner(id, name, slug, git_repository_url, archived_at),
       frentes(
         id, name, cycle_type, domain, phase,
         actionable_status, actionable_status_since,
@@ -355,11 +361,13 @@ export async function getOperation(
     startDate: data.start_date,
     endDate: data.end_date,
     notificationWebhookUrl: data.notification_webhook_url,
+    gitRepositoryUrl: data.git_repository_url,
     createdAt: data.created_at,
     client: {
       id: data.client.id,
       name: data.client.name,
       slug: data.client.slug,
+      gitRepositoryUrl: data.client.git_repository_url,
     },
     frentes,
   };

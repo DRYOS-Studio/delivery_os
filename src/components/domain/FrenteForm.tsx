@@ -98,6 +98,8 @@ export function FrenteForm(props: Props): React.JSX.Element {
         product_id: props.initialData.product_id ?? undefined,
         start_date: props.initialData.start_date ?? undefined,
         end_date: props.initialData.end_date ?? undefined,
+        git_repository_url:
+          props.initialData.git_repository_url ?? undefined,
       }
     : {
         name: "",
@@ -109,6 +111,7 @@ export function FrenteForm(props: Props): React.JSX.Element {
         product_id: undefined,
         start_date: undefined,
         end_date: undefined,
+        git_repository_url: undefined,
       };
 
   const {
@@ -169,6 +172,7 @@ export function FrenteForm(props: Props): React.JSX.Element {
     fd.set("product_id", data.product_id ?? "");
     fd.set("start_date", data.start_date ?? "");
     fd.set("end_date", data.end_date ?? "");
+    fd.set("git_repository_url", data.git_repository_url ?? "");
 
     const result = isEdit
       ? await updateFrenteAction(props.initialData.id, fd)
@@ -396,6 +400,22 @@ export function FrenteForm(props: Props): React.JSX.Element {
           />
         </Field>
       </div>
+
+      <Field
+        label="Repositório Git"
+        htmlFor="git_repository_url"
+        error={errors.git_repository_url?.message}
+        hint="Opcional. Específico desta Frente; se vazio, a tela da Frente herda o da Operação ou do Cliente."
+      >
+        <input
+          id="git_repository_url"
+          type="url"
+          placeholder="https://github.com/org/repo-frente"
+          {...register("git_repository_url")}
+          disabled={busy}
+          className={inputCn}
+        />
+      </Field>
 
       <div className="flex items-center justify-between pt-2">
         <div className="flex items-center gap-2">

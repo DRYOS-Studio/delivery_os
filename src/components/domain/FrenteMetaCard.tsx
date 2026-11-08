@@ -2,7 +2,9 @@ import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 import { Pill, type PillVariant } from "@/components/ui/Pill";
 import { StalenessPill } from "@/components/ui/StalenessPill";
+import { GitRepositoryLink } from "@/components/domain/GitRepositoryLink";
 import type { FrenteDetail } from "@/lib/db/queries/frentes";
+import { resolveGitRepositoryUrl } from "@/lib/utils/resolve-git-repository-url";
 import { formatCycleTypeShort } from "@/lib/utils/cycle-type";
 import { getInitials } from "@/lib/utils/initials";
 
@@ -31,6 +33,12 @@ export function FrenteMetaCard({
 }: {
   frente: FrenteDetail;
 }) {
+  const gitRepo = resolveGitRepositoryUrl({
+    frente: frente.gitRepositoryUrl,
+    operation: frente.operationGitRepositoryUrl,
+    client: frente.clientGitRepositoryUrl,
+  });
+
   return (
     <section className="mb-7 bg-card border border-line rounded p-5">
       <div className="flex flex-wrap items-center gap-2 mb-3">
@@ -81,6 +89,15 @@ export function FrenteMetaCard({
           )}
         </div>
       </div>
+
+      {gitRepo && (
+        <div className="mt-4 pt-4 border-t border-line">
+          <p className="font-mono text-[10px] uppercase tracking-wide text-mute mb-1">
+            Repositório Git
+          </p>
+          <GitRepositoryLink url={gitRepo.url} scope={gitRepo.scope} />
+        </div>
+      )}
     </section>
   );
 }

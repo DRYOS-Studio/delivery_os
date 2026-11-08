@@ -100,6 +100,7 @@ export function OperationForm(props: Props): React.JSX.Element {
         end_date: props.initialData.endDate ?? undefined,
         notification_webhook_url:
           props.initialData.notificationWebhookUrl ?? undefined,
+        git_repository_url: props.initialData.gitRepositoryUrl ?? undefined,
       }
     : {
         client_id: "",
@@ -115,6 +116,7 @@ export function OperationForm(props: Props): React.JSX.Element {
         start_date: undefined,
         end_date: undefined,
         notification_webhook_url: undefined,
+        git_repository_url: undefined,
       };
 
   const {
@@ -182,6 +184,7 @@ export function OperationForm(props: Props): React.JSX.Element {
     fd.set("start_date", data.start_date ?? "");
     fd.set("end_date", data.end_date ?? "");
     fd.set("notification_webhook_url", data.notification_webhook_url ?? "");
+    fd.set("git_repository_url", data.git_repository_url ?? "");
 
     const result = isEdit
       ? await updateOperationAction(props.initialData.id, fd)
@@ -530,6 +533,21 @@ export function OperationForm(props: Props): React.JSX.Element {
             type="url"
             placeholder="https://n8n.exemplo.com/webhook/dryos-..."
             {...register("notification_webhook_url")}
+            disabled={busy}
+            className={inputCn}
+          />
+        </Field>
+        <Field
+          label="Repositório Git"
+          htmlFor="git_repository_url"
+          error={errors.git_repository_url?.message}
+          hint="Opcional. Só desta Operação — se vazio, o time pode usar o link cadastrado no Cliente. https, sem token na URL."
+        >
+          <input
+            id="git_repository_url"
+            type="url"
+            placeholder="https://github.com/org/repo-operacao"
+            {...register("git_repository_url")}
             disabled={busy}
             className={inputCn}
           />

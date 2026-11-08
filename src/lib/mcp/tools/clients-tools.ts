@@ -11,7 +11,7 @@ import {
 import { z } from "zod";
 
 const CLIENT_SELECT =
-  "id, name, slug, notes, legal_name, cnpj, primary_contact_name, primary_contact_email, primary_contact_phone, address_city, address_state, created_at, updated_at, archived_at";
+  "id, name, slug, notes, legal_name, cnpj, primary_contact_name, primary_contact_email, primary_contact_phone, address_city, address_state, git_repository_url, created_at, updated_at, archived_at";
 
 function clientPayload(data: z.infer<typeof clientSchema>) {
   return {
@@ -31,6 +31,7 @@ function clientPayload(data: z.infer<typeof clientSchema>) {
     address_city: data.address_city ?? null,
     address_state: data.address_state ?? null,
     address_zip: data.address_zip ?? null,
+    git_repository_url: data.git_repository_url ?? null,
   };
 }
 

@@ -34,6 +34,7 @@ type CreateInput = {
   start_date: string | null;
   end_date: string | null;
   notification_webhook_url: string | null;
+  git_repository_url: string | null;
 };
 
 function parseFormDataToInput(formData: FormData): {
@@ -50,6 +51,7 @@ function parseFormDataToInput(formData: FormData): {
   start_date: string;
   end_date: string;
   notification_webhook_url: string;
+  git_repository_url: string;
 } {
   const mrrRaw = (formData.get("monthly_recurring_revenue") as string | null) ?? "";
   const mrrNumber = mrrRaw === "" ? null : Number(mrrRaw);
@@ -71,6 +73,9 @@ function parseFormDataToInput(formData: FormData): {
     end_date: ((formData.get("end_date") as string | null) ?? "").trim(),
     notification_webhook_url: (
       (formData.get("notification_webhook_url") as string | null) ?? ""
+    ).trim(),
+    git_repository_url: (
+      (formData.get("git_repository_url") as string | null) ?? ""
     ).trim(),
   };
 }
@@ -98,6 +103,7 @@ function validate(formData: FormData): ActionResult<CreateInput> {
     start_date: parsed.data.start_date ?? null,
     end_date: parsed.data.end_date ?? null,
     notification_webhook_url: parsed.data.notification_webhook_url ?? null,
+    git_repository_url: parsed.data.git_repository_url ?? null,
   });
 }
 
@@ -167,6 +173,7 @@ export async function updateOperationAction(
       start_date: v.data.start_date,
       end_date: v.data.end_date,
       notification_webhook_url: v.data.notification_webhook_url,
+      git_repository_url: v.data.git_repository_url,
     })
     .eq("id", id);
 
