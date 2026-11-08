@@ -6,6 +6,10 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { getProfile, requireUser } from "@/lib/auth/server";
 import { getFrenteDetail } from "@/lib/db/queries/frentes";
+import {
+  listRepositoryLinksForFrente,
+  listRepositoryLinksScopedToFrenteOnly,
+} from "@/lib/db/queries/repository-links";
 import { canWriteOperation } from "@/lib/db/queries/operation-members";
 import {
   isOpenStatus,
@@ -44,6 +48,11 @@ export default async function Page({
     listTasksByFrente(fid),
   ]);
   if (!frente || frente.operationId !== id) notFound();
+
+  const [repositoryLinks, frenteOnlyLinks] = await Promise.all([
+    listRepositoryLinksForFrente(frente.clientId, id, fid),
+    listRepositoryLinksScopedToFrenteOnly(fid),
+  ]);
 
   const isAdmin = profile?.role === "admin";
   const canWrite = await canWriteOperation(id);
@@ -85,7 +94,12 @@ export default async function Page({
           ) : undefined
         }
       />
-      <FrenteMetaCard frente={frente} />
+      <FrenteMetaCard
+        frente={frente}
+        repositoryLinks={repositoryLinks}
+        frenteOnlyLinks={frenteOnlyLinks}
+        canManageRepos={canWrite}
+      />
       <TasksSection
         tasks={filtered}
         frenteId={fid}

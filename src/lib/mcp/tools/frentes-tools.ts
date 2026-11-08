@@ -7,7 +7,7 @@ import {
 import { z } from "zod";
 
 const FRENTE_SELECT =
-  "id, operation_id, name, cycle_type, domain, phase, actionable_status, actionable_status_since, responsible_person_id, product_id, start_date, end_date, git_repository_url, archived_at, product:service_products ( id, name, slug, archived_at )";
+  "id, operation_id, name, cycle_type, domain, phase, actionable_status, actionable_status_since, responsible_person_id, product_id, start_date, end_date, archived_at, product:service_products ( id, name, slug, archived_at )";
 
 function frentePayload(data: z.infer<typeof frenteSchema>) {
   const statusChanged = false;
@@ -21,7 +21,6 @@ function frentePayload(data: z.infer<typeof frenteSchema>) {
     product_id: data.product_id ?? null,
     start_date: data.start_date ?? null,
     end_date: data.end_date ?? null,
-    git_repository_url: data.git_repository_url ?? null,
     ...(statusChanged ? {} : {}),
   };
 }

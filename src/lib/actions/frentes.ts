@@ -31,9 +31,6 @@ function parseFormData(formData: FormData) {
     product_id: ((formData.get("product_id") as string | null) ?? "").trim(),
     start_date: ((formData.get("start_date") as string | null) ?? "").trim(),
     end_date: ((formData.get("end_date") as string | null) ?? "").trim(),
-    git_repository_url: (
-      (formData.get("git_repository_url") as string | null) ?? ""
-    ).trim(),
   };
 }
 
@@ -91,7 +88,6 @@ export async function createFrenteAction(
       product_id: data.product_id ?? null,
       start_date: data.start_date ?? null,
       end_date: data.end_date ?? null,
-      git_repository_url: data.git_repository_url ?? null,
     })
     .select("id")
     .single();
@@ -134,7 +130,6 @@ export async function updateFrenteAction(
     product_id: data.product_id ?? null,
     start_date: data.start_date ?? null,
     end_date: data.end_date ?? null,
-    git_repository_url: data.git_repository_url ?? null,
     ...(statusChanged && {
       actionable_status_since: new Date().toISOString(),
     }),

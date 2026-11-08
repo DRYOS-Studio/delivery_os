@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { optionalGitRepositoryUrlSchema } from "@/lib/utils/git-repository-url";
 
 const emptyToUndefined = (v: unknown) => (v === "" ? undefined : v);
 
@@ -74,7 +73,6 @@ export const clientSchema = z.object({
   address_city: optionalText(100),
   address_state: optionalState,
   address_zip: optionalDigits(8, "CEP deve ter 8 dígitos."),
-  git_repository_url: optionalGitRepositoryUrlSchema,
 });
 
 export type ClientInput = z.input<typeof clientSchema>;

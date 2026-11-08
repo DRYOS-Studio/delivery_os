@@ -1,8 +1,8 @@
 import { Edit2, FileText, Users } from "lucide-react";
 import Link from "next/link";
-import { GitRepositoryLink } from "@/components/domain/GitRepositoryLink";
+import { RepositoryLinksList } from "@/components/domain/RepositoryLinksList";
+import type { RepositoryLinkRow } from "@/lib/db/queries/repository-links";
 import type { OperationDetail } from "@/lib/db/queries/operations";
-import { resolveGitRepositoryUrl } from "@/lib/utils/resolve-git-repository-url";
 import { formatDateBR, relativeFromNow } from "@/lib/utils/date";
 import {
   formatMarginPct,
@@ -50,17 +50,14 @@ export function OperationHero({
   briefingFreshness,
   isAdmin = false,
   margin,
+  repositoryLinks = [],
 }: {
   op: OperationDetail;
   briefingFreshness?: BriefingFreshness | undefined;
   isAdmin?: boolean;
   margin?: MarginResult | null;
+  repositoryLinks?: RepositoryLinkRow[];
 }) {
-  const gitRepo = resolveGitRepositoryUrl({
-    operation: op.gitRepositoryUrl,
-    client: op.client.gitRepositoryUrl,
-  });
-
   return (
     <section className="relative bg-oak text-bg rounded-lg p-8 overflow-hidden mb-9">
       <div
@@ -146,13 +143,9 @@ export function OperationHero({
         </h1>
         <p className="font-body text-base opacity-70 mt-1">{op.name}</p>
 
-        {gitRepo && (
+        {repositoryLinks.length > 0 && (
           <div className="mt-4">
-            <GitRepositoryLink
-              url={gitRepo.url}
-              scope={gitRepo.scope}
-              variant="onDark"
-            />
+            <RepositoryLinksList links={repositoryLinks} variant="onDark" />
           </div>
         )}
 

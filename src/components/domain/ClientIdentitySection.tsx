@@ -1,4 +1,3 @@
-import { GitRepositoryLink } from "@/components/domain/GitRepositoryLink";
 import type { ClientDetail } from "@/lib/db/queries/clients";
 import { formatCep, formatCnpj } from "@/lib/utils/mask";
 
@@ -55,9 +54,7 @@ export function ClientIdentitySection({ client }: Props) {
     client.address_state,
     client.address_zip,
   );
-  const hasGit = hasAny(client.git_repository_url);
-
-  if (!hasPJ && !hasContact && !hasAddress && !hasGit) return null;
+  if (!hasPJ && !hasContact && !hasAddress) return null;
 
   const cnpj = formatCnpj(client.cnpj);
   const addressLine = formatAddressLine(client);
@@ -129,14 +126,6 @@ export function ClientIdentitySection({ client }: Props) {
           </div>
         )}
 
-        {hasGit && client.git_repository_url && (
-          <div className="bg-card border border-line rounded p-4 space-y-2">
-            <h3 className="font-mono text-[10px] uppercase tracking-wide text-mute">
-              Repositório Git
-            </h3>
-            <GitRepositoryLink url={client.git_repository_url} scope="client" />
-          </div>
-        )}
       </div>
     </section>
   );

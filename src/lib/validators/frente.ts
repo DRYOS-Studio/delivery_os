@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { optionalGitRepositoryUrlSchema } from "@/lib/utils/git-repository-url";
 
 const emptyToUndefined = (v: unknown) => (v === "" ? undefined : v);
 
@@ -58,7 +57,6 @@ export const frenteSchema = z
     product_id: optionalProductUuid,
     start_date: dateString,
     end_date: dateString,
-    git_repository_url: optionalGitRepositoryUrlSchema,
   })
   .refine((data) => !["c", "e"].includes(data.cycle_type) || !data.end_date, {
     message: "Ciclo C/E é contínuo — não pode ter data de fim.",

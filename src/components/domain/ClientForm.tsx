@@ -60,7 +60,6 @@ const ERROR_TO_FIELD: Record<string, keyof ClientInput> = {
   validation_address_city: "address_city",
   validation_address_state: "address_state",
   validation_address_zip: "address_zip",
-  validation_git_repository_url: "git_repository_url",
 };
 
 export function ClientForm(props: Props): React.JSX.Element {
@@ -94,8 +93,6 @@ export function ClientForm(props: Props): React.JSX.Element {
         address_city: props.initialData.address_city ?? undefined,
         address_state: props.initialData.address_state ?? undefined,
         address_zip: formatCep(props.initialData.address_zip) ?? undefined,
-        git_repository_url:
-          props.initialData.git_repository_url ?? undefined,
       }
     : {
         name: "",
@@ -114,7 +111,6 @@ export function ClientForm(props: Props): React.JSX.Element {
         address_city: undefined,
         address_state: undefined,
         address_zip: undefined,
-        git_repository_url: undefined,
       };
 
   const {
@@ -178,7 +174,6 @@ export function ClientForm(props: Props): React.JSX.Element {
     fd.set("address_city", data.address_city ?? "");
     fd.set("address_state", data.address_state ?? "");
     fd.set("address_zip", data.address_zip ?? "");
-    fd.set("git_repository_url", data.git_repository_url ?? "");
 
     const result = isEdit
       ? await updateClientAction(props.initialData.id, fd)
@@ -498,25 +493,6 @@ export function ClientForm(props: Props): React.JSX.Element {
             />
           </Field>
         </div>
-      </Section>
-
-      <Section title="Repositório">
-        <Field
-          label="Git (URL https)"
-          htmlFor="git_repository_url"
-          error={errors.git_repository_url?.message}
-          hint="Link do repositório principal do cliente (GitHub, GitLab, Bitbucket, etc.). Opcional — deixe em branco pra remover."
-        >
-          <input
-            id="git_repository_url"
-            type="url"
-            placeholder="https://github.com/org/repositorio"
-            {...register("git_repository_url")}
-            maxLength={500}
-            disabled={busy}
-            className={inputCn}
-          />
-        </Field>
       </Section>
 
       <Section title="Observações">

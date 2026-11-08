@@ -146,6 +146,109 @@ const BASE_MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
     },
   },
   {
+    name: "list_repository_links",
+    access: "read",
+    description:
+      "Links de repositório Git do cliente (e herdados por operation_id/frente_id quando informados).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        client_id: { type: "string" },
+        operation_id: { type: "string" },
+        frente_id: { type: "string" },
+        limit: { type: "number" },
+      },
+      required: ["client_id"],
+    },
+  },
+  {
+    name: "create_repository_link",
+    access: "write",
+    idempotent: true,
+    description:
+      "Cria link de repositório (escopo client_id; operation_id/frente_id opcionais).",
+    inputSchema: { type: "object", properties: { ...idem } },
+  },
+  {
+    name: "update_repository_link",
+    access: "write",
+    idempotent: true,
+    description: "Atualiza link de repositório.",
+    inputSchema: {
+      type: "object",
+      properties: { link_id: { type: "string" }, ...idem },
+      required: ["link_id"],
+    },
+  },
+  {
+    name: "delete_repository_link",
+    access: "write",
+    idempotent: true,
+    description: "Remove link de repositório.",
+    inputSchema: {
+      type: "object",
+      properties: { link_id: { type: "string" }, ...idem },
+      required: ["link_id"],
+    },
+  },
+  {
+    name: "list_client_tech_items",
+    access: "read",
+    description: "Stack técnica do cliente.",
+    inputSchema: {
+      type: "object",
+      properties: { client_id: { type: "string" } },
+      required: ["client_id"],
+    },
+  },
+  {
+    name: "create_client_tech_item",
+    access: "admin",
+    idempotent: true,
+    description: "Adiciona item à stack técnica (admin).",
+    inputSchema: { type: "object", properties: { ...idem } },
+  },
+  {
+    name: "delete_client_tech_item",
+    access: "admin",
+    idempotent: true,
+    description: "Remove item da stack técnica (admin).",
+    inputSchema: {
+      type: "object",
+      properties: { client_id: { type: "string" }, item_id: { type: "string" }, ...idem },
+      required: ["client_id", "item_id"],
+    },
+  },
+  {
+    name: "list_client_software_items",
+    access: "read",
+    description: "Softwares que o cliente utiliza.",
+    inputSchema: {
+      type: "object",
+      properties: { client_id: { type: "string" } },
+      required: ["client_id"],
+    },
+  },
+  {
+    name: "create_client_software_item",
+    access: "admin",
+    idempotent: true,
+    description:
+      "Adiciona software do cliente (nome/finalidade/url workspace opcional; admin).",
+    inputSchema: { type: "object", properties: { ...idem } },
+  },
+  {
+    name: "delete_client_software_item",
+    access: "admin",
+    idempotent: true,
+    description: "Remove software do cliente (admin).",
+    inputSchema: {
+      type: "object",
+      properties: { client_id: { type: "string" }, item_id: { type: "string" }, ...idem },
+      required: ["client_id", "item_id"],
+    },
+  },
+  {
     name: "list_client_contracts",
     access: "admin",
     description: "Contratos do cliente (admin).",

@@ -12,7 +12,7 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 
 | Módulo | Tabelas | Total |
 |---|---|---|
-| **Cliente** | `clients`, `client_contracts` | 2 |
+| **Cliente** | `clients`, `client_contracts`, `repository_links`, `client_tech_items`, `client_software_items` | 5 |
 | **Operação** | `operations` | 1 |
 | **Entrega** | `frentes`, `allocations`, `tasks`, `task_assignees` | 4 |
 | **Pessoas** | `persons` | 1 |
@@ -61,11 +61,42 @@ Origem de Operações, Pessoas externas, Credenciais (v2).
 | `address_state` | text | UF 2 chars maiúsculas; CHECK length=2 |
 | `address_zip` | text | só dígitos (8); CHECK length=8; display formata |
 | `notes` | text | livre, max 1000 chars (validado no app) |
-| `git_repository_url` | text | nullable; link https do repositório Git principal (opcional) |
 | `created_at`, `updated_at`, `archived_at` | timestamptz | soft-delete via `archived_at` |
 
 CHECKs: `cnpj`, `address_state`, `address_zip` (length), `primary_contact_email` (shape).
 RLS: `authenticated_full_access` (sem 1). Granularidade Admin/Membro entra com `profiles` (sem 2+).
+
+### `repository_links` — repositórios Git (múltiplos por escopo)
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `client_id` | uuid NOT NULL | âncora RLS |
+| `operation_id`, `frente_id` | uuid NULL | escopo Operação/Frente; ambos null = nível Cliente |
+| `label` | text NOT NULL | nome/finalidade do repo |
+| `url` | text NOT NULL | https, validado no app |
+| `notes` | text | opcional, curto |
+
+Migration `20261108040000` importa colunas legadas `git_repository_url` (se existirem) com label `Principal` e remove as colunas singulares.
+
+### `client_tech_items` — stack técnica (dev/infra)
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `name` | text NOT NULL | texto livre |
+| `category` | text | ex.: cloud, linguagem |
+| `url` | text | https opcional (docs/console) |
+| `notes` | text | opcional |
+
+### `client_software_items` — softwares que o cliente usa
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `name` | text NOT NULL | texto livre (sem catálogo fechado) |
+| `purpose` | text | finalidade no cliente |
+| `url` | text | opcional — acesso ao **workspace/sistema do cliente**, não só site do fornecedor |
+| `notes` | text | opcional |
+
+Escrita (tech/software): admin. Repositórios em Operação/Frente: membro com `can_see_operation`.
 
 ---
 
@@ -186,7 +217,6 @@ CHECK `chk_persons_kind_consistency`: garante exclusividade.
 | `response_hours` | int | SLA prometido pra primeira resposta. CHECK 0-720. Null = sem SLA |
 | `resolution_hours` | int | SLA prometido pra resolução total. CHECK 0-720. Null = sem SLA |
 | `notification_webhook_url` | text | nullable; webhook n8n por Operação |
-| `git_repository_url` | text | nullable; link https de repo específico da Operação (opcional) |
 | `created_at`, `updated_at`, `archived_at` | timestamptz | |
 
 ---
@@ -208,7 +238,6 @@ Status acionável validado no banco (CHECK).
 | `responsible_person_id` | uuid → persons (SET NULL) | |
 | `product_id` | uuid → service_products (SET NULL) | opcional; produto comercial DRYOS associado |
 | `start_date`, `end_date` | date | |
-| `git_repository_url` | text | nullable; link https de repo específico da Frente (opcional) |
 | `created_at`, `updated_at`, `archived_at` | timestamptz | |
 
 CHECKs `chk_frentes_actionable_status_min_length` + `chk_frentes_actionable_status_not_generic` garantem "status acionável" (princípio 04).

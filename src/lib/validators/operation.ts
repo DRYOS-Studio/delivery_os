@@ -3,7 +3,6 @@ import {
   WEBHOOK_URL_PROBLEM_MESSAGE,
   checkWebhookUrl,
 } from "@/lib/notifications/webhook-url";
-import { optionalGitRepositoryUrlSchema } from "@/lib/utils/git-repository-url";
 import { WRITABLE_STATUSES } from "@/lib/utils/operation-status";
 
 const emptyToUndefined = (v: unknown) => (v === "" ? undefined : v);
@@ -100,7 +99,6 @@ export const operationSchema = z
         })
         .optional(),
     ),
-    git_repository_url: optionalGitRepositoryUrlSchema,
   })
   .refine(
     (data) =>

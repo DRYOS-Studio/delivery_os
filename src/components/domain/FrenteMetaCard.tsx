@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
+import { RepositoryLinksList } from "@/components/domain/RepositoryLinksList";
+import { RepositoryLinksPanel } from "@/components/domain/RepositoryLinksPanel";
 import { Pill, type PillVariant } from "@/components/ui/Pill";
 import { StalenessPill } from "@/components/ui/StalenessPill";
-import { GitRepositoryLink } from "@/components/domain/GitRepositoryLink";
 import type { FrenteDetail } from "@/lib/db/queries/frentes";
-import { resolveGitRepositoryUrl } from "@/lib/utils/resolve-git-repository-url";
+import type { RepositoryLinkRow } from "@/lib/db/queries/repository-links";
 import { formatCycleTypeShort } from "@/lib/utils/cycle-type";
 import { getInitials } from "@/lib/utils/initials";
 
@@ -30,15 +31,15 @@ const PHASE_VARIANT: Record<FrenteDetail["phase"], PillVariant> = {
 
 export function FrenteMetaCard({
   frente,
+  repositoryLinks,
+  frenteOnlyLinks,
+  canManageRepos,
 }: {
   frente: FrenteDetail;
+  repositoryLinks: RepositoryLinkRow[];
+  frenteOnlyLinks: RepositoryLinkRow[];
+  canManageRepos: boolean;
 }) {
-  const gitRepo = resolveGitRepositoryUrl({
-    frente: frente.gitRepositoryUrl,
-    operation: frente.operationGitRepositoryUrl,
-    client: frente.clientGitRepositoryUrl,
-  });
-
   return (
     <section className="mb-7 bg-card border border-line rounded p-5">
       <div className="flex flex-wrap items-center gap-2 mb-3">
@@ -90,12 +91,20 @@ export function FrenteMetaCard({
         </div>
       </div>
 
-      {gitRepo && (
+      {(repositoryLinks.length > 0 || canManageRepos) && (
         <div className="mt-4 pt-4 border-t border-line">
-          <p className="font-mono text-[10px] uppercase tracking-wide text-mute mb-1">
-            Repositório Git
-          </p>
-          <GitRepositoryLink url={gitRepo.url} scope={gitRepo.scope} />
+          <RepositoryLinksPanel
+            scope={{
+              kind: "frente",
+              clientId: frente.clientId,
+              operationId: frente.operationId,
+              frenteId: frente.id,
+            }}
+            displayLinks={repositoryLinks}
+            manageableLinks={frenteOnlyLinks}
+            canManageLocal={canManageRepos}
+            hint="Links com badge Cliente / Operação / Frente indicam onde foram cadastrados."
+          />
         </div>
       )}
     </section>
