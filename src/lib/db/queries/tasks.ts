@@ -45,6 +45,8 @@ export type TaskRow = {
   tags: string[] | null;
   quickWinId: string | null;
   slaIncidentId: string | null;
+  sourceMeetingId: string | null;
+  sourceMeetingTitle: string | null;
   createdAt: string;
   updatedAt: string;
   completedAt: string | null;
@@ -67,6 +69,8 @@ type TaskJoinedRow = {
   tags: string[] | null;
   quick_win_id: string | null;
   sla_incident_id: string | null;
+  source_meeting_id: string | null;
+  source_meeting: { id: string; title: string } | { id: string; title: string }[] | null;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
@@ -78,6 +82,14 @@ function mapAssignees(rows: AssigneeJoin[] | null): TaskAssignee[] {
   return rows
     .map((r) => (Array.isArray(r.person) ? (r.person[0] ?? null) : r.person))
     .filter((p): p is TaskAssignee => p != null);
+}
+
+function sourceMeetingTitle(
+  meeting: TaskJoinedRow["source_meeting"],
+): string | null {
+  if (!meeting) return null;
+  const one = Array.isArray(meeting) ? (meeting[0] ?? null) : meeting;
+  return one?.title ?? null;
 }
 
 function mapRow(row: TaskJoinedRow): TaskRow {
@@ -97,6 +109,8 @@ function mapRow(row: TaskJoinedRow): TaskRow {
     tags: row.tags,
     quickWinId: row.quick_win_id,
     slaIncidentId: row.sla_incident_id,
+    sourceMeetingId: row.source_meeting_id,
+    sourceMeetingTitle: sourceMeetingTitle(row.source_meeting),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     completedAt: row.completed_at,
@@ -106,8 +120,9 @@ function mapRow(row: TaskJoinedRow): TaskRow {
 const TASK_SELECT = `
   id, frente_id, operation_id, area_id, title, description, status, parent_task_id,
   start_date, due_date, tags,
-  quick_win_id, sla_incident_id,
+  quick_win_id, sla_incident_id, source_meeting_id,
   created_at, updated_at, completed_at,
+  source_meeting:meetings!fk_tasks_source_meeting_id ( id, title ),
   area:areas!fk_tasks_area_id ( id, name ),
   assignees:task_assignees ( person:persons!fk_task_assignees_person_id (id, name) )
 `;
@@ -383,6 +398,12 @@ function mapCrossFrenteRow(row: CrossFrenteJoinedRow): CrossFrenteTaskRow {
     tags: row.tags,
     quickWinId: row.quick_win_id,
     slaIncidentId: row.sla_incident_id,
+    sourceMeetingId: row.source_meeting_id ?? null,
+    sourceMeetingTitle: sourceMeetingTitle(
+      "source_meeting" in row
+        ? (row as TaskJoinedRow).source_meeting
+        : null,
+    ),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     completedAt: row.completed_at,

@@ -3,7 +3,10 @@ import type { Database, Json } from "@/lib/db/types";
 type MeetingUpdate = Database["public"]["Tables"]["meetings"]["Update"];
 import { assignVillainSchema, editOperationVillainSchema } from "@/lib/validators/operation-villain";
 import { diagnosticSchema } from "@/lib/validators/diagnostic";
+import { mcpDecisionUpdateSchema } from "@/lib/mcp/tool-args/decision-update";
 import { decisionSchema } from "@/lib/validators/decision";
+import { applyClearable } from "@/lib/mcp/tool-args/clearable";
+import { mcpMeetingUpdateBodySchema } from "@/lib/mcp/tool-args/meeting-update";
 import { meetingSchema } from "@/lib/validators/meeting";
 import { managementDiagnosticSaveSchema } from "@/lib/validators/management-diagnostic";
 import { personSchema } from "@/lib/validators/person";
@@ -96,20 +99,8 @@ export async function mcpArchivePerson(
   return { ok: true, data: { id } };
 }
 
-const meetingUpdateArgs = z.object({
-  meeting_id: z.string().uuid(),
-  title: meetingSchema.shape.title.optional(),
-  scheduled_at: meetingSchema.shape.scheduled_at.optional(),
-  notes: meetingSchema.shape.notes,
-  visibility: meetingSchema.shape.visibility.optional(),
-  attendee_ids: z.array(z.string().uuid()).optional(),
-  granola_suggestion_text: z.string().max(50000).optional(),
-  granola_source_ref: z.string().max(500).optional(),
-  granola_captured_at: z.string().datetime().optional(),
-});
-
 const MEETING_SELECT =
-  "id, operation_id, title, scheduled_at, visibility, notes, granola_suggestion_text, granola_source_ref, granola_captured_at, created_at, updated_at";
+  "id, operation_id, title, scheduled_at, ended_at, visibility, notes, granola_suggestion_text, granola_source_ref, granola_captured_at, created_at, updated_at";
 
 export async function mcpGetMeeting(
   ctx: McpHandlerContext,
@@ -138,7 +129,7 @@ export async function mcpUpdateMeeting(
 ): Promise<McpToolResult<{ id: string }>> {
   const { idempotency_key: _ik, ...rest } = args;
   void _ik;
-  const parsed = meetingUpdateArgs.safeParse(rest);
+  const parsed = mcpMeetingUpdateBodySchema.safeParse(rest);
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   }
@@ -146,17 +137,33 @@ export async function mcpUpdateMeeting(
   const patch: MeetingUpdate = {};
   if (fields.title !== undefined) patch.title = fields.title;
   if (fields.scheduled_at !== undefined) patch.scheduled_at = fields.scheduled_at;
-  if (fields.notes !== undefined) patch.notes = fields.notes ?? null;
   if (fields.visibility !== undefined) patch.visibility = fields.visibility;
+  applyClearable(patch, "ended_at", fields.ended_at);
+  applyClearable(
+    patch,
+    "notes",
+    fields.notes === undefined
+      ? undefined
+      : fields.notes === null
+        ? null
+        : fields.notes.trim() || null,
+  );
   if (fields.granola_suggestion_text !== undefined) {
-    patch.granola_suggestion_text = fields.granola_suggestion_text?.trim() || null;
+    const v = fields.granola_suggestion_text;
+    patch.granola_suggestion_text =
+      v === null ? null : v.trim() || null;
   }
   if (fields.granola_source_ref !== undefined) {
-    patch.granola_source_ref = fields.granola_source_ref?.trim() || null;
+    const v = fields.granola_source_ref;
+    patch.granola_source_ref = v === null ? null : v.trim() || null;
   }
   if (fields.granola_captured_at !== undefined) {
     patch.granola_captured_at = fields.granola_captured_at;
-  } else if (fields.granola_suggestion_text !== undefined && fields.granola_suggestion_text) {
+  } else if (
+    fields.granola_suggestion_text !== undefined &&
+    fields.granola_suggestion_text !== null &&
+    fields.granola_suggestion_text
+  ) {
     patch.granola_captured_at = new Date().toISOString();
   }
   if (Object.keys(patch).length === 0 && attendee_ids === undefined) {
@@ -200,26 +207,26 @@ export async function mcpUpdateDecision(
   ctx: McpHandlerContext,
   args: Record<string, unknown>,
 ): Promise<McpToolResult<{ id: string }>> {
-  const id = typeof args.decision_id === "string" ? args.decision_id.trim() : "";
-  if (!id) return { ok: false, message: "decision_id obrigatório." };
-  const { decision_id: _d, idempotency_key: _ik, operation_id: _o, ...rest } = args;
-  const parsed = decisionSchema.safeParse(rest);
+  const { operation_id: _o, ...restIn } = args;
+  void _o;
+  const parsed = mcpDecisionUpdateSchema.safeParse(restIn);
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   }
-  const d = parsed.data;
-  const { error } = await ctx.supabase
-    .from("decisions")
-    .update({
-      title: d.title,
-      context: d.context ?? null,
-      decision: d.decision,
-      visibility: d.visibility,
-      decided_at: d.decided_at,
-      meeting_id: d.meeting_id ?? null,
-      agenda_item_id: d.agenda_item_id ?? null,
-    })
-    .eq("id", id);
+  const { decision_id: id, idempotency_key: _ik, ...rest } = parsed.data;
+  void _ik;
+  const patch: Database["public"]["Tables"]["decisions"]["Update"] = {};
+  if (rest.title !== undefined) patch.title = rest.title;
+  if (rest.decision !== undefined) patch.decision = rest.decision;
+  if (rest.visibility !== undefined) patch.visibility = rest.visibility;
+  if (rest.decided_at !== undefined) patch.decided_at = rest.decided_at;
+  applyClearable(patch, "context", rest.context);
+  applyClearable(patch, "meeting_id", rest.meeting_id);
+  applyClearable(patch, "agenda_item_id", rest.agenda_item_id);
+  if (Object.keys(patch).length === 0) {
+    return { ok: false, message: "Nada para atualizar." };
+  }
+  const { error } = await ctx.supabase.from("decisions").update(patch).eq("id", id);
   if (error) return { ok: false, message: error.message };
   return { ok: true, data: { id } };
 }

@@ -241,6 +241,12 @@ function subjectTypeLabel(t: ActivitySubjectType): string {
       return "perfil";
     case "client_contract":
       return "contrato";
+    case "meeting":
+      return "reunião";
+    case "decision":
+      return "decisão";
+    case "operation_risk_blocker":
+      return "risco/bloqueio";
     default: {
       const _exhaustive: never = t;
       return _exhaustive;

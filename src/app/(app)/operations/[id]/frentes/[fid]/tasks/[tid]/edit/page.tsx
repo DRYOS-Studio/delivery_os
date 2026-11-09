@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { TaskForm } from "@/components/domain/TaskForm";
 import { TaskListItem } from "@/components/domain/TaskListItem";
@@ -56,6 +57,17 @@ export default async function Page({
         title="Editar tarefa"
         subtitle={`Frente: ${frente.name}`}
       />
+      {task.sourceMeetingId && (
+        <p className="text-sm text-mute mb-4">
+          Originada na reunião{" "}
+          <Link
+            href={`/operations/${id}/meetings/${task.sourceMeetingId}`}
+            className="text-oak hover:underline"
+          >
+            {task.sourceMeetingTitle ?? "Ver reunião"}
+          </Link>
+        </p>
+      )}
       <TaskForm
         mode="edit"
         frenteId={fid}

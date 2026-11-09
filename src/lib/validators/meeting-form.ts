@@ -22,6 +22,7 @@ const agendaItemLineSchema = z.object({
 
 const nextStepLineSchema = z.object({
   id: optionalUuidEmpty,
+  assignee_person_id: optionalUuidEmpty,
   description: z
     .string()
     .trim()
@@ -36,26 +37,37 @@ const nextStepLineSchema = z.object({
   ),
 });
 
-export const meetingFormSchema = z.object({
-  title: z
-    .string()
-    .trim()
-    .min(3, "Mínimo 3 caracteres.")
-    .max(200, "Máximo 200 caracteres."),
-  scheduled_at: z.string().min(1, "Data obrigatória."),
-  notes: optionalText,
-  visibility: z.enum(["interno", "cliente"], {
-    message: "Visibility obrigatória.",
-  }),
-  attendee_ids: z.array(z.string().uuid()).default([]),
-  granola_suggestion_text: optionalText,
-  granola_source_ref: z.preprocess(
-    (v) => (v === "" || v === null || v === undefined ? undefined : v),
-    z.string().max(500, "Máximo 500 caracteres.").optional(),
-  ),
-  agenda_items: z.array(agendaItemLineSchema).default([]),
-  next_steps: z.array(nextStepLineSchema).default([]),
-});
+const optionalEndedAt = z.preprocess(
+  (v) => (v === "" || v === null || v === undefined ? undefined : v),
+  z.string().min(1, "Data de término inválida.").optional(),
+);
+
+export const meetingFormSchema = z
+  .object({
+    title: z
+      .string()
+      .trim()
+      .min(3, "Mínimo 3 caracteres.")
+      .max(200, "Máximo 200 caracteres."),
+    scheduled_at: z.string().min(1, "Data obrigatória."),
+    ended_at: optionalEndedAt,
+    notes: optionalText,
+    visibility: z.enum(["interno", "cliente"], {
+      message: "Visibility obrigatória.",
+    }),
+    attendee_ids: z.array(z.string().uuid()).default([]),
+    granola_suggestion_text: optionalText,
+    granola_source_ref: z.preprocess(
+      (v) => (v === "" || v === null || v === undefined ? undefined : v),
+      z.string().max(500, "Máximo 500 caracteres.").optional(),
+    ),
+    agenda_items: z.array(agendaItemLineSchema).default([]),
+    next_steps: z.array(nextStepLineSchema).default([]),
+  })
+  .refine(
+    (d) => !d.ended_at || !d.scheduled_at || d.ended_at >= d.scheduled_at,
+    { message: "Término deve ser após o início.", path: ["ended_at"] },
+  );
 
 export type MeetingFormOutput = z.output<typeof meetingFormSchema>;
 
@@ -67,6 +79,7 @@ const agendaItemLineClientSchema = z.object({
 
 const nextStepLineClientSchema = z.object({
   id: optionalUuidEmpty,
+  assignee_person_id: optionalUuidEmpty,
   description: z.string().max(2000, "Máximo 2000 caracteres."),
   due_date: z.preprocess(
     (v) => (v === "" || v === null || v === undefined ? undefined : v),
@@ -126,28 +139,41 @@ export function formDataToMeetingFormInput(formData: FormData) {
   const nextDueDates = formData.getAll("next_step_due_dates").map((v) =>
     String(v).trim(),
   );
+  const nextAssignees = formData
+    .getAll("next_step_assignee_ids")
+    .map((v) => String(v).trim());
   const m = Math.max(
     nextIds.length,
     nextDescriptions.length,
     nextDueDates.length,
+    nextAssignees.length,
   );
-  const next_steps: { id?: string; description: string; due_date?: string }[] =
-    [];
+  const next_steps: {
+    id?: string;
+    description: string;
+    due_date?: string;
+    assignee_person_id?: string;
+  }[] = [];
   for (let i = 0; i < m; i++) {
     const id = (nextIds[i] ?? "").trim();
     const description = (nextDescriptions[i] ?? "").trim();
     const due = (nextDueDates[i] ?? "").trim();
-    if (!description && !due && !id) continue;
+    const assignee = (nextAssignees[i] ?? "").trim();
+    if (!description && !due && !id && !assignee) continue;
     next_steps.push({
       ...(id ? { id } : {}),
       description: description || "—",
       ...(due ? { due_date: due } : {}),
+      ...(assignee ? { assignee_person_id: assignee } : {}),
     });
   }
+
+  const endedRaw = ((formData.get("ended_at") as string | null) ?? "").trim();
 
   return {
     title: ((formData.get("title") as string | null) ?? "").trim(),
     scheduled_at: ((formData.get("scheduled_at") as string | null) ?? "").trim(),
+    ...(endedRaw ? { ended_at: endedRaw } : {}),
     notes: ((formData.get("notes") as string | null) ?? "").trim(),
     visibility: ((formData.get("visibility") as string | null) ?? "interno").trim(),
     attendee_ids: attendeeIds,
@@ -169,6 +195,7 @@ export function appendMeetingOutputToFormData(
 ): void {
   fd.set("title", data.title);
   fd.set("scheduled_at", data.scheduled_at);
+  fd.set("ended_at", data.ended_at ?? "");
   fd.set("notes", data.notes ?? "");
   fd.set("visibility", data.visibility);
   for (const id of data.attendee_ids) {
@@ -189,6 +216,7 @@ export function appendMeetingOutputToFormData(
     else fd.append("next_step_ids", "");
     fd.append("next_step_descriptions", row.description);
     fd.append("next_step_due_dates", row.due_date ?? "");
+    fd.append("next_step_assignee_ids", row.assignee_person_id ?? "");
   }
 }
 
@@ -222,6 +250,7 @@ export function buildMeetingFormPayload(
     (r) =>
       r.description.trim().length > 0 ||
       Boolean(r.due_date) ||
+      Boolean(r.assignee_person_id) ||
       Boolean(r.id),
   );
   const suggestionText =
@@ -235,6 +264,7 @@ export function buildMeetingFormPayload(
       id: r.id,
       description: r.description.trim() || "—",
       due_date: r.due_date,
+      assignee_person_id: r.assignee_person_id,
     })),
     granola_suggestion_text: suggestionText,
   };

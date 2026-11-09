@@ -83,8 +83,12 @@ import {
   mcpListMeetingNextSteps,
   mcpGetOperationMonthlyCosts,
   mcpListOperationCosts,
+  mcpCreateOperationRiskBlocker,
+  mcpListOperationRiskBlockers,
   mcpListOperationVillains,
   mcpListQuickWins,
+  mcpPromoteMeetingNextStepToTask,
+  mcpUpdateOperationRiskBlocker,
   mcpListSlaIncidents,
   mcpUpdateAllocation,
   mcpUpdateMeetingAgendaItem,
@@ -552,6 +556,18 @@ export async function dispatchMcpTool(input: DispatchInput): Promise<unknown> {
     }
     case "update_meeting_next_step": {
       return flattenResult(await mcpUpdateMeetingNextStep(ctx, args));
+    }
+    case "promote_meeting_next_step_to_task": {
+      return flattenResult(await mcpPromoteMeetingNextStepToTask(ctx, args));
+    }
+    case "list_operation_risk_blockers": {
+      return flattenResult(await mcpListOperationRiskBlockers(ctx, args));
+    }
+    case "create_operation_risk_blocker": {
+      return flattenResult(await mcpCreateOperationRiskBlocker(ctx, args));
+    }
+    case "update_operation_risk_blocker": {
+      return flattenResult(await mcpUpdateOperationRiskBlocker(ctx, args));
     }
     case "list_operation_villains": {
       return flattenResult(await mcpListOperationVillains(ctx, args));

@@ -8,6 +8,7 @@ import { CostsTab } from "@/components/domain/CostsTab";
 import { FinanceCards } from "@/components/domain/FinanceCards";
 import { FrentesListSection } from "@/components/domain/FrentesListSection";
 import { MeetingsDecisionsTimeline } from "@/components/domain/MeetingsDecisionsTimeline";
+import { OperationRiskBlockersSection } from "@/components/domain/OperationRiskBlockersSection";
 import { OperationHero } from "@/components/domain/OperationHero";
 import { RepositoryLinksPanel } from "@/components/domain/RepositoryLinksPanel";
 import { OperationVillainsSection } from "@/components/domain/OperationVillainsSection";
@@ -39,6 +40,7 @@ import {
   countMeetingsByOperation,
   listMeetingsByOperation,
 } from "@/lib/db/queries/meetings";
+import { listOperationRiskBlockers } from "@/lib/db/queries/operation-risk-blockers";
 import {
   listAvailableVillains,
   listVillainsByOperation,
@@ -121,6 +123,7 @@ type TabContent = {
   baseUrl: string;
   activityEvents: Awaited<ReturnType<typeof listActivityForOperation>>;
   operationComments: Awaited<ReturnType<typeof listOperationComments>>;
+  riskBlockers: Awaited<ReturnType<typeof listOperationRiskBlockers>>;
 };
 
 function emptyTabContent(): TabContent {
@@ -140,6 +143,7 @@ function emptyTabContent(): TabContent {
     baseUrl: "",
     activityEvents: [],
     operationComments: [],
+    riskBlockers: [],
   };
 }
 
@@ -180,12 +184,14 @@ async function loadTabContent(
       };
     }
     case "eventos": {
-      const [meetings, decisions, meetingAttachmentCounts] = await Promise.all([
-        listMeetingsByOperation(id),
-        listDecisionsByOperation(id),
-        countAttachmentsByMeeting(id),
-      ]);
-      return { ...base, meetings, decisions, meetingAttachmentCounts };
+      const [meetings, decisions, meetingAttachmentCounts, riskBlockers] =
+        await Promise.all([
+          listMeetingsByOperation(id),
+          listDecisionsByOperation(id),
+          countAttachmentsByMeeting(id),
+          listOperationRiskBlockers(id),
+        ]);
+      return { ...base, meetings, decisions, meetingAttachmentCounts, riskBlockers };
     }
     case "anexos": {
       const attachments = await listAttachmentsByOperation(id, "none");
@@ -304,6 +310,7 @@ export default async function Page({
     baseUrl,
     activityEvents,
     operationComments,
+    riskBlockers,
   } = tabContent;
 
   const margin: MarginResult | null =
@@ -473,6 +480,12 @@ export default async function Page({
             decisions={decisions}
             operationId={op.id}
             meetingAttachmentCounts={meetingAttachmentCounts}
+            canWrite={canWrite}
+          />
+          <OperationRiskBlockersSection
+            items={riskBlockers}
+            openCount={riskBlockers.filter((r) => r.status === "open").length}
+            operationId={op.id}
             canWrite={canWrite}
           />
           {/* Badge é o total real (count); as listas têm limit 20 cada — sem

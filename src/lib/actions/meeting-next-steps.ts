@@ -59,11 +59,22 @@ export async function createTaskFromMeetingNextStepAction(
       tags: null,
       quick_win_id: null,
       sla_incident_id: null,
+      source_meeting_id: step.meeting_id,
     })
     .select("id")
     .single();
   if (insErr) return dbErr(insErr, "createTaskFromMeetingNextStepAction.task");
   if (!taskRow) return err("Falha ao criar tarefa.", "no_data");
+
+  if (step.assignee_person_id) {
+    const { error: assigneeErr } = await supabase.from("task_assignees").insert({
+      task_id: taskRow.id,
+      person_id: step.assignee_person_id,
+    });
+    if (assigneeErr) {
+      return dbErr(assigneeErr, "createTaskFromMeetingNextStepAction.assignee");
+    }
+  }
 
   const { error: upErr } = await supabase
     .from("meeting_agenda_next_steps")
