@@ -92,7 +92,12 @@ const BASE_MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
     description: "Lista clientes visíveis (RLS).",
     inputSchema: {
       type: "object",
-      properties: { include_archived: { type: "boolean" }, limit: { type: "number" }, offset: { type: "number" } },
+      properties: {
+        include_archived: { type: "boolean" },
+        journey_status: { type: "string" },
+        limit: { type: "number" },
+        offset: { type: "number" },
+      },
     },
   },
   {
@@ -121,6 +126,22 @@ const BASE_MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
       type: "object",
       properties: { client_id: { type: "string" }, ...idem },
       required: ["client_id"],
+    },
+  },
+  {
+    name: "update_client_journey_status",
+    access: "admin",
+    idempotent: true,
+    description:
+      "Atualiza journey_status do cliente (jornada comercial). Valores: em_cadastro, onboarding_pendente, onboarding_agendado, em_implantacao, ativo, pausado, encerrado.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        client_id: { type: "string" },
+        journey_status: { type: "string" },
+        ...idem,
+      },
+      required: ["client_id", "journey_status"],
     },
   },
   {

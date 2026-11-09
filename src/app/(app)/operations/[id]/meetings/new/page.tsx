@@ -7,12 +7,22 @@ import { isActiveStatus } from "@/lib/utils/operation-status";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+type SearchParams = Promise<{ kind?: string; returnTo?: string }>;
+
 export default async function Page({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: SearchParams;
 }) {
   const { id } = await params;
+  const { kind, returnTo } = await searchParams;
+  const defaultKind = kind === "onboarding" ? "onboarding" : "general";
+  const safeReturnTo =
+    returnTo?.startsWith("/clients/") || returnTo?.startsWith("/operations/")
+      ? returnTo
+      : undefined;
   if (!UUID_RE.test(id)) redirect("/operations");
 
   const op = await getOperation(id);
@@ -34,6 +44,8 @@ export default async function Page({
         operationId={op.id}
         clientName={op.client.name}
         attendeeCandidates={attendeeCandidates}
+        {...(defaultKind === "onboarding" ? { defaultKind } : {})}
+        {...(safeReturnTo ? { returnTo: safeReturnTo } : {})}
       />
     </>
   );

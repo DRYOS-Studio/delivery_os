@@ -1,6 +1,9 @@
 import { Link2, Plus } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
+import { ClientsJourneyFilter } from "@/components/domain/ClientsJourneyFilter";
 import { ClientsSearch } from "@/components/domain/ClientsSearch";
+import { isClientJourneyStatus } from "@/lib/utils/client-journey-status";
 import { ClientsTable } from "@/components/domain/ClientsTable";
 import { RestoreButton } from "@/components/domain/RestoreButton";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -11,16 +14,23 @@ import {
   listClients,
 } from "@/lib/db/queries/clients";
 
-type SearchParams = Promise<{ q?: string }>;
+type SearchParams = Promise<{ q?: string; journey?: string }>;
 
 export default async function Page({
   searchParams,
 }: {
   searchParams: SearchParams;
 }) {
-  const { q } = await searchParams;
+  const { q, journey } = await searchParams;
+  const journeyStatus =
+    journey && isClientJourneyStatus(journey) ? journey : undefined;
+  const listOpts: Parameters<typeof listClients>[0] = {
+    includeArchived: true,
+    ...(q ? { search: q } : {}),
+    ...(journeyStatus ? { journeyStatus } : {}),
+  };
   const [clients, total, profile] = await Promise.all([
-    listClients({ search: q, includeArchived: true }),
+    listClients(listOpts),
     countActiveClients(),
     getProfile(),
   ]);
@@ -56,7 +66,14 @@ export default async function Page({
         }
       />
       <ClientsSearch initialQuery={q ?? ""} />
-      <ClientsTable clients={active} hasSearch={!!q} isAdmin={isAdmin} />
+      <Suspense fallback={null}>
+        <ClientsJourneyFilter />
+      </Suspense>
+      <ClientsTable
+        clients={active}
+        hasSearch={!!q || !!journeyStatus}
+        isAdmin={isAdmin}
+      />
 
       {isAdmin && archived.length > 0 && (
         <section className="mt-10">

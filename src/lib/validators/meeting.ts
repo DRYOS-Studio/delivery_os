@@ -23,6 +23,7 @@ export const meetingSchema = z
     visibility: z.enum(["interno", "cliente"], {
       message: "Visibility obrigatória.",
     }),
+    kind: z.enum(["general", "onboarding"]).default("general"),
     attendee_ids: z.array(z.string().uuid()).default([]),
   })
   .refine(

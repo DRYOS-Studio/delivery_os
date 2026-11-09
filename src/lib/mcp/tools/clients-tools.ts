@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/db/types";
 import { clientSchema } from "@/lib/validators/client";
+import { isClientJourneyStatus } from "@/lib/utils/client-journey-status";
 import {
   clampLimit,
   clampOffset,
@@ -11,7 +12,7 @@ import {
 import { z } from "zod";
 
 const CLIENT_SELECT =
-  "id, name, slug, notes, legal_name, cnpj, cpf, person_type, marital_status, legal_representative_name, legal_representative_role, legal_representative_cpf, legal_representative_marital_status, legal_representative_email, primary_contact_name, primary_contact_email, primary_contact_phone, address_city, address_state, created_at, updated_at, archived_at";
+  "id, name, slug, notes, legal_name, cnpj, cpf, person_type, marital_status, legal_representative_name, legal_representative_role, legal_representative_cpf, legal_representative_marital_status, legal_representative_email, primary_contact_name, primary_contact_email, primary_contact_phone, address_city, address_state, journey_status, created_at, updated_at, archived_at";
 
 function clientPayload(data: z.infer<typeof clientSchema>) {
   return {
@@ -41,12 +42,20 @@ export async function mcpListClients(
   const includeArchived = args.include_archived === true;
   const limit = clampLimit(args.limit);
   const offset = clampOffset(args.offset);
+  const journeyFilter =
+    typeof args.journey_status === "string" ? args.journey_status.trim() : "";
   let q = ctx.supabase
     .from("clients")
     .select(CLIENT_SELECT)
     .order("name", { ascending: true })
     .range(offset, offset + limit - 1);
   if (!includeArchived) q = q.is("archived_at", null);
+  if (journeyFilter) {
+    if (!isClientJourneyStatus(journeyFilter)) {
+      return { ok: false, message: "journey_status inválido." };
+    }
+    q = q.eq("journey_status", journeyFilter);
+  }
   const { data, error } = await q;
   if (error) return { ok: false, message: error.message };
   return { ok: true, data: { clients: data ?? [] } };
@@ -152,4 +161,45 @@ export async function mcpRestoreClient(
     .eq("id", id);
   if (error) return { ok: false, message: error.message };
   return { ok: true, data: { id } };
+}
+
+const updateJourneyArgs = z.object({
+  client_id: z.string().uuid(),
+  journey_status: z.enum([
+    "em_cadastro",
+    "onboarding_pendente",
+    "onboarding_agendado",
+    "em_implantacao",
+    "ativo",
+    "pausado",
+    "encerrado",
+  ]),
+  idempotency_key: z.string().min(8).max(200).optional(),
+});
+
+export async function mcpUpdateClientJourneyStatus(
+  ctx: McpHandlerContext,
+  args: Record<string, unknown>,
+): Promise<McpToolResult<{ id: string; journey_status: string }>> {
+  const denied = await mcpRequireAdmin(ctx);
+  if (denied) return denied;
+  const { idempotency_key: _ik, ...rest } = args;
+  void _ik;
+  const parsed = updateJourneyArgs.safeParse(rest);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      message: parsed.error.issues[0]?.message ?? "Dados inválidos.",
+    };
+  }
+  const { error } = await ctx.supabase
+    .from("clients")
+    .update({ journey_status: parsed.data.journey_status })
+    .eq("id", parsed.data.client_id)
+    .is("archived_at", null);
+  if (error) return { ok: false, message: error.message };
+  return {
+    ok: true,
+    data: { id: parsed.data.client_id, journey_status: parsed.data.journey_status },
+  };
 }

@@ -436,6 +436,7 @@ export type Database = {
           formal_email: string | null
           id: string
           inscricao_estadual: string | null
+          journey_status: Database["public"]["Enums"]["client_journey_status"]
           legal_name: string | null
           legal_representative_cpf: string | null
           legal_representative_email: string | null
@@ -475,6 +476,7 @@ export type Database = {
           formal_email?: string | null
           id?: string
           inscricao_estadual?: string | null
+          journey_status?: Database["public"]["Enums"]["client_journey_status"]
           legal_name?: string | null
           legal_representative_cpf?: string | null
           legal_representative_email?: string | null
@@ -514,6 +516,7 @@ export type Database = {
           formal_email?: string | null
           id?: string
           inscricao_estadual?: string | null
+          journey_status?: Database["public"]["Enums"]["client_journey_status"]
           legal_name?: string | null
           legal_representative_cpf?: string | null
           legal_representative_email?: string | null
@@ -1209,6 +1212,7 @@ export type Database = {
           granola_source_ref: string | null
           granola_suggestion_text: string | null
           id: string
+          kind: Database["public"]["Enums"]["meeting_kind"]
           notes: string | null
           operation_id: string
           scheduled_at: string
@@ -1223,6 +1227,7 @@ export type Database = {
           granola_source_ref?: string | null
           granola_suggestion_text?: string | null
           id?: string
+          kind?: Database["public"]["Enums"]["meeting_kind"]
           notes?: string | null
           operation_id: string
           scheduled_at?: string
@@ -1237,6 +1242,7 @@ export type Database = {
           granola_source_ref?: string | null
           granola_suggestion_text?: string | null
           id?: string
+          kind?: Database["public"]["Enums"]["meeting_kind"]
           notes?: string | null
           operation_id?: string
           scheduled_at?: string
@@ -2553,6 +2559,15 @@ export type Database = {
         | "aprovado"
         | "expirado"
         | "cancelado"
+      client_journey_status:
+        | "em_cadastro"
+        | "onboarding_pendente"
+        | "onboarding_agendado"
+        | "em_implantacao"
+        | "ativo"
+        | "pausado"
+        | "encerrado"
+      meeting_kind: "general" | "onboarding"
       mcp_agent_token_scope: "read" | "write"
     }
     CompositeTypes: {
@@ -2736,6 +2751,16 @@ export const Constants = {
         "expirado",
         "cancelado",
       ],
+      client_journey_status: [
+        "em_cadastro",
+        "onboarding_pendente",
+        "onboarding_agendado",
+        "em_implantacao",
+        "ativo",
+        "pausado",
+        "encerrado",
+      ],
+      meeting_kind: ["general", "onboarding"],
       mcp_agent_token_scope: ["read", "write"],
     },
   },

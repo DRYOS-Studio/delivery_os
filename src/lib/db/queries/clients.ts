@@ -13,6 +13,7 @@ export type ClientListItem = {
   slug: string;
   notes: string | null;
   createdAt: string;
+  journeyStatus: Database["public"]["Enums"]["client_journey_status"];
   operationsActive: number;
   externalPersons: number;
   archivedAt: string | null;
@@ -25,7 +26,11 @@ export type ClientListItem = {
  * como opção no `<select>`.
  */
 export async function listClients(
-  options: { search?: string | undefined; includeArchived?: boolean } = {},
+  options: {
+    search?: string | undefined;
+    includeArchived?: boolean;
+    journeyStatus?: Database["public"]["Enums"]["client_journey_status"];
+  } = {},
 ): Promise<ClientListItem[]> {
   const supabase = await createServer();
   const search = options.search?.trim();
@@ -39,6 +44,7 @@ export async function listClients(
       slug,
       notes,
       created_at,
+      journey_status,
       archived_at,
       operations(id, archived_at, status),
       persons!fk_persons_client_id(id, archived_at, kind)
@@ -53,6 +59,10 @@ export async function listClients(
   if (search) {
     const escaped = search.replace(/[%_]/g, (m) => `\\${m}`);
     query = query.or(`name.ilike.%${escaped}%,slug.ilike.%${escaped}%`);
+  }
+
+  if (options.journeyStatus) {
+    query = query.eq("journey_status", options.journeyStatus);
   }
 
   const { data, error } = await query;
@@ -72,6 +82,7 @@ export async function listClients(
       slug: c.slug,
       notes: c.notes,
       createdAt: c.created_at,
+      journeyStatus: c.journey_status,
       operationsActive,
       externalPersons,
       archivedAt: c.archived_at,

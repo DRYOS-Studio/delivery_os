@@ -55,6 +55,7 @@ export const meetingFormSchema = z
     visibility: z.enum(["interno", "cliente"], {
       message: "Visibility obrigatória.",
     }),
+    kind: z.enum(["general", "onboarding"]).default("general"),
     attendee_ids: z.array(z.string().uuid()).default([]),
     granola_suggestion_text: optionalText,
     granola_source_ref: z.preprocess(
@@ -176,6 +177,10 @@ export function formDataToMeetingFormInput(formData: FormData) {
     ...(endedRaw ? { ended_at: endedRaw } : {}),
     notes: ((formData.get("notes") as string | null) ?? "").trim(),
     visibility: ((formData.get("visibility") as string | null) ?? "interno").trim(),
+    kind:
+      ((formData.get("kind") as string | null) ?? "general").trim() === "onboarding"
+        ? "onboarding"
+        : "general",
     attendee_ids: attendeeIds,
     granola_suggestion_text: (
       (formData.get("granola_suggestion_text") as string | null) ?? ""
@@ -198,6 +203,7 @@ export function appendMeetingOutputToFormData(
   fd.set("ended_at", data.ended_at ?? "");
   fd.set("notes", data.notes ?? "");
   fd.set("visibility", data.visibility);
+  fd.set("kind", data.kind ?? "general");
   for (const id of data.attendee_ids) {
     fd.append("attendee_ids", id);
   }

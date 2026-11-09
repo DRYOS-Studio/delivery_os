@@ -1,6 +1,7 @@
-import { Edit2 } from "lucide-react";
+import { Edit2, Plus } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ClientJourneyPanel } from "@/components/domain/ClientJourneyPanel";
 import { ClientDiagnosticSection } from "@/components/domain/ClientDiagnosticSection";
 import { ClientContractsSection } from "@/components/domain/ClientContractsSection";
 import { ClientHubTasksSection } from "@/components/domain/ClientHubTasksSection";
@@ -84,6 +85,12 @@ export default async function Page({
         }
       />
 
+      <ClientJourneyPanel
+        client={client}
+        operations={operations}
+        isAdmin={isAdmin}
+      />
+
       {client.notes && (
         <div className="bg-sage-bg border-l-2 border-sage-deep px-4 py-3 mb-7 rounded-sm">
           <p className="font-body text-sm text-ink-soft whitespace-pre-wrap">
@@ -110,11 +117,23 @@ export default async function Page({
       <ClientHubTasksSection tasks={openTasks} />
 
       <section className="mb-9">
-        <div className="flex items-center gap-2 mb-4">
-          <h2 className="font-display text-lg text-ink font-semibold">
-            Operações
-          </h2>
-          <Pill variant="neutral">{operations.length}</Pill>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-2">
+            <h2 className="font-display text-lg text-ink font-semibold">
+              Operações
+            </h2>
+            <Pill variant="neutral">{operations.length}</Pill>
+          </div>
+          {isAdmin && (
+            <Link
+              href={`/operations/new?clientId=${encodeURIComponent(client.id)}&returnTo=${encodeURIComponent(`/clients/${client.id}`)}`}
+            >
+              <Button variant="sage" className="min-h-[44px]">
+                <Plus className="w-4 h-4" strokeWidth={1.75} />
+                Nova operação
+              </Button>
+            </Link>
+          )}
         </div>
         {operations.length === 0 ? (
           <p className="text-sm text-mute">

@@ -81,6 +81,19 @@ const operationMcpBody = z
 export const MCP_TOOL_ZOD_ARGS: Record<string, z.ZodType> = {
   create_client: clientSchema,
   update_client: clientSchema.extend({ client_id: uuid }),
+  update_client_journey_status: z.object({
+    client_id: uuid,
+    journey_status: z.enum([
+      "em_cadastro",
+      "onboarding_pendente",
+      "onboarding_agendado",
+      "em_implantacao",
+      "ativo",
+      "pausado",
+      "encerrado",
+    ]),
+    idempotency_key: z.string().min(8).max(200).optional(),
+  }),
   archive_client: z.object({ client_id: uuid, confirm: z.literal(true) }),
   restore_client: z.object({ client_id: uuid }),
   create_client_contract: createClientContractMcpSchema,

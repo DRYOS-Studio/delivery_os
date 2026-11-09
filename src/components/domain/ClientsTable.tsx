@@ -3,6 +3,10 @@ import { Button } from "@/components/ui/Button";
 import { MobileListItem } from "@/components/ui/MobileListItem";
 import { Pill } from "@/components/ui/Pill";
 import type { ClientListItem } from "@/lib/db/queries/clients";
+import {
+  clientJourneyLabel,
+  clientJourneyVariant,
+} from "@/lib/utils/client-journey-status";
 import { formatDateBR } from "@/lib/utils/date";
 
 type Props = {
@@ -63,6 +67,9 @@ export function ClientsTable({ clients, hasSearch, isAdmin = true }: Props) {
             subtitle={c.slug}
             pills={
               <>
+                <Pill variant={clientJourneyVariant(c.journeyStatus)}>
+                  {clientJourneyLabel(c.journeyStatus)}
+                </Pill>
                 <Pill variant="neutral">
                   {c.operationsActive} {c.operationsActive === 1 ? "Op" : "Ops"}
                 </Pill>
@@ -85,6 +92,7 @@ export function ClientsTable({ clients, hasSearch, isAdmin = true }: Props) {
           <tr className="border-b border-line">
             <Th>Nome</Th>
             <Th>Slug</Th>
+            <Th>Jornada</Th>
             <Th>Operações ativas</Th>
             <Th>Pessoas externas</Th>
             <Th>Criado em</Th>
@@ -99,6 +107,11 @@ export function ClientsTable({ clients, hasSearch, isAdmin = true }: Props) {
             >
               <Td className="font-medium text-ink">{c.name}</Td>
               <Td className="font-mono text-xs text-mute">{c.slug}</Td>
+              <Td>
+                <Pill variant={clientJourneyVariant(c.journeyStatus)}>
+                  {clientJourneyLabel(c.journeyStatus)}
+                </Pill>
+              </Td>
               <Td>
                 <Pill variant="neutral">{c.operationsActive}</Pill>
               </Td>

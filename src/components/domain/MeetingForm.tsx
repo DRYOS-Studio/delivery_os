@@ -32,6 +32,8 @@ type Props = (
       operationId: string;
       clientName: string;
       attendeeCandidates: AttendeeRef[];
+      defaultKind?: "general" | "onboarding";
+      returnTo?: string;
     }
   | {
       mode: "edit";
@@ -78,6 +80,7 @@ export function MeetingForm(props: Props): React.JSX.Element {
           : "",
         notes: props.initialData.notes ?? "",
         visibility: props.initialData.visibility,
+        kind: props.initialData.kind ?? "general",
         attendee_ids: props.initialData.attendees.map((a) => a.id),
         granola_suggestion_text:
           props.initialData.granola_suggestion_text ?? "",
@@ -101,11 +104,18 @@ export function MeetingForm(props: Props): React.JSX.Element {
             : [{ description: "", due_date: "" }],
       }
     : {
-        title: "",
+        title:
+          props.mode === "create" && props.defaultKind === "onboarding"
+            ? "Reunião de onboarding"
+            : "",
         scheduled_at: defaultScheduledAt(),
         ended_at: "",
         notes: "",
-        visibility: "interno",
+        visibility: "cliente",
+        kind:
+          props.mode === "create" && props.defaultKind === "onboarding"
+            ? "onboarding"
+            : "general",
         attendee_ids: [],
         granola_suggestion_text: "",
         granola_source_ref: "",
@@ -166,7 +176,15 @@ export function MeetingForm(props: Props): React.JSX.Element {
       : await createMeetingAction(props.operationId, fd);
 
     if (result.ok) {
-      router.push(`/operations/${result.data.operationId}`);
+      if (
+        !isEdit &&
+        props.mode === "create" &&
+        props.returnTo?.startsWith("/")
+      ) {
+        router.push(props.returnTo);
+      } else {
+        router.push(`/operations/${result.data.operationId}`);
+      }
       router.refresh();
       return;
     }
@@ -192,6 +210,7 @@ export function MeetingForm(props: Props): React.JSX.Element {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-w-2xl">
+      <input type="hidden" {...register("kind")} />
       {generalError && (
         <div className="bg-critical-bg border border-critical text-critical text-sm rounded px-3 py-2">
           {generalError}
