@@ -145,6 +145,7 @@ Eventos gerados por triggers em `clients`, `operations`, `frentes`, `tasks`, `ta
 | `old_value`, `new_value` | jsonb | snapshot compacto; null em creates |
 | `metadata` | jsonb | reservado |
 | `actor_profile_id` | uuid → profiles | FK opcional (SET NULL) |
+| `actor_name` | text | snapshot do ator no INSERT (`profiles.name` ou parte local do e-mail); ignora RLS de leitura |
 | `created_at` | timestamptz | |
 
 RLS: SELECT quando `can_read_activity_subject(subject_type, subject_id)`. Inserts via funções/triggers SECURITY DEFINER (`log_activity_event_system`); não há policy de INSERT para `authenticated` direto na tabela.

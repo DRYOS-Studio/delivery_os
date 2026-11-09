@@ -33,15 +33,11 @@ type RawEvent = {
   subject_id: string;
   metadata: unknown;
   actor_profile_id: string | null;
-  actor: { name: string | null } | { name: string | null }[] | null;
+  actor_name: string | null;
 };
 
-function pickActor(actor: RawEvent["actor"]): string | null {
-  if (!actor) return null;
-  return Array.isArray(actor) ? (actor[0]?.name ?? null) : actor.name;
-}
-
 function mapRow(r: RawEvent): ActivityEventRow {
+  const stored = r.actor_name?.trim();
   return {
     id: r.id,
     createdAt: r.created_at,
@@ -49,7 +45,7 @@ function mapRow(r: RawEvent): ActivityEventRow {
     fieldKey: r.field_key,
     oldValue: r.old_value,
     newValue: r.new_value,
-    actorName: pickActor(r.actor),
+    actorName: stored ? stored : null,
     actorProfileId: r.actor_profile_id,
     subjectType: r.subject_type,
     subjectId: r.subject_id,
@@ -59,8 +55,7 @@ function mapRow(r: RawEvent): ActivityEventRow {
 
 const EVENT_SELECT = `
   id, created_at, action, field_key, old_value, new_value,
-  subject_type, subject_id, metadata, actor_profile_id,
-  actor:profiles!fk_activity_events_actor ( name )
+  subject_type, subject_id, metadata, actor_profile_id, actor_name
 `;
 
 function appendActivityFilters(
