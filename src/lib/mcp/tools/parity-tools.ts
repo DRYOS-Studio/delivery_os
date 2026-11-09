@@ -138,6 +138,7 @@ export async function mcpUpdateMeeting(
   if (fields.title !== undefined) patch.title = fields.title;
   if (fields.scheduled_at !== undefined) patch.scheduled_at = fields.scheduled_at;
   if (fields.visibility !== undefined) patch.visibility = fields.visibility;
+  if (fields.kind !== undefined) patch.kind = fields.kind;
   applyClearable(patch, "ended_at", fields.ended_at);
   applyClearable(
     patch,

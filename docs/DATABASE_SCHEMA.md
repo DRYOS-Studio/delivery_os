@@ -67,6 +67,7 @@ Origem de Operações, Pessoas externas, Credenciais (v2).
 | `focal_point_*`, `financial_contact_*` | text | ponto focal e financeiro |
 | `legal_representative_*` | text | representante legal (PJ), incl. `legal_representative_marital_status` |
 | `notes` | text | livre, max 1000 chars (validado no app) |
+| `journey_status` | enum `client_journey_status` | jornada comercial (distinto de contrato) |
 | `created_at`, `updated_at`, `archived_at` | timestamptz | soft-delete via `archived_at` |
 
 CHECKs: `cnpj`, `address_state`, `address_zip` (length), `primary_contact_email` (shape).
@@ -439,6 +440,7 @@ Registro temporal ligado à Operação. Visibility própria (Inv. 05).
 | `ended_at` | timestamptz | opcional; ≥ `scheduled_at` |
 | `notes` | text | livre, max 5000 chars (Zod) |
 | `visibility` | enum `meeting_visibility` default `interno` | interno / cliente |
+| `kind` | enum `meeting_kind` default `general` | `general` \| `onboarding` |
 | `granola_suggestion_text` | text | sugestão editável (import/cola) |
 | `granola_captured_at` | timestamptz | opcional; quando houve captura de sugestão |
 | `granola_source_ref` | text | opcional; ref externa (ex. id no Granola) |

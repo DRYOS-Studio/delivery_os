@@ -14,6 +14,7 @@ import {
   mcpListClients,
   mcpRestoreClient,
   mcpUpdateClient,
+  mcpUpdateClientJourneyStatus,
   mcpArchiveClient,
 } from "@/lib/mcp/tools/clients-tools";
 import {
@@ -233,6 +234,10 @@ export async function dispatchMcpTool(input: DispatchInput): Promise<unknown> {
     }
     case "update_client": {
       const r = await mcpUpdateClient(ctx, args);
+      return flattenResult(r);
+    }
+    case "update_client_journey_status": {
+      const r = await mcpUpdateClientJourneyStatus(ctx, args);
       return flattenResult(r);
     }
     case "archive_client": {

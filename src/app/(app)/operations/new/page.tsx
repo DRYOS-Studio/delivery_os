@@ -6,7 +6,19 @@ import { getProfile } from "@/lib/auth/server";
 import { listClients } from "@/lib/db/queries/clients";
 import { listDiagnosticsForSelect } from "@/lib/db/queries/diagnostics";
 
-export default async function Page() {
+type SearchParams = Promise<{ clientId?: string; returnTo?: string }>;
+
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const { clientId, returnTo } = await searchParams;
+  const safeReturnTo =
+    returnTo?.startsWith("/clients/") || returnTo?.startsWith("/operations/")
+      ? returnTo
+      : undefined;
+
   const [clients, diagnosticsByClient] = await Promise.all([
     listClients(),
     listDiagnosticsForSelect(),
@@ -14,6 +26,10 @@ export default async function Page() {
   const profile = await getProfile();
   const isAdmin = profile?.role === "admin";
   const clientsForSelect = clients.map((c) => ({ id: c.id, name: c.name }));
+  const defaultClientId =
+    clientId && clientsForSelect.some((c) => c.id === clientId)
+      ? clientId
+      : undefined;
 
   if (clientsForSelect.length === 0) {
     return (
@@ -46,6 +62,8 @@ export default async function Page() {
         clientsForSelect={clientsForSelect}
         diagnosticsByClient={diagnosticsByClient}
         isAdmin={isAdmin}
+        {...(defaultClientId ? { defaultClientId } : {})}
+        {...(safeReturnTo ? { returnTo: safeReturnTo } : {})}
       />
     </>
   );

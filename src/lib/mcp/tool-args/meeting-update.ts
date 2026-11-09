@@ -37,6 +37,7 @@ export const mcpMeetingUpdateBodySchema = z.object({
   ended_at: mcpClearableIsoDateTime(),
   notes: mcpClearableText(5000),
   visibility: meetingSchema.shape.visibility.optional(),
+  kind: meetingSchema.shape.kind.optional(),
   attendee_ids: z.array(z.string().uuid()).optional(),
   granola_suggestion_text: z.union([z.string().max(50_000), z.null()]).optional(),
   granola_source_ref: z.union([z.string().max(500), z.null()]).optional(),
