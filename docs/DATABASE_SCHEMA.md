@@ -17,7 +17,7 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 | **Entrega** | `frentes`, `allocations`, `tasks`, `task_assignees` | 4 |
 | **Pessoas** | `persons` | 1 |
 | **Briefing** | `briefings`, `briefing_versions` | 2 |
-| **Reuniões / Decisões** | `meetings`, `meeting_attendees`, `meeting_agenda_items`, `meeting_agenda_next_steps`, `decisions` | 5 |
+| **Reuniões / Decisões** | `meetings`, `meeting_attendees`, `meeting_agenda_items`, `meeting_agenda_next_steps`, `decisions`, `operation_risk_blockers` | 6 |
 | **Anexos** | `attachments` | 1 |
 | **Acesso público** | `public_links` | 1 |
 | **SLA** | `sla_incidents` | 1 |
@@ -301,6 +301,7 @@ Cobre o gap entre Decisão (perpétuo), Reunião (touchpoint), SLA Incident (nã
 | `tags` | text[] | livre; dedup no front |
 | `quick_win_id` | uuid → quick_wins (SET NULL) | vínculo opcional |
 | `sla_incident_id` | uuid → sla_incidents (SET NULL) | vínculo opcional |
+| `source_meeting_id` | uuid → meetings (SET NULL) | reunião de origem (próximo passo promovido) |
 | `created_at`, `updated_at`, `completed_at` | timestamptz | `completed_at` auto-managed por trigger |
 
 > Responsáveis migraram de `assignee_person_id` (single, removido em `20260610120000`) pra N:N via `task_assignees`.
@@ -434,6 +435,7 @@ Registro temporal ligado à Operação. Visibility própria (Inv. 05).
 | `operation_id` | uuid NOT NULL → operations (CASCADE) | |
 | `title` | text NOT NULL | Zod min 3 max 200 |
 | `scheduled_at` | timestamptz NOT NULL default now | reunião agendada (futura ou passada) |
+| `ended_at` | timestamptz | opcional; ≥ `scheduled_at` |
 | `notes` | text | livre, max 5000 chars (Zod) |
 | `visibility` | enum `meeting_visibility` default `interno` | interno / cliente |
 | `granola_suggestion_text` | text | sugestão editável (import/cola) |
@@ -471,10 +473,31 @@ RLS: SELECT espelha `meetings` (membro ou área com concessão e meeting `client
 | `sort_order` | int NOT NULL default 0 | |
 | `description` | text NOT NULL | |
 | `due_date` | date | nullable |
+| `assignee_person_id` | uuid → persons (SET NULL) | responsável opcional (interno ou externo do cliente) |
 | `task_id` | uuid → tasks (SET NULL) | preenchido ao “virar tarefa” |
 | `created_at`, `updated_at` | timestamptz | |
 
 RLS: mesmo padrão de `meeting_agenda_items`.
+
+---
+
+### `operation_risk_blockers` — risco/bloqueio de entrega (fora do SLA Dryos)
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `operation_id` | uuid NOT NULL → operations | |
+| `title` | text NOT NULL | min 3 |
+| `description` | text | |
+| `kind` | enum `operation_risk_kind` | risk / blocker |
+| `severity` | enum low/medium/high | default medium |
+| `status` | enum open/mitigated/resolved | default open |
+| `origin` | enum dryos/client/vendor | default dryos |
+| `responsible_person_id` | uuid → persons (SET NULL) | |
+| `meeting_id`, `decision_id`, `task_id` | uuid opcional | vínculos na operação |
+| `created_at`, `updated_at` | timestamptz | |
+
+Auditoria: `activity_events` subject `operation_risk_blocker`. Distinto de `sla_incidents`.
 
 ---
 

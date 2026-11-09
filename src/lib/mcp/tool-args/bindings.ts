@@ -16,6 +16,18 @@ import {
   assignVillainSchema,
   editOperationVillainSchema,
 } from "@/lib/validators/operation-villain";
+import { mcpUpdateTaskSchema } from "@/lib/mcp/tool-args/task-update";
+import { mcpDecisionUpdateSchema } from "@/lib/mcp/tool-args/decision-update";
+import {
+  mcpCreateOperationRiskBlockerSchema,
+  mcpPromoteMeetingNextStepSchema,
+  mcpUpdateOperationRiskBlockerSchema,
+} from "@/lib/mcp/tool-args/operation-risk-blocker-update";
+import {
+  mcpAddMeetingNextStepSchema,
+  mcpMeetingUpdateBodySchema,
+  mcpUpdateMeetingNextStepSchema,
+} from "@/lib/mcp/tool-args/meeting-update";
 import { taskFieldsSchema, taskStatusEnum } from "@/lib/validators/task";
 import { WRITABLE_STATUSES } from "@/lib/utils/operation-status";
 import type { McpToolDefinition } from "@/lib/mcp/tools/registry-types";
@@ -93,7 +105,7 @@ export const MCP_TOOL_ZOD_ARGS: Record<string, z.ZodType> = {
   update_frente: frenteSchema.and(z.object({ frente_id: uuid })),
   archive_frente: z.object({ frente_id: uuid, confirm: z.literal(true) }),
   create_task: taskFieldsSchema.extend({ frente_id: uuid }),
-  update_task: taskFieldsSchema.partial().extend({ task_id: uuid }),
+  update_task: mcpUpdateTaskSchema,
   change_task_status: z.object({ task_id: uuid, status: taskStatusEnum }),
   add_task_comment: z.object({ task_id: uuid, body: z.string().min(1).max(8000) }),
   create_area_task: taskFieldsSchema
@@ -103,16 +115,18 @@ export const MCP_TOOL_ZOD_ARGS: Record<string, z.ZodType> = {
   update_person: z.intersection(personSchema, z.object({ person_id: uuid })),
   archive_person: z.object({ person_id: uuid }),
   create_meeting: meetingSchema.and(z.object({ operation_id: uuid })),
-  update_meeting: meetingSchema
-    .partial()
-    .extend({
-      meeting_id: uuid,
-      granola_suggestion_text: z.string().max(50_000).optional(),
-      granola_source_ref: z.string().max(500).optional(),
-      granola_captured_at: z.string().datetime().optional(),
-    }),
+  update_meeting: mcpMeetingUpdateBodySchema,
+  add_meeting_next_step: mcpAddMeetingNextStepSchema,
+  update_meeting_next_step: mcpUpdateMeetingNextStepSchema,
+  promote_meeting_next_step_to_task: mcpPromoteMeetingNextStepSchema,
+  list_operation_risk_blockers: z.object({
+    operation_id: uuid,
+    limit: z.number().int().positive().max(100).optional(),
+  }),
+  create_operation_risk_blocker: mcpCreateOperationRiskBlockerSchema,
+  update_operation_risk_blocker: mcpUpdateOperationRiskBlockerSchema,
   create_decision: decisionSchema.and(z.object({ operation_id: uuid })),
-  update_decision: decisionSchema.extend({ decision_id: uuid }),
+  update_decision: mcpDecisionUpdateSchema,
   upsert_operation_briefing: briefingSchema.and(z.object({ operation_id: uuid })),
   create_allocation: allocationSchema.and(z.object({ frente_id: uuid })),
   update_allocation: allocationSchema.and(z.object({ allocation_id: uuid })),

@@ -10,6 +10,7 @@ export type NextStepRow =
 
 export type NextStepWithTask = NextStepRow & {
   task: { id: string; frente_id: string | null } | null;
+  assignee: AttendeeRef | null;
 };
 
 export type AttendeeRef = {
@@ -100,8 +101,9 @@ export async function getMeeting(
         id, meeting_id, sort_order, title, notes, source, granola_line, created_at, updated_at
       ),
       meeting_agenda_next_steps!fk_meeting_agenda_next_steps_meeting (
-        id, meeting_id, sort_order, description, due_date, task_id, created_at, updated_at,
-        task:tasks!fk_meeting_agenda_next_steps_task ( id, frente_id )
+        id, meeting_id, sort_order, description, due_date, task_id, assignee_person_id, created_at, updated_at,
+        task:tasks!fk_meeting_agenda_next_steps_task ( id, frente_id ),
+        assignee:persons!fk_meeting_agenda_next_steps_assignee ( id, name, kind )
       )
       `,
     )
@@ -120,13 +122,16 @@ export async function getMeeting(
   agendaItems.sort((a, b) => a.sort_order - b.sort_order);
   const rawNext = (meeting_agenda_next_steps ?? []) as (NextStepRow & {
     task: { id: string; frente_id: string | null } | null;
+    assignee: AttendeeRef | AttendeeRef[] | null;
   })[];
   rawNext.sort((a, b) => a.sort_order - b.sort_order);
   const nextSteps: NextStepWithTask[] = rawNext.map((row) => {
-    const { task, ...rest } = row;
+    const { task, assignee, ...rest } = row;
+    const assigneeOne = Array.isArray(assignee) ? (assignee[0] ?? null) : assignee;
     return {
       ...rest,
       task: task ?? null,
+      assignee: assigneeOne,
     };
   });
   return {

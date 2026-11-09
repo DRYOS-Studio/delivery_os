@@ -84,7 +84,7 @@ export async function mcpListMeetings(
   const { data, error } = await ctx.supabase
     .from("meetings")
     .select(
-      "id, operation_id, title, scheduled_at, visibility, notes, granola_suggestion_text, granola_source_ref, granola_captured_at, created_at",
+      "id, operation_id, title, scheduled_at, ended_at, visibility, notes, granola_suggestion_text, granola_source_ref, granola_captured_at, created_at",
     )
     .eq("operation_id", opId)
     .order("scheduled_at", { ascending: false })
@@ -108,6 +108,7 @@ export async function mcpCreateMeeting(
       operation_id,
       title: m.title,
       scheduled_at: m.scheduled_at,
+      ended_at: m.ended_at ?? null,
       notes: m.notes ?? null,
       visibility: m.visibility,
     })

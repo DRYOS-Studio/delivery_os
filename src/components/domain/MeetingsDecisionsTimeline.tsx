@@ -162,10 +162,14 @@ function TimelineItem({
   const Icon = item.type === "meeting" ? CalendarDays : Gavel;
   const title = item.payload.title;
   const visibility = item.payload.visibility;
+  const detailHref =
+    item.type === "meeting"
+      ? `/operations/${operationId}/meetings/${item.payload.id}`
+      : `/operations/${operationId}/decisions/${item.payload.id}/edit`;
   const editHref =
     item.type === "meeting"
       ? `/operations/${operationId}/meetings/${item.payload.id}/edit`
-      : `/operations/${operationId}/decisions/${item.payload.id}/edit`;
+      : detailHref;
 
   const preview =
     item.type === "meeting"
@@ -224,12 +228,22 @@ function TimelineItem({
                 Participantes: {attendeesPreview}
               </p>
             )}
-            <Link
-              href={editHref}
-              className="font-mono text-xs text-oak hover:underline inline-block"
-            >
-              Editar →
-            </Link>
+            <div className="flex gap-3">
+              {item.type === "meeting" && (
+                <Link
+                  href={detailHref}
+                  className="font-mono text-xs text-oak hover:underline inline-block"
+                >
+                  Ver detalhe →
+                </Link>
+              )}
+              <Link
+                href={editHref}
+                className="font-mono text-xs text-mute hover:underline inline-block"
+              >
+                Editar →
+              </Link>
+            </div>
           </div>
         </div>
       </Card>

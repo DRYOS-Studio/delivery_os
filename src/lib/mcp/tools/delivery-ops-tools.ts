@@ -1,4 +1,14 @@
 import type { Database } from "@/lib/db/types";
+import { applyClearable } from "@/lib/mcp/tool-args/clearable";
+import {
+  mcpAddMeetingNextStepSchema,
+  mcpUpdateMeetingNextStepSchema,
+} from "@/lib/mcp/tool-args/meeting-update";
+import {
+  mcpCreateOperationRiskBlockerSchema,
+  mcpPromoteMeetingNextStepSchema,
+  mcpUpdateOperationRiskBlockerSchema,
+} from "@/lib/mcp/tool-args/operation-risk-blocker-update";
 import { getOperationMonthlyCosts } from "@/lib/db/queries/operation-costs";
 import { allocationSchema } from "@/lib/validators/allocation";
 import { incidentSchema } from "@/lib/validators/incident";
@@ -23,15 +33,7 @@ const agendaItemArgs = z.object({
   sort_order: z.number().int().min(0).optional(),
 });
 
-const nextStepArgs = z.object({
-  meeting_id: z.string().uuid(),
-  description: z.string().trim().min(1).max(2000),
-  due_date: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .optional(),
-  sort_order: z.number().int().min(0).optional(),
-});
+const nextStepArgs = mcpAddMeetingNextStepSchema;
 
 export async function mcpListAllocations(
   ctx: McpHandlerContext,
@@ -551,7 +553,9 @@ export async function mcpListMeetingNextSteps(
   if (!meetingId) return { ok: false, message: "meeting_id obrigatório." };
   const { data, error } = await ctx.supabase
     .from("meeting_agenda_next_steps")
-    .select("id, meeting_id, description, due_date, sort_order, task_id")
+    .select(
+      "id, meeting_id, description, due_date, sort_order, task_id, assignee_person_id",
+    )
     .eq("meeting_id", meetingId)
     .order("sort_order", { ascending: true });
   if (error) return { ok: false, message: error.message };
@@ -573,6 +577,8 @@ export async function mcpAddMeetingNextStep(
       description: parsed.data.description,
       due_date: parsed.data.due_date ?? null,
       sort_order: parsed.data.sort_order ?? 0,
+      assignee_person_id: parsed.data.assignee_person_id ?? null,
+      task_id: parsed.data.task_id ?? null,
     })
     .select("id")
     .single();
@@ -585,12 +591,18 @@ export async function mcpUpdateMeetingNextStep(
   ctx: McpHandlerContext,
   args: Record<string, unknown>,
 ): Promise<McpToolResult<{ id: string }>> {
-  const id = typeof args.next_step_id === "string" ? args.next_step_id.trim() : "";
-  if (!id) return { ok: false, message: "next_step_id obrigatório." };
+  const parsed = mcpUpdateMeetingNextStepSchema.safeParse(args);
+  if (!parsed.success) {
+    return { ok: false, message: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  }
+  const { next_step_id: id, idempotency_key: _ik, ...rest } = parsed.data;
+  void _ik;
   const patch: NextStepUpdate = {};
-  if (typeof args.description === "string") patch.description = args.description.trim();
-  if (typeof args.due_date === "string") patch.due_date = args.due_date;
-  if (typeof args.sort_order === "number") patch.sort_order = args.sort_order;
+  if (rest.description !== undefined) patch.description = rest.description;
+  if (rest.sort_order !== undefined) patch.sort_order = rest.sort_order;
+  applyClearable(patch, "due_date", rest.due_date);
+  applyClearable(patch, "assignee_person_id", rest.assignee_person_id);
+  applyClearable(patch, "task_id", rest.task_id);
   if (Object.keys(patch).length === 0) return { ok: false, message: "Nada para atualizar." };
   const { error } = await ctx.supabase.from("meeting_agenda_next_steps").update(patch).eq("id", id);
   if (error) return { ok: false, message: error.message };
@@ -609,4 +621,162 @@ export async function mcpListOperationVillains(
     .eq("operation_id", opId);
   if (error) return { ok: false, message: error.message };
   return { ok: true, data: { villains: data ?? [] } };
+}
+
+export async function mcpListOperationRiskBlockers(
+  ctx: McpHandlerContext,
+  args: Record<string, unknown>,
+): Promise<McpToolResult<{ items: unknown[] }>> {
+  const opId = typeof args.operation_id === "string" ? args.operation_id.trim() : "";
+  if (!opId) return { ok: false, message: "operation_id obrigatório." };
+  const { data, error } = await ctx.supabase
+    .from("operation_risk_blockers")
+    .select(
+      "id, operation_id, title, description, kind, severity, status, origin, responsible_person_id, meeting_id, decision_id, task_id, created_at, updated_at",
+    )
+    .eq("operation_id", opId)
+    .order("updated_at", { ascending: false })
+    .limit(clampLimit(args.limit));
+  if (error) return { ok: false, message: error.message };
+  return { ok: true, data: { items: data ?? [] } };
+}
+
+export async function mcpCreateOperationRiskBlocker(
+  ctx: McpHandlerContext,
+  args: Record<string, unknown>,
+): Promise<McpToolResult<{ id: string }>> {
+  const parsed = mcpCreateOperationRiskBlockerSchema.safeParse(args);
+  if (!parsed.success) {
+    return { ok: false, message: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  }
+  const { operation_id, ...row } = parsed.data;
+  const { data, error } = await ctx.supabase
+    .from("operation_risk_blockers")
+    .insert({
+      operation_id,
+      title: row.title,
+      description: row.description ?? null,
+      kind: row.kind,
+      severity: row.severity,
+      status: row.status,
+      origin: row.origin,
+      responsible_person_id: row.responsible_person_id ?? null,
+      meeting_id: row.meeting_id ?? null,
+      decision_id: row.decision_id ?? null,
+      task_id: row.task_id ?? null,
+    })
+    .select("id")
+    .single();
+  if (error) return { ok: false, message: error.message };
+  if (!data) return { ok: false, message: "Falha ao criar." };
+  return { ok: true, data: { id: data.id } };
+}
+
+export async function mcpUpdateOperationRiskBlocker(
+  ctx: McpHandlerContext,
+  args: Record<string, unknown>,
+): Promise<McpToolResult<{ id: string }>> {
+  const parsed = mcpUpdateOperationRiskBlockerSchema.safeParse(args);
+  if (!parsed.success) {
+    return { ok: false, message: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  }
+  const { risk_blocker_id: id, ...rest } = parsed.data;
+  const patch: Database["public"]["Tables"]["operation_risk_blockers"]["Update"] =
+    {};
+  if (rest.title !== undefined) patch.title = rest.title;
+  applyClearable(
+    patch,
+    "description",
+    rest.description === undefined
+      ? undefined
+      : rest.description === null
+        ? null
+        : rest.description.trim() || null,
+  );
+  if (rest.kind !== undefined) patch.kind = rest.kind;
+  if (rest.severity !== undefined) patch.severity = rest.severity;
+  if (rest.status !== undefined) patch.status = rest.status;
+  if (rest.origin !== undefined) patch.origin = rest.origin;
+  applyClearable(patch, "responsible_person_id", rest.responsible_person_id);
+  applyClearable(patch, "meeting_id", rest.meeting_id);
+  applyClearable(patch, "decision_id", rest.decision_id);
+  applyClearable(patch, "task_id", rest.task_id);
+  if (Object.keys(patch).length === 0) {
+    return { ok: false, message: "Nada para atualizar." };
+  }
+  const { error } = await ctx.supabase
+    .from("operation_risk_blockers")
+    .update(patch)
+    .eq("id", id);
+  if (error) return { ok: false, message: error.message };
+  return { ok: true, data: { id } };
+}
+
+export async function mcpPromoteMeetingNextStepToTask(
+  ctx: McpHandlerContext,
+  args: Record<string, unknown>,
+): Promise<McpToolResult<{ task_id: string; next_step_id: string }>> {
+  const parsed = mcpPromoteMeetingNextStepSchema.safeParse(args);
+  if (!parsed.success) {
+    return { ok: false, message: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  }
+  const { next_step_id: nextStepId, frente_id: frenteId } = parsed.data;
+  const { data: step, error: stepErr } = await ctx.supabase
+    .from("meeting_agenda_next_steps")
+    .select(
+      "id, description, due_date, task_id, assignee_person_id, meeting:meetings!fk_meeting_agenda_next_steps_meeting ( id, operation_id )",
+    )
+    .eq("id", nextStepId)
+    .maybeSingle();
+  if (stepErr) return { ok: false, message: stepErr.message };
+  if (!step) return { ok: false, message: "Próximo passo não encontrado.", notFound: true };
+  if (step.task_id) return { ok: false, message: "Este passo já virou tarefa." };
+  const meeting = step.meeting as { id: string; operation_id: string } | null;
+  if (!meeting?.operation_id) {
+    return { ok: false, message: "Reunião inválida." };
+  }
+  const { data: frente, error: fErr } = await ctx.supabase
+    .from("frentes")
+    .select("id, operation_id, archived_at")
+    .eq("id", frenteId)
+    .maybeSingle();
+  if (fErr) return { ok: false, message: fErr.message };
+  if (!frente || frente.archived_at) {
+    return { ok: false, message: "Frente não encontrada ou arquivada." };
+  }
+  if (frente.operation_id !== meeting.operation_id) {
+    return { ok: false, message: "Frente não pertence à operação." };
+  }
+  const description = step.description;
+  const { data: taskRow, error: insErr } = await ctx.supabase
+    .from("tasks")
+    .insert({
+      frente_id: frenteId,
+      operation_id: meeting.operation_id,
+      title: description.slice(0, 200),
+      description: description.length > 200 ? description : null,
+      status: "todo",
+      due_date: step.due_date,
+      source_meeting_id: meeting.id,
+    })
+    .select("id")
+    .single();
+  if (insErr) return { ok: false, message: insErr.message };
+  if (!taskRow) return { ok: false, message: "Falha ao criar tarefa." };
+  if (step.assignee_person_id) {
+    const { error: aErr } = await ctx.supabase.from("task_assignees").insert({
+      task_id: taskRow.id,
+      person_id: step.assignee_person_id,
+    });
+    if (aErr) return { ok: false, message: aErr.message };
+  }
+  const { error: linkErr } = await ctx.supabase
+    .from("meeting_agenda_next_steps")
+    .update({ task_id: taskRow.id })
+    .eq("id", nextStepId);
+  if (linkErr) return { ok: false, message: linkErr.message };
+  return {
+    ok: true,
+    data: { task_id: taskRow.id, next_step_id: nextStepId },
+  };
 }

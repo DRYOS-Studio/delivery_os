@@ -911,6 +911,54 @@ const BASE_MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
     },
   },
   {
+    name: "promote_meeting_next_step_to_task",
+    access: "write",
+    idempotent: true,
+    description: "Cria tarefa na Frente a partir do próximo passo, já vinculada.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        next_step_id: { type: "string" },
+        frente_id: { type: "string" },
+        ...idem,
+      },
+      required: ["next_step_id", "frente_id"],
+    },
+  },
+  {
+    name: "list_operation_risk_blockers",
+    access: "read",
+    description:
+      "Riscos e bloqueios da operação (fora do SLA Dryos).",
+    inputSchema: {
+      type: "object",
+      properties: { operation_id: { type: "string" }, limit: { type: "number" } },
+      required: ["operation_id"],
+    },
+  },
+  {
+    name: "create_operation_risk_blocker",
+    access: "write",
+    idempotent: true,
+    description: "Registra risco ou bloqueio na operação.",
+    inputSchema: {
+      type: "object",
+      properties: { operation_id: { type: "string" }, title: { type: "string" }, ...idem },
+      required: ["operation_id", "title", "kind"],
+    },
+  },
+  {
+    name: "update_operation_risk_blocker",
+    access: "write",
+    idempotent: true,
+    description: "Atualiza risco/bloqueio; null limpa vínculos opcionais.",
+    inputSchema: {
+      type: "object",
+      properties: { risk_blocker_id: { type: "string" }, ...idem },
+      required: ["risk_blocker_id"],
+    },
+  },
+  {
     name: "list_operation_villains",
     access: "read",
     description: "Vilões vinculados à operação (progresso).",

@@ -73,6 +73,9 @@ export function MeetingForm(props: Props): React.JSX.Element {
     ? {
         title: props.initialData.title,
         scheduled_at: isoToDateTimeLocal(props.initialData.scheduled_at),
+        ended_at: props.initialData.ended_at
+          ? isoToDateTimeLocal(props.initialData.ended_at)
+          : "",
         notes: props.initialData.notes ?? "",
         visibility: props.initialData.visibility,
         attendee_ids: props.initialData.attendees.map((a) => a.id),
@@ -93,19 +96,21 @@ export function MeetingForm(props: Props): React.JSX.Element {
                 id: s.id,
                 description: s.description,
                 due_date: s.due_date ?? "",
+                assignee_person_id: s.assignee_person_id ?? "",
               }))
             : [{ description: "", due_date: "" }],
       }
     : {
         title: "",
         scheduled_at: defaultScheduledAt(),
+        ended_at: "",
         notes: "",
         visibility: "interno",
         attendee_ids: [],
         granola_suggestion_text: "",
         granola_source_ref: "",
         agenda_items: [{ title: "", notes: "" }],
-        next_steps: [{ description: "", due_date: "" }],
+        next_steps: [{ description: "", due_date: "", assignee_person_id: "" }],
       };
 
   const {
@@ -135,12 +140,16 @@ export function MeetingForm(props: Props): React.JSX.Element {
 
   const internals = props.attendeeCandidates.filter((a) => a.kind === "internal");
   const externals = props.attendeeCandidates.filter((a) => a.kind === "external");
+  const assigneeCandidates = props.attendeeCandidates;
 
   async function onSubmit(data: MeetingFormClientOutput) {
     setGeneralError(null);
     const scheduledIso = dateTimeLocalToISO(data.scheduled_at);
+    const endedIso = data.ended_at?.trim()
+      ? dateTimeLocalToISO(data.ended_at)
+      : undefined;
     const built = buildMeetingFormPayload(
-      { ...data, scheduled_at: scheduledIso },
+      { ...data, scheduled_at: scheduledIso, ended_at: endedIso },
       granolaPaste,
     );
     if (!built.ok) {
@@ -202,7 +211,7 @@ export function MeetingForm(props: Props): React.JSX.Element {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Field
-          label="Data e hora"
+          label="Início"
           htmlFor="scheduled_at"
           required
           error={errors.scheduled_at?.message}
@@ -211,6 +220,21 @@ export function MeetingForm(props: Props): React.JSX.Element {
             id="scheduled_at"
             type="datetime-local"
             {...register("scheduled_at")}
+            disabled={busy}
+            className={inputCn}
+          />
+        </Field>
+
+        <Field
+          label="Término"
+          htmlFor="ended_at"
+          error={errors.ended_at?.message}
+          hint="Opcional"
+        >
+          <input
+            id="ended_at"
+            type="datetime-local"
+            {...register("ended_at")}
             disabled={busy}
             className={inputCn}
           />
@@ -315,7 +339,7 @@ export function MeetingForm(props: Props): React.JSX.Element {
           {nextFields.map((field, index) => (
             <div
               key={field.id}
-              className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_auto_auto] md:items-start"
+              className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_auto_auto_auto] md:items-start"
             >
               <input type="hidden" {...register(`next_steps.${index}.id`)} />
               <Field
@@ -345,6 +369,22 @@ export function MeetingForm(props: Props): React.JSX.Element {
                   className={inputCn}
                 />
               </Field>
+              <Field label="Responsável" htmlFor={`next_assignee_${index}`} hint="Opcional">
+                <select
+                  id={`next_assignee_${index}`}
+                  {...register(`next_steps.${index}.assignee_person_id`)}
+                  disabled={busy}
+                  className={inputCn}
+                >
+                  <option value="">—</option>
+                  {assigneeCandidates.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                      {p.kind === "external" ? " (cliente)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </Field>
               <div className="flex md:pt-6">
                 <button
                   type="button"
@@ -363,7 +403,9 @@ export function MeetingForm(props: Props): React.JSX.Element {
           type="button"
           variant="ghost"
           disabled={busy}
-          onClick={() => appendNext({ description: "", due_date: "" })}
+          onClick={() =>
+            appendNext({ description: "", due_date: "", assignee_person_id: "" })
+          }
           className="gap-1.5"
         >
           <Plus className="w-4 h-4" strokeWidth={1.75} />

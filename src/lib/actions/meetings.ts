@@ -84,6 +84,7 @@ export async function createMeetingAction(
       operation_id: operationId,
       title: data.title,
       scheduled_at: data.scheduled_at,
+      ended_at: data.ended_at ?? null,
       notes: data.notes ?? null,
       visibility: data.visibility,
       granola_suggestion_text: data.granola_suggestion_text?.trim() || null,
@@ -121,6 +122,7 @@ export async function createMeetingAction(
           sort_order: idx,
           description: row.description.trim(),
           due_date: row.due_date ?? null,
+          assignee_person_id: row.assignee_person_id ?? null,
           task_id: null,
         })),
       );
@@ -157,6 +159,7 @@ export async function updateMeetingAction(
     .update({
       title: data.title,
       scheduled_at: data.scheduled_at,
+      ended_at: data.ended_at ?? null,
       notes: data.notes ?? null,
       visibility: data.visibility,
       granola_suggestion_text: data.granola_suggestion_text?.trim() || null,
@@ -284,6 +287,7 @@ export async function updateMeetingAction(
           sort_order: idx,
           description: desc,
           due_date: due,
+          assignee_person_id: row.assignee_person_id ?? null,
         })
         .eq("id", row.id)
         .eq("meeting_id", meetingId);
@@ -307,6 +311,7 @@ export async function updateMeetingAction(
           sort_order: idx,
           description: desc,
           due_date: due,
+          assignee_person_id: row.assignee_person_id ?? null,
           task_id: null,
         });
       if (insNsErr) return dbErr(insNsErr, "updateMeetingAction.insert_next_step");

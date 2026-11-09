@@ -2,11 +2,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/db/types";
 
 type TaskUpdate = Database["public"]["Tables"]["tasks"]["Update"];
-import {
-  taskSchema,
-  taskStatusEnum,
-  taskUpdateFieldsWithoutAssigneesSchema,
-} from "@/lib/validators/task";
+import { mcpUpdateTaskSchema } from "@/lib/mcp/tool-args/task-update";
+import { applyClearable } from "@/lib/mcp/tool-args/clearable";
+import { taskSchema, taskStatusEnum } from "@/lib/validators/task";
 import { z } from "zod";
 
 const TASK_SELECT = `
@@ -220,19 +218,11 @@ export async function mcpCreateAreaTask(
   return { ok: true, id: row.id, operation_id: row.operation_id };
 }
 
-const updateArgs = taskUpdateFieldsWithoutAssigneesSchema.and(
-  z.object({
-    task_id: z.string().uuid(),
-    assignee_person_ids: z.array(z.string().uuid()).optional(),
-    idempotency_key: z.string().min(8).max(200).optional(),
-  }),
-);
-
 export async function mcpUpdateTask(
   supabase: SupabaseClient<Database>,
   rawArgs: Record<string, unknown>,
 ): Promise<{ ok: true; id: string } | { ok: false; message: string; notFound?: boolean }> {
-  const parsed = updateArgs.safeParse(rawArgs);
+  const parsed = mcpUpdateTaskSchema.safeParse(rawArgs);
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   }
@@ -249,14 +239,15 @@ export async function mcpUpdateTask(
 
   const patch: TaskUpdate = {};
   if (rest.title !== undefined) patch.title = rest.title;
-  if (rest.description !== undefined) patch.description = rest.description;
   if (rest.status !== undefined) patch.status = rest.status;
-  if (rest.parent_task_id !== undefined) patch.parent_task_id = rest.parent_task_id;
-  if (rest.start_date !== undefined) patch.start_date = rest.start_date;
-  if (rest.due_date !== undefined) patch.due_date = rest.due_date;
-  if (rest.tags !== undefined) patch.tags = rest.tags;
-  if (rest.quick_win_id !== undefined) patch.quick_win_id = rest.quick_win_id;
-  if (rest.sla_incident_id !== undefined) patch.sla_incident_id = rest.sla_incident_id;
+  if (rest.area_id !== undefined) patch.area_id = rest.area_id;
+  applyClearable(patch, "description", rest.description);
+  applyClearable(patch, "parent_task_id", rest.parent_task_id);
+  applyClearable(patch, "start_date", rest.start_date);
+  applyClearable(patch, "due_date", rest.due_date);
+  applyClearable(patch, "tags", rest.tags);
+  applyClearable(patch, "quick_win_id", rest.quick_win_id);
+  applyClearable(patch, "sla_incident_id", rest.sla_incident_id);
 
   if (Object.keys(patch).length > 0) {
     const { error } = await supabase.from("tasks").update(patch).eq("id", taskId);
@@ -264,7 +255,8 @@ export async function mcpUpdateTask(
   }
 
   if (assignee_person_ids !== undefined) {
-    const syncErr = await syncAssignees(supabase, taskId, assignee_person_ids);
+    const ids = assignee_person_ids === null ? [] : assignee_person_ids;
+    const syncErr = await syncAssignees(supabase, taskId, ids);
     if (syncErr) return { ok: false, message: syncErr };
   }
 

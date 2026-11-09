@@ -1109,6 +1109,7 @@ export type Database = {
       }
       meeting_agenda_next_steps: {
         Row: {
+          assignee_person_id: string | null
           created_at: string
           description: string
           due_date: string | null
@@ -1119,6 +1120,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assignee_person_id?: string | null
           created_at?: string
           description: string
           due_date?: string | null
@@ -1129,6 +1131,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assignee_person_id?: string | null
           created_at?: string
           description?: string
           due_date?: string | null
@@ -1139,6 +1142,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_meeting_agenda_next_steps_assignee"
+            columns: ["assignee_person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fk_meeting_agenda_next_steps_meeting"
             columns: ["meeting_id"]
@@ -1191,6 +1201,7 @@ export type Database = {
       meetings: {
         Row: {
           created_at: string
+          ended_at: string | null
           granola_captured_at: string | null
           granola_source_ref: string | null
           granola_suggestion_text: string | null
@@ -1204,6 +1215,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          ended_at?: string | null
           granola_captured_at?: string | null
           granola_source_ref?: string | null
           granola_suggestion_text?: string | null
@@ -1217,6 +1229,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          ended_at?: string | null
           granola_captured_at?: string | null
           granola_source_ref?: string | null
           granola_suggestion_text?: string | null
@@ -1275,6 +1288,93 @@ export type Database = {
             columns: ["operation_id"]
             isOneToOne: false
             referencedRelation: "operations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      operation_risk_blockers: {
+        Row: {
+          created_at: string
+          decision_id: string | null
+          description: string | null
+          id: string
+          kind: Database["public"]["Enums"]["operation_risk_kind"]
+          meeting_id: string | null
+          operation_id: string
+          origin: Database["public"]["Enums"]["operation_risk_origin"]
+          responsible_person_id: string | null
+          severity: Database["public"]["Enums"]["operation_risk_severity"]
+          status: Database["public"]["Enums"]["operation_risk_status"]
+          task_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          decision_id?: string | null
+          description?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["operation_risk_kind"]
+          meeting_id?: string | null
+          operation_id: string
+          origin?: Database["public"]["Enums"]["operation_risk_origin"]
+          responsible_person_id?: string | null
+          severity?: Database["public"]["Enums"]["operation_risk_severity"]
+          status?: Database["public"]["Enums"]["operation_risk_status"]
+          task_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          decision_id?: string | null
+          description?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["operation_risk_kind"]
+          meeting_id?: string | null
+          operation_id?: string
+          origin?: Database["public"]["Enums"]["operation_risk_origin"]
+          responsible_person_id?: string | null
+          severity?: Database["public"]["Enums"]["operation_risk_severity"]
+          status?: Database["public"]["Enums"]["operation_risk_status"]
+          task_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_operation_risk_blockers_decision"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "decisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_operation_risk_blockers_meeting"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_operation_risk_blockers_operation"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "operations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_operation_risk_blockers_responsible"
+            columns: ["responsible_person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_operation_risk_blockers_task"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
         ]
@@ -2178,6 +2278,7 @@ export type Database = {
           parent_task_id: string | null
           quick_win_id: string | null
           sla_incident_id: string | null
+          source_meeting_id: string | null
           start_date: string | null
           status: Database["public"]["Enums"]["task_status"]
           tags: string[] | null
@@ -2196,6 +2297,7 @@ export type Database = {
           parent_task_id?: string | null
           quick_win_id?: string | null
           sla_incident_id?: string | null
+          source_meeting_id?: string | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           tags?: string[] | null
@@ -2214,6 +2316,7 @@ export type Database = {
           parent_task_id?: string | null
           quick_win_id?: string | null
           sla_incident_id?: string | null
+          source_meeting_id?: string | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           tags?: string[] | null
@@ -2261,6 +2364,13 @@ export type Database = {
             columns: ["sla_incident_id"]
             isOneToOne: false
             referencedRelation: "sla_incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_tasks_source_meeting_id"
+            columns: ["source_meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
             referencedColumns: ["id"]
           },
         ]
@@ -2396,6 +2506,13 @@ export type Database = {
         | "task"
         | "client_contract"
         | "profile"
+        | "meeting"
+        | "decision"
+        | "operation_risk_blocker"
+      operation_risk_kind: "risk" | "blocker"
+      operation_risk_origin: "dryos" | "client" | "vendor"
+      operation_risk_severity: "low" | "medium" | "high"
+      operation_risk_status: "open" | "mitigated" | "resolved"
       allocation_role: "responsavel" | "executor" | "aprovador" | "plantao"
       attachment_visibility: "interno" | "cliente"
       catalog_offer_group:
@@ -2568,7 +2685,14 @@ export const Constants = {
         "task",
         "client_contract",
         "profile",
+        "meeting",
+        "decision",
+        "operation_risk_blocker",
       ],
+      operation_risk_kind: ["risk", "blocker"],
+      operation_risk_origin: ["dryos", "client", "vendor"],
+      operation_risk_severity: ["low", "medium", "high"],
+      operation_risk_status: ["open", "mitigated", "resolved"],
       allocation_role: ["responsavel", "executor", "aprovador", "plantao"],
       attachment_visibility: ["interno", "cliente"],
       catalog_offer_group: [
