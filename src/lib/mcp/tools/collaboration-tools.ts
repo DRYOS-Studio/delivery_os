@@ -111,6 +111,7 @@ export async function mcpCreateMeeting(
       ended_at: m.ended_at ?? null,
       notes: m.notes ?? null,
       visibility: m.visibility,
+      kind: m.kind ?? "general",
     })
     .select("id")
     .single();

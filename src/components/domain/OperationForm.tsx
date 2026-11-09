@@ -31,6 +31,8 @@ type Props =
       clientsForSelect: ClientForSelect[];
       diagnosticsByClient: DiagnosticOption[];
       isAdmin?: boolean;
+      defaultClientId?: string;
+      returnTo?: string;
     }
   | {
       mode: "edit";
@@ -106,7 +108,10 @@ export function OperationForm(props: Props): React.JSX.Element {
           props.initialData.notificationWebhookUrl ?? undefined,
       }
     : {
-        client_id: "",
+        client_id:
+          "defaultClientId" in props && props.defaultClientId
+            ? props.defaultClientId
+            : "",
         product_line: "core",
         name: "",
         status: "em_construcao",
@@ -198,8 +203,16 @@ export function OperationForm(props: Props): React.JSX.Element {
       : await createOperationAction(fd);
 
     if (result.ok) {
-      const id = isEdit ? props.initialData.id : result.data.id;
-      router.push(`/operations/${id}`);
+      if (isEdit) {
+        router.push(`/operations/${props.initialData.id}`);
+      } else if (
+        props.mode === "create" &&
+        props.returnTo?.startsWith("/")
+      ) {
+        router.push(props.returnTo);
+      } else {
+        router.push(`/operations/${result.data.id}`);
+      }
       router.refresh();
       return;
     }

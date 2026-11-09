@@ -43,6 +43,7 @@ const FIELD_LABELS: Record<string, string> = {
   primary_contact_name: "contato",
   primary_contact_email: "e-mail do contato",
   archived_at: "arquivamento",
+  journey_status: "jornada",
   status: "status",
   product_line: "linha de produto",
   recurrence: "recorrência",
