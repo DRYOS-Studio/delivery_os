@@ -12,7 +12,7 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 
 | Módulo | Tabelas | Total |
 |---|---|---|
-| **Cliente** | `clients`, `client_contracts`, `repository_links`, `client_tech_items`, `client_software_items` | 5 |
+| **Cliente** | `clients`, `client_contracts`, `client_registration_invitations`, `repository_links`, `client_tech_items`, `client_software_items` | 6 |
 | **Operação** | `operations` | 1 |
 | **Entrega** | `frentes`, `allocations`, `tasks`, `task_assignees` | 4 |
 | **Pessoas** | `persons` | 1 |
@@ -34,7 +34,7 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 | **Notificações** | `notifications_log` | 1 |
 | **Auditoria** | `activity_events` | 1 |
 | **Comentários** | `task_comments`, `operation_comments` | 2 |
-| **Total atual** | | **39** |
+| **Total atual** | | **40** |
 
 ---
 
@@ -60,11 +60,26 @@ Origem de Operações, Pessoas externas, Credenciais (v2).
 | `address_street`, `address_number`, `address_complement`, `address_district`, `address_city` | text | endereço plano nullable |
 | `address_state` | text | UF 2 chars maiúsculas; CHECK length=2 |
 | `address_zip` | text | só dígitos (8); CHECK length=8; display formata |
+| `person_type` | text | `pf` \| `pj` — qualificação contratual |
+| `cpf` | text | só dígitos (11); PF ou rep. legal |
+| `profession`, `marital_status`, `trade_name` | text | PF/PJ (contrato) |
+| `formal_email` | text | comunicações formais |
+| `focal_point_*`, `financial_contact_*` | text | ponto focal e financeiro |
+| `legal_representative_*` | text | representante legal (PJ) |
 | `notes` | text | livre, max 1000 chars (validado no app) |
 | `created_at`, `updated_at`, `archived_at` | timestamptz | soft-delete via `archived_at` |
 
 CHECKs: `cnpj`, `address_state`, `address_zip` (length), `primary_contact_email` (shape).
 RLS: `authenticated_full_access` (sem 1). Granularidade Admin/Membro entra com `profiles` (sem 2+).
+
+### `client_registration_invitations` — convite de autocadastro por link
+
+Token em `token_hash` (SHA-256); `token_encrypted` só para copiar link no admin. Submissão em `submitted_payload` (JSON) até `approve` criar `clients` + `client_software_items`.
+
+Status enum: `enviado`, `preenchido`, `aprovado`, `expirado`, `cancelado`.
+RLS: admin only (`is_admin()`). Público acessa via service role + validação de token nas Server Actions.
+
+Migration: `20261109180000_client_registration_invitations.sql`
 
 ### `repository_links` — repositórios Git (múltiplos por escopo)
 

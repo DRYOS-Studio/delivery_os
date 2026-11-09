@@ -9,6 +9,21 @@ export function formatCnpj(digits: string | null | undefined): string | null {
   return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12, 14)}`;
 }
 
+export function formatCpf(digits: string | null | undefined): string | null {
+  if (!digits) return null;
+  const d = stripDigits(digits);
+  if (d.length !== 11) return d;
+  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9, 11)}`;
+}
+
+export function applyCpfMask(raw: string): string {
+  const d = stripDigits(raw).slice(0, 11);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`;
+  if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
+  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+}
+
 export function formatCep(digits: string | null | undefined): string | null {
   if (!digits) return null;
   const d = stripDigits(digits);

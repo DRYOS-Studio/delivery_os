@@ -17,6 +17,12 @@ import {
   mcpArchiveClient,
 } from "@/lib/mcp/tools/clients-tools";
 import {
+  mcpApproveClientRegistrationInvitation,
+  mcpCreateClientRegistrationInvitation,
+  mcpGetClientRegistrationSubmission,
+  mcpListClientRegistrationInvitations,
+} from "@/lib/mcp/tools/client-registration-tools";
+import {
   mcpCreateClientSoftwareItem,
   mcpCreateClientTechItem,
   mcpDeleteClientSoftwareItem,
@@ -230,6 +236,22 @@ export async function dispatchMcpTool(input: DispatchInput): Promise<unknown> {
     }
     case "restore_client": {
       const r = await mcpRestoreClient(ctx, args);
+      return flattenResult(r);
+    }
+    case "create_client_registration_invitation": {
+      const r = await mcpCreateClientRegistrationInvitation(ctx, args);
+      return flattenResult(r);
+    }
+    case "list_client_registration_invitations": {
+      const r = await mcpListClientRegistrationInvitations(ctx, args);
+      return flattenResult(r);
+    }
+    case "get_client_registration_submission": {
+      const r = await mcpGetClientRegistrationSubmission(ctx, args);
+      return flattenResult(r);
+    }
+    case "approve_client_registration_invitation": {
+      const r = await mcpApproveClientRegistrationInvitation(ctx, args);
       return flattenResult(r);
     }
     case "list_repository_links": {

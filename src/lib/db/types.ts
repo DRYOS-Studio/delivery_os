@@ -425,11 +425,27 @@ export type Database = {
           address_zip: string | null
           archived_at: string | null
           cnpj: string | null
+          cpf: string | null
           created_at: string
+          financial_contact_email: string | null
+          financial_contact_name: string | null
+          financial_contact_phone: string | null
+          focal_point_email: string | null
+          focal_point_name: string | null
+          focal_point_phone: string | null
+          formal_email: string | null
           id: string
           inscricao_estadual: string | null
           legal_name: string | null
+          legal_representative_cpf: string | null
+          legal_representative_email: string | null
+          legal_representative_name: string | null
+          legal_representative_role: string | null
+          marital_status: string | null
           name: string
+          person_type: string | null
+          profession: string | null
+          trade_name: string | null
           notes: string | null
           primary_contact_email: string | null
           primary_contact_name: string | null
@@ -447,16 +463,32 @@ export type Database = {
           address_zip?: string | null
           archived_at?: string | null
           cnpj?: string | null
+          cpf?: string | null
           created_at?: string
+          financial_contact_email?: string | null
+          financial_contact_name?: string | null
+          financial_contact_phone?: string | null
+          focal_point_email?: string | null
+          focal_point_name?: string | null
+          focal_point_phone?: string | null
+          formal_email?: string | null
           id?: string
           inscricao_estadual?: string | null
           legal_name?: string | null
+          legal_representative_cpf?: string | null
+          legal_representative_email?: string | null
+          legal_representative_name?: string | null
+          legal_representative_role?: string | null
+          marital_status?: string | null
           name: string
           notes?: string | null
+          person_type?: string | null
+          profession?: string | null
           primary_contact_email?: string | null
           primary_contact_name?: string | null
           primary_contact_phone?: string | null
           slug: string
+          trade_name?: string | null
           updated_at?: string
         }
         Update: {
@@ -469,19 +501,120 @@ export type Database = {
           address_zip?: string | null
           archived_at?: string | null
           cnpj?: string | null
+          cpf?: string | null
           created_at?: string
+          financial_contact_email?: string | null
+          financial_contact_name?: string | null
+          financial_contact_phone?: string | null
+          focal_point_email?: string | null
+          focal_point_name?: string | null
+          focal_point_phone?: string | null
+          formal_email?: string | null
           id?: string
           inscricao_estadual?: string | null
           legal_name?: string | null
+          legal_representative_cpf?: string | null
+          legal_representative_email?: string | null
+          legal_representative_name?: string | null
+          legal_representative_role?: string | null
+          marital_status?: string | null
           name?: string
           notes?: string | null
+          person_type?: string | null
+          profession?: string | null
           primary_contact_email?: string | null
           primary_contact_name?: string | null
           primary_contact_phone?: string | null
           slug?: string
+          trade_name?: string | null
           updated_at?: string
         }
         Relationships: []
+      }
+      client_registration_invitations: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          approved_client_id: string | null
+          cancelled_at: string | null
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          invite_note: string | null
+          lgpd_consented_at: string | null
+          prefill_contact_name: string
+          prefill_contact_phone: string
+          status: Database["public"]["Enums"]["client_registration_invitation_status"]
+          submitted_at: string | null
+          submitted_payload: Json | null
+          token_encrypted: string
+          token_hash: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_client_id?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          invite_note?: string | null
+          lgpd_consented_at?: string | null
+          prefill_contact_name: string
+          prefill_contact_phone: string
+          status?: Database["public"]["Enums"]["client_registration_invitation_status"]
+          submitted_at?: string | null
+          submitted_payload?: Json | null
+          token_encrypted: string
+          token_hash: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_client_id?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          invite_note?: string | null
+          lgpd_consented_at?: string | null
+          prefill_contact_name?: string
+          prefill_contact_phone?: string
+          status?: Database["public"]["Enums"]["client_registration_invitation_status"]
+          submitted_at?: string | null
+          submitted_payload?: Json | null
+          token_encrypted?: string
+          token_hash?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_client_reg_inv_approved_by"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_client_reg_inv_approved_client"
+            columns: ["approved_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_client_reg_inv_created_by"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       client_contracts: {
         Row: {
@@ -2294,6 +2427,12 @@ export type Database = {
       task_status: "todo" | "doing" | "blocked" | "done"
       user_role: "admin" | "member"
       client_contract_status: "rascunho" | "vigente" | "encerrada"
+      client_registration_invitation_status:
+        | "enviado"
+        | "preenchido"
+        | "aprovado"
+        | "expirado"
+        | "cancelado"
       mcp_agent_token_scope: "read" | "write"
     }
     CompositeTypes: {
@@ -2463,6 +2602,13 @@ export const Constants = {
       task_status: ["todo", "doing", "blocked", "done"],
       user_role: ["admin", "member"],
       client_contract_status: ["rascunho", "vigente", "encerrada"],
+      client_registration_invitation_status: [
+        "enviado",
+        "preenchido",
+        "aprovado",
+        "expirado",
+        "cancelado",
+      ],
       mcp_agent_token_scope: ["read", "write"],
     },
   },

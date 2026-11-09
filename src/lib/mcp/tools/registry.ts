@@ -146,6 +146,48 @@ const BASE_MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
     },
   },
   {
+    name: "create_client_registration_invitation",
+    access: "admin",
+    idempotent: true,
+    description:
+      "Cria convite de autocadastro (nome + telefone) e retorna registration_url.",
+    inputSchema: { type: "object", properties: { ...idem } },
+  },
+  {
+    name: "list_client_registration_invitations",
+    access: "admin",
+    description: "Lista convites de autocadastro (admin).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        status: { type: "string" },
+        limit: { type: "number" },
+        offset: { type: "number" },
+      },
+    },
+  },
+  {
+    name: "get_client_registration_submission",
+    access: "admin",
+    description: "Lê convite + payload submetido (admin).",
+    inputSchema: {
+      type: "object",
+      properties: { invitation_id: { type: "string" } },
+      required: ["invitation_id"],
+    },
+  },
+  {
+    name: "approve_client_registration_invitation",
+    access: "admin",
+    idempotent: true,
+    description: "Aprova submissão e cria registro em clients + softwares.",
+    inputSchema: {
+      type: "object",
+      properties: { invitation_id: { type: "string" }, ...idem },
+      required: ["invitation_id"],
+    },
+  },
+  {
     name: "list_repository_links",
     access: "read",
     description:
