@@ -67,7 +67,10 @@ export default async function Page({
         parents={parents}
         isAdmin={isAdmin}
       />
-      <ActivityFeedSection events={activityEvents} />
+      <ActivityFeedSection
+        events={activityEvents}
+        scope={{ kind: "task", taskId: tid }}
+      />
       {profile?.user?.id ? (
         <TaskCommentsSection
           taskId={tid}

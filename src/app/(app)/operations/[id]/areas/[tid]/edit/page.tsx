@@ -46,7 +46,10 @@ export default async function Page({
         areas={areas.map((a) => ({ id: a.id, name: a.name }))}
         isAdmin={profile?.role === "admin"}
       />
-      <ActivityFeedSection events={activityEvents} />
+      <ActivityFeedSection
+        events={activityEvents}
+        scope={{ kind: "task", taskId: tid }}
+      />
       {profile?.user?.id ? (
         <TaskCommentsSection
           taskId={tid}
