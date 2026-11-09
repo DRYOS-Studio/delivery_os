@@ -212,6 +212,7 @@ CHECK `chk_persons_kind_consistency`: garante exclusividade.
 | `status` | enum `operation_status` default `em_construcao` | ativos: em_construcao / em_operacao / janela_critica · terminais: concluida / cancelada (e arquivada, legado — nunca escrito). Terminal e `archived_at` são eixos distintos: terminal sai dos agregados, `archived_at` tira da vista |
 | `monthly_recurring_revenue` | numeric(14,2) | nullable (Studio one-off) |
 | `monthly_fixed_cost` | numeric(12,2) | nullable; custo mensal fixo (hospedagem, infra). Admin-only via UI |
+| `tax_rate_pct` | numeric(5,2) | nullable; alíquota de imposto (0–100) sobre `monthly_recurring_revenue`; valor derivado entra no custo mensal/margem. Admin-only via UI/MCP |
 | `recurrence` | enum `recurrence` | mensal / trimestral / anual / unica; nullable |
 | `start_date`, `end_date` | date | nullable; Tipo C/E não tem fim (validado via Frente) |
 | `response_hours` | int | SLA prometido pra primeira resposta. CHECK 0-720. Null = sem SLA |

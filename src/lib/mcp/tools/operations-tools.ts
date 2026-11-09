@@ -11,7 +11,7 @@ const OP_LIST =
   "id, name, status, product_line, client_id, recurrence, monthly_recurring_revenue, start_date, end_date, archived_at, client:clients!fk_operations_client_id ( id, name, slug )";
 
 const OP_DETAIL =
-  "id, name, status, product_line, client_id, recurrence, monthly_recurring_revenue, monthly_fixed_cost, start_date, end_date, response_hours, resolution_hours, notification_webhook_url, archived_at, client:clients!fk_operations_client_id ( id, name, slug )";
+  "id, name, status, product_line, client_id, recurrence, monthly_recurring_revenue, monthly_fixed_cost, tax_rate_pct, start_date, end_date, response_hours, resolution_hours, notification_webhook_url, archived_at, client:clients!fk_operations_client_id ( id, name, slug )";
 
 function operationInsert(data: z.infer<typeof operationSchema>) {
   return {
@@ -22,6 +22,7 @@ function operationInsert(data: z.infer<typeof operationSchema>) {
     recurrence: data.recurrence ?? null,
     monthly_recurring_revenue: data.monthly_recurring_revenue ?? null,
     monthly_fixed_cost: data.monthly_fixed_cost ?? null,
+    tax_rate_pct: data.tax_rate_pct ?? null,
     start_date: data.start_date ?? null,
     end_date: data.end_date ?? null,
     response_hours: data.response_hours ?? null,

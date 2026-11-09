@@ -13,7 +13,7 @@ import type { NextConfig } from "next";
  * preview e produção montam a CSP completa.
  */
 function supabaseOrigin(): string | null {
-  const raw = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const raw = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   if (!raw) {
     console.warn(
       "[csp] NEXT_PUBLIC_SUPABASE_URL ausente — connect-src sai sem a origem do Supabase. " +
@@ -21,7 +21,14 @@ function supabaseOrigin(): string | null {
     );
     return null;
   }
-  return new URL(raw).origin;
+  try {
+    return new URL(raw).origin;
+  } catch {
+    console.warn(
+      `[csp] NEXT_PUBLIC_SUPABASE_URL inválida (${raw}) — connect-src omite Supabase; corrija a env no deploy.`,
+    );
+    return null;
+  }
 }
 
 /**

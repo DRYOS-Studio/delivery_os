@@ -75,6 +75,9 @@ export function OperationForm(props: Props): React.JSX.Element {
       ? formatMrrInput(props.initialData.monthlyFixedCost ?? null)
       : "",
   );
+  const [taxRateInput, setTaxRateInput] = useState(
+    isEdit ? formatTaxRateInput(props.initialData.taxRatePct ?? null) : "",
+  );
   const [nameTouched, setNameTouched] = useState(isEdit);
 
   const defaultValues: OperationInput = isEdit
@@ -93,6 +96,7 @@ export function OperationForm(props: Props): React.JSX.Element {
           props.initialData.monthlyRecurringRevenue ?? null,
         monthly_fixed_cost:
           props.initialData.monthlyFixedCost ?? null,
+        tax_rate_pct: props.initialData.taxRatePct ?? null,
         response_hours: props.initialData.responseHours ?? undefined,
         resolution_hours: props.initialData.resolutionHours ?? undefined,
         diagnostic_id: props.initialData.diagnosticId ?? undefined,
@@ -109,6 +113,7 @@ export function OperationForm(props: Props): React.JSX.Element {
         recurrence: undefined,
         monthly_recurring_revenue: null,
         monthly_fixed_cost: null,
+        tax_rate_pct: null,
         response_hours: undefined,
         resolution_hours: undefined,
         diagnostic_id: undefined,
@@ -164,6 +169,12 @@ export function OperationForm(props: Props): React.JSX.Element {
       "monthly_fixed_cost",
       data.monthly_fixed_cost !== null && data.monthly_fixed_cost !== undefined
         ? String(data.monthly_fixed_cost)
+        : "",
+    );
+    fd.set(
+      "tax_rate_pct",
+      data.tax_rate_pct !== null && data.tax_rate_pct !== undefined
+        ? String(data.tax_rate_pct)
         : "",
     );
     fd.set(
@@ -400,6 +411,29 @@ export function OperationForm(props: Props): React.JSX.Element {
               className={inputCn}
             />
           </Field>
+
+          <Field
+            label="Impostos (%)"
+            htmlFor="tax_rate_pct"
+            error={errors.tax_rate_pct?.message}
+            hint="Sobre o MRR (valor cobrado). Ex.: 6% em R$ 3.000 = R$ 180/mês na margem. Vazio = sem imposto."
+          >
+            <input
+              id="tax_rate_pct"
+              type="text"
+              inputMode="decimal"
+              value={taxRateInput}
+              onChange={(e) => {
+                const raw = e.target.value;
+                setTaxRateInput(raw);
+                const parsed = parseTaxRatePct(raw);
+                setValue("tax_rate_pct", parsed, { shouldValidate: true });
+              }}
+              placeholder="0"
+              disabled={busy}
+              className={inputCn}
+            />
+          </Field>
         </>
       ) : (
         <>
@@ -409,6 +443,7 @@ export function OperationForm(props: Props): React.JSX.Element {
             {...register("monthly_recurring_revenue")}
           />
           <input type="hidden" {...register("monthly_fixed_cost")} />
+          <input type="hidden" {...register("tax_rate_pct")} />
         </>
       )}
 
@@ -570,6 +605,18 @@ export function OperationForm(props: Props): React.JSX.Element {
       </div>
     </form>
   );
+}
+
+function parseTaxRatePct(raw: string): number | null {
+  const t = raw.trim();
+  if (t === "") return null;
+  const n = Number(t.replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+}
+
+function formatTaxRateInput(value: number | null): string {
+  if (value === null || value === undefined) return "";
+  return String(value).replace(".", ",");
 }
 
 function formatMrrInput(value: number | null): string {

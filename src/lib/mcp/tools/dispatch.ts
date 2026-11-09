@@ -75,6 +75,7 @@ import {
   mcpListAllocations,
   mcpListMeetingAgendaItems,
   mcpListMeetingNextSteps,
+  mcpGetOperationMonthlyCosts,
   mcpListOperationCosts,
   mcpListOperationVillains,
   mcpListQuickWins,
@@ -494,6 +495,9 @@ export async function dispatchMcpTool(input: DispatchInput): Promise<unknown> {
     }
     case "list_operation_costs": {
       return flattenResult(await mcpListOperationCosts(ctx, args));
+    }
+    case "get_operation_monthly_costs": {
+      return flattenResult(await mcpGetOperationMonthlyCosts(ctx, args));
     }
     case "create_operation_cost": {
       return flattenResult(await mcpCreateOperationCost(ctx, args));
