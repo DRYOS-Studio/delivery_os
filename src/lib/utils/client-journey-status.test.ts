@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   CLIENT_JOURNEY_AUTOMATIC_TRANSITIONS,
+  CLIENT_JOURNEY_BACKFILL_PRECEDENCE,
   shouldAutoTransitionOnContractVigente,
   shouldAutoTransitionOnOnboardingEnded,
   shouldAutoTransitionOnOnboardingScheduled,
@@ -24,5 +25,16 @@ describe("client journey automatic transitions", () => {
   it("reunião onboarding realizada leva a em_implantacao", () => {
     expect(shouldAutoTransitionOnOnboardingEnded("onboarding_agendado")).toBe(true);
     expect(shouldAutoTransitionOnOnboardingEnded("ativo")).toBe(false);
+  });
+});
+
+describe("backfill jornada (precedência migration)", () => {
+  it("documenta a ordem aprovada para clientes existentes", () => {
+    expect(CLIENT_JOURNEY_BACKFILL_PRECEDENCE).toEqual([
+      "encerrado_se_arquivado",
+      "ativo_se_operacao_ativa",
+      "em_implantacao_ou_onboarding_agendado_sem_op_ativa",
+      "onboarding_pendente_contrato_ou_resto",
+    ]);
   });
 });

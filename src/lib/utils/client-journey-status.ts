@@ -76,6 +76,14 @@ export function isClientJourneyStatus(value: string): value is ClientJourneyStat
 /**
  * Transições automáticas (espelho dos triggers SQL). Usado em testes.
  */
+/** Ordem do backfill em `20261109230000_client_journey_and_meeting_kind.sql`. */
+export const CLIENT_JOURNEY_BACKFILL_PRECEDENCE = [
+  "encerrado_se_arquivado",
+  "ativo_se_operacao_ativa",
+  "em_implantacao_ou_onboarding_agendado_sem_op_ativa",
+  "onboarding_pendente_contrato_ou_resto",
+] as const;
+
 export const CLIENT_JOURNEY_AUTOMATIC_TRANSITIONS = {
   contract_vigente: {
     to: "onboarding_pendente" as const,

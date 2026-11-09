@@ -196,29 +196,39 @@ CREATE TRIGGER trg_client_journey_meeting_onboarding
 
 -- ---------------------------------------------------------------------------
 -- Backfill jornada (clientes existentes)
+-- Precedência (Rafael, PR #194):
+--   1 encerrado | 2 ativo (op ativa, com ou sem contrato)
+--   3 em_implantacao / onboarding_agendado (sem op ativa, por reunião onboarding)
+--   4 contrato vigente sem op ativa → onboarding_pendente | 5 demais → onboarding_pendente (default)
 -- ---------------------------------------------------------------------------
 UPDATE public.clients
 SET journey_status = 'encerrado'
 WHERE archived_at IS NOT NULL;
 
+-- 2) Operação ativa → ativo (contrato vigente não é requisito).
 UPDATE public.clients c
 SET journey_status = 'ativo'
 WHERE c.archived_at IS NULL
   AND EXISTS (
-    SELECT 1 FROM public.client_contracts cc
-    WHERE cc.client_id = c.id AND cc.status = 'vigente'
-  )
-  AND EXISTS (
-    SELECT 1 FROM public.operations o
+    SELECT 1
+    FROM public.operations o
     WHERE o.client_id = c.id
       AND o.archived_at IS NULL
       AND o.status IN ('em_construcao', 'em_operacao', 'janela_critica')
   );
 
+-- 3a) Sem operação ativa + onboarding realizada.
 UPDATE public.clients c
 SET journey_status = 'em_implantacao'
 WHERE c.archived_at IS NULL
   AND c.journey_status = 'onboarding_pendente'
+  AND NOT EXISTS (
+    SELECT 1
+    FROM public.operations o
+    WHERE o.client_id = c.id
+      AND o.archived_at IS NULL
+      AND o.status IN ('em_construcao', 'em_operacao', 'janela_critica')
+  )
   AND EXISTS (
     SELECT 1
     FROM public.meetings m
@@ -228,10 +238,18 @@ WHERE c.archived_at IS NULL
       AND m.ended_at IS NOT NULL
   );
 
+-- 3b) Sem operação ativa + onboarding agendada (sem término).
 UPDATE public.clients c
 SET journey_status = 'onboarding_agendado'
 WHERE c.archived_at IS NULL
-  AND c.journey_status IN ('onboarding_pendente', 'em_implantacao')
+  AND c.journey_status = 'onboarding_pendente'
+  AND NOT EXISTS (
+    SELECT 1
+    FROM public.operations o
+    WHERE o.client_id = c.id
+      AND o.archived_at IS NULL
+      AND o.status IN ('em_construcao', 'em_operacao', 'janela_critica')
+  )
   AND EXISTS (
     SELECT 1
     FROM public.meetings m
@@ -240,31 +258,16 @@ WHERE c.archived_at IS NULL
       AND m.kind = 'onboarding'
       AND m.scheduled_at IS NOT NULL
       AND m.ended_at IS NULL
-  );
-
-UPDATE public.clients c
-SET journey_status = 'onboarding_pendente'
-WHERE c.archived_at IS NULL
-  AND c.journey_status = 'onboarding_pendente'
-  AND EXISTS (
-    SELECT 1 FROM public.client_contracts cc
-    WHERE cc.client_id = c.id AND cc.status = 'vigente'
   )
   AND NOT EXISTS (
-    SELECT 1 FROM public.operations o
+    SELECT 1
+    FROM public.meetings m
+    JOIN public.operations o ON o.id = m.operation_id
     WHERE o.client_id = c.id
-      AND o.archived_at IS NULL
-      AND o.status IN ('em_construcao', 'em_operacao', 'janela_critica')
+      AND m.kind = 'onboarding'
+      AND m.ended_at IS NOT NULL
   );
 
--- Demais ativos sem contrato vigente → em_implantacao (neutro).
-UPDATE public.clients c
-SET journey_status = 'em_implantacao'
-WHERE c.archived_at IS NULL
-  AND c.journey_status = 'onboarding_pendente'
-  AND NOT EXISTS (
-    SELECT 1 FROM public.client_contracts cc
-    WHERE cc.client_id = c.id AND cc.status = 'vigente'
-  );
+-- 4–5) Contrato vigente sem op ativa e demais não ativos permanecem onboarding_pendente (DEFAULT da coluna).
 
 NOTIFY pgrst, 'reload schema';
