@@ -65,7 +65,7 @@ Origem de Operações, Pessoas externas, Credenciais (v2).
 | `profession`, `marital_status`, `trade_name` | text | PF/PJ (contrato) |
 | `formal_email` | text | comunicações formais |
 | `focal_point_*`, `financial_contact_*` | text | ponto focal e financeiro |
-| `legal_representative_*` | text | representante legal (PJ) |
+| `legal_representative_*` | text | representante legal (PJ), incl. `legal_representative_marital_status` |
 | `notes` | text | livre, max 1000 chars (validado no app) |
 | `created_at`, `updated_at`, `archived_at` | timestamptz | soft-delete via `archived_at` |
 

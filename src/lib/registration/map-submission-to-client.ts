@@ -25,6 +25,7 @@ export type ClientInsertFromSubmission = {
   legal_representative_role: string | null;
   legal_representative_cpf: string | null;
   legal_representative_email: string | null;
+  legal_representative_marital_status: string | null;
   address_street: string;
   address_number: string;
   address_complement: string | null;
@@ -83,6 +84,7 @@ export function clientPayloadFromSubmission(
       legal_representative_role: null,
       legal_representative_cpf: null,
       legal_representative_email: null,
+      legal_representative_marital_status: null,
       ...address,
       ...contacts,
     };
@@ -104,6 +106,7 @@ export function clientPayloadFromSubmission(
     legal_representative_role: data.legal_representative_role,
     legal_representative_cpf: data.legal_representative_cpf,
     legal_representative_email: data.legal_representative_email,
+    legal_representative_marital_status: data.legal_representative_marital_status,
     ...address,
     ...contacts,
   };

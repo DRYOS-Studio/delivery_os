@@ -14,6 +14,25 @@ export default async function CadastroTokenPage({
   const { token: rawParam } = await params;
   const token = decodeURIComponent(rawParam);
 
+  if (process.env.NODE_ENV === "development" && token === "dev-preview") {
+    return (
+      <>
+        <div className="mb-6">
+          <h1 className="font-display text-2xl text-ink font-semibold">
+            Olá, Cliente Demo
+          </h1>
+          <p className="text-sm text-mute mt-2">
+            Preencha os dados abaixo para seguirmos com o contrato.
+          </p>
+        </div>
+        <PublicClientRegistrationForm
+          token={token}
+          prefillPhone="21999998888"
+        />
+      </>
+    );
+  }
+
   let prefill;
   try {
     prefill = await getPublicRegistrationPrefill(token);

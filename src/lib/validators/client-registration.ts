@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isValidCnpj, isValidCpf, stripDocumentDigits } from "@/lib/utils/br-document";
+import { MARITAL_STATUS_OPTIONS } from "@/lib/utils/marital-status";
 import { nullishToEmptyString, nullishToUndefined } from "@/lib/validators/nullish";
 
 const requiredText = (max: number, label: string) =>
@@ -81,6 +82,13 @@ const contactsSchema = z.object({
   financial_contact_phone: requiredPhone,
 });
 
+const maritalStatusField = z.preprocess(
+  nullishToEmptyString,
+  z.enum(MARITAL_STATUS_OPTIONS, {
+    error: "Selecione o estado civil.",
+  }),
+);
+
 const cpfField = z.preprocess(
   (v) => stripDocumentDigits(String(v ?? "")),
   z
@@ -109,7 +117,7 @@ const pfSchema = z
     person_type: z.literal("pf"),
     full_name: requiredText(200, "Nome completo"),
     profession: requiredText(120, "Profissão"),
-    marital_status: requiredText(60, "Estado civil"),
+    marital_status: maritalStatusField,
     cpf: cpfField,
     formal_email: requiredEmail,
   })
@@ -129,6 +137,7 @@ const pjSchema = z
     legal_representative_name: requiredText(120, "Nome do representante"),
     legal_representative_role: requiredText(80, "Cargo do representante"),
     legal_representative_cpf: cpfField,
+    legal_representative_marital_status: maritalStatusField,
     legal_representative_email: requiredEmail,
   })
   .merge(addressSchema)

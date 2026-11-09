@@ -11,7 +11,7 @@ import {
 import { z } from "zod";
 
 const CLIENT_SELECT =
-  "id, name, slug, notes, legal_name, cnpj, primary_contact_name, primary_contact_email, primary_contact_phone, address_city, address_state, created_at, updated_at, archived_at";
+  "id, name, slug, notes, legal_name, cnpj, cpf, person_type, marital_status, legal_representative_name, legal_representative_role, legal_representative_cpf, legal_representative_marital_status, legal_representative_email, primary_contact_name, primary_contact_email, primary_contact_phone, address_city, address_state, created_at, updated_at, archived_at";
 
 function clientPayload(data: z.infer<typeof clientSchema>) {
   return {

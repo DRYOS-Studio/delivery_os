@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { approveRegistrationInvitationAction } from "@/lib/actions/client-registration";
+import { RegistrationSubmissionReviewSummary } from "@/components/domain/RegistrationSubmissionReviewSummary";
 import type { ClientRegistrationSubmission } from "@/lib/validators/client-registration";
 
 type Props = {
@@ -62,11 +63,7 @@ export function RegistrationInviteReviewPanel({
         </Card>
       )}
 
-      <Card className="p-5">
-        <pre className="text-xs text-ink-soft overflow-x-auto whitespace-pre-wrap">
-          {JSON.stringify(submission, null, 2)}
-        </pre>
-      </Card>
+      <RegistrationSubmissionReviewSummary submission={submission} />
 
       {error && <p className="text-sm text-critical">{error}</p>}
 

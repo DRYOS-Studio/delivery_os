@@ -439,6 +439,7 @@ export type Database = {
           legal_name: string | null
           legal_representative_cpf: string | null
           legal_representative_email: string | null
+          legal_representative_marital_status: string | null
           legal_representative_name: string | null
           legal_representative_role: string | null
           marital_status: string | null
@@ -477,6 +478,7 @@ export type Database = {
           legal_name?: string | null
           legal_representative_cpf?: string | null
           legal_representative_email?: string | null
+          legal_representative_marital_status?: string | null
           legal_representative_name?: string | null
           legal_representative_role?: string | null
           marital_status?: string | null
@@ -515,6 +517,7 @@ export type Database = {
           legal_name?: string | null
           legal_representative_cpf?: string | null
           legal_representative_email?: string | null
+          legal_representative_marital_status?: string | null
           legal_representative_name?: string | null
           legal_representative_role?: string | null
           marital_status?: string | null
