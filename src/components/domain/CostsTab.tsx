@@ -74,7 +74,7 @@ export function CostsTab({ operationId, breakdown }: Props) {
             {formatMoneyBR(fixedCost)}
           </p>
           <p className="font-mono text-[10px] uppercase tracking-wide text-mute mt-1">
-            Editar via formulário da Operação (campo "Custo fixo mensal").
+            Editar via formulário da Operação (campo Custo fixo mensal).
           </p>
         </div>
       </section>
