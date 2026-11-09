@@ -114,8 +114,8 @@ export function formatActivityActorLabel(
   event: ActivityEventRow,
   ctx: ActivityFormatContext,
 ): string {
-  const trimmed = event.actorName?.trim();
-  if (trimmed) return trimmed;
+  const stored = event.actorName?.trim();
+  if (stored) return stored;
 
   const meta = event.metadata;
   if (meta && typeof meta === "object" && !Array.isArray(meta)) {
@@ -127,9 +127,12 @@ export function formatActivityActorLabel(
     if (typeof metaName === "string" && metaName.trim()) return metaName.trim();
   }
 
+  const fromCtx = event.actorProfileId
+    ? mapGet(ctx.profileNames, event.actorProfileId)?.trim()
+    : undefined;
+  if (fromCtx) return fromCtx;
+
   if (event.actorProfileId) {
-    const fromCtx = mapGet(ctx.profileNames, event.actorProfileId);
-    if (fromCtx?.trim()) return fromCtx.trim();
     return "Colega";
   }
 

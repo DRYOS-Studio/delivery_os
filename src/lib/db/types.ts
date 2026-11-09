@@ -195,6 +195,7 @@ export type Database = {
       activity_events: {
         Row: {
           action: string
+          actor_name: string | null
           actor_profile_id: string | null
           client_id: string | null
           created_at: string
@@ -209,6 +210,7 @@ export type Database = {
         }
         Insert: {
           action: string
+          actor_name?: string | null
           actor_profile_id?: string | null
           client_id?: string | null
           created_at?: string
@@ -223,6 +225,7 @@ export type Database = {
         }
         Update: {
           action?: string
+          actor_name?: string | null
           actor_profile_id?: string | null
           client_id?: string | null
           created_at?: string

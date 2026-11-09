@@ -121,4 +121,16 @@ describe("formatActivityActorLabel", () => {
     );
     expect(label).toBe("Colega");
   });
+
+  it("prioriza actor_name denormalizado (independe de RLS no join)", () => {
+    const label = formatActivityActorLabel(
+      row({
+        actorName: "Jonathan",
+        actorProfileId: "33333333-3333-4333-8333-333333333333",
+        metadata: {},
+      }),
+      ctx,
+    );
+    expect(label).toBe("Jonathan");
+  });
 });

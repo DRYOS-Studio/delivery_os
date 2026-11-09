@@ -29,7 +29,7 @@ const listArgs = z
   });
 
 const EVENT_SELECT =
-  "id, created_at, action, field_key, old_value, new_value, subject_type, subject_id, operation_id, actor_profile_id";
+  "id, created_at, action, field_key, old_value, new_value, subject_type, subject_id, operation_id, actor_profile_id, actor_name";
 
 export async function mcpListActivityEvents(
   supabase: SupabaseClient<Database>,
