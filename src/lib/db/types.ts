@@ -2422,7 +2422,13 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      profile_display_names: {
+        Row: {
+          display_name: string | null
+          profile_id: string
+        }
+        Relationships: []
+      }
     }
     Functions: {
       archive_client_cascade: {
@@ -2491,6 +2497,14 @@ export type Database = {
           p_subject_type: Database["public"]["Enums"]["activity_subject_type"]
         }
         Returns: string
+      }
+      resolve_profile_display_name: {
+        Args: { p_profile_id: string }
+        Returns: string
+      }
+      set_profile_display_name: {
+        Args: { p_profile_id: string; p_name: string }
+        Returns: undefined
       }
       is_admin: { Args: never; Returns: boolean }
       is_area_granted: { Args: { p_op_id: string }; Returns: boolean }

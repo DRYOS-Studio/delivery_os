@@ -1,5 +1,9 @@
 import type { Role } from "@/lib/auth/server";
 import { createAdmin, createServer } from "@/lib/db/client";
+import {
+  pickProfileDisplayName,
+  resolveProfileDisplayNames,
+} from "@/lib/db/queries/profile-display-names";
 
 export type ProfileListItem = {
   id: string;
@@ -9,6 +13,7 @@ export type ProfileListItem = {
   createdAt: string;
   personId: string | null;
   personName: string | null;
+  displayLabel: string | null;
 };
 
 export async function listProfiles(): Promise<ProfileListItem[]> {
@@ -26,6 +31,7 @@ export async function listProfiles(): Promise<ProfileListItem[]> {
   if (!data) return [];
 
   const admin = createAdmin();
+  const displayNames = await resolveProfileDisplayNames(data.map((p) => p.id));
   const result: ProfileListItem[] = [];
   for (const p of data) {
     const { data: u } = await admin.auth.admin.getUserById(p.id);
@@ -38,6 +44,7 @@ export async function listProfiles(): Promise<ProfileListItem[]> {
       createdAt: p.created_at,
       personId: p.person_id,
       personName: person?.name ?? null,
+      displayLabel: pickProfileDisplayName(displayNames, p.id),
     });
   }
   return result;

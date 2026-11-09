@@ -1,4 +1,8 @@
 import { createAdmin, createServer } from "@/lib/db/client";
+import {
+  pickProfileDisplayName,
+  resolveProfileDisplayNames,
+} from "@/lib/db/queries/profile-display-names";
 
 export type BriefingContent = {
   contexto: string | null;
@@ -20,6 +24,7 @@ export type BriefingVersionRow = BriefingContent & {
 
 export type BriefingVersionWithAuthor = BriefingVersionRow & {
   authorEmail: string | null;
+  authorDisplayName: string | null;
 };
 
 export type BriefingWithLatest = {
@@ -29,6 +34,7 @@ export type BriefingWithLatest = {
   updated_at: string;
   latestVersion: BriefingVersionRow | null;
   authorEmail: string | null;
+  authorDisplayName: string | null;
   versionsCount: number;
 };
 
@@ -101,6 +107,9 @@ export async function getBriefingByOperation(
   const authorEmails = latest?.author_id
     ? await resolveAuthorEmails([latest.author_id])
     : new Map();
+  const authorNames = latest?.author_id
+    ? await resolveProfileDisplayNames([latest.author_id])
+    : new Map();
 
   return {
     id: briefing.id,
@@ -110,6 +119,9 @@ export async function getBriefingByOperation(
     latestVersion: latest,
     authorEmail: latest?.author_id
       ? (authorEmails.get(latest.author_id) ?? null)
+      : null,
+    authorDisplayName: latest?.author_id
+      ? pickProfileDisplayName(authorNames, latest.author_id)
       : null,
     versionsCount: count ?? 0,
   };
@@ -130,10 +142,16 @@ export async function getBriefingVersion(
   const emails = data.author_id
     ? await resolveAuthorEmails([data.author_id])
     : new Map();
+  const names = data.author_id
+    ? await resolveProfileDisplayNames([data.author_id])
+    : new Map();
 
   return {
     ...data,
     authorEmail: data.author_id ? (emails.get(data.author_id) ?? null) : null,
+    authorDisplayName: data.author_id
+      ? pickProfileDisplayName(names, data.author_id)
+      : null,
   };
 }
 
@@ -154,11 +172,17 @@ export async function listBriefingVersions(
   const ids = data
     .map((v) => v.author_id)
     .filter((id): id is string => id !== null);
-  const emails = await resolveAuthorEmails(ids);
+  const [emails, names] = await Promise.all([
+    resolveAuthorEmails(ids),
+    resolveProfileDisplayNames(ids),
+  ]);
 
   return data.map((v) => ({
     ...v,
     authorEmail: v.author_id ? (emails.get(v.author_id) ?? null) : null,
+    authorDisplayName: v.author_id
+      ? pickProfileDisplayName(names, v.author_id)
+      : null,
   }));
 }
 

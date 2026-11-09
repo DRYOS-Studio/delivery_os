@@ -14,6 +14,7 @@ import {
   Settings,
   Skull,
   Trophy,
+  UserCircle,
   Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -100,6 +101,7 @@ export function SidebarNav({
         icon: Contact,
         count: personsCount,
       },
+      { href: "/profile", label: "Meu perfil", icon: UserCircle, exactMatch: true },
     ],
   };
 
