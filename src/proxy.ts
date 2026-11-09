@@ -7,18 +7,7 @@ function requiredEnv(key: string): string {
   return value;
 }
 
-const PUBLIC_PREFIXES = [
-  "/login",
-  "/auth/callback",
-  "/api/webhooks",
-  "/api/cron",
-  "/api/mcp",
-  "/public",
-];
-
-function isPublicPath(pathname: string): boolean {
-  return PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
-}
+import { isPublicPath } from "@/lib/auth/public-paths";
 
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   const response = NextResponse.next({ request });

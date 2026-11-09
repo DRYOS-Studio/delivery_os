@@ -31,7 +31,7 @@ import {
   generateRegistrationToken,
   hashRegistrationToken,
 } from "@/lib/registration/token";
-import { getSiteOrigin } from "@/lib/utils/site-origin";
+import { getSiteOriginForServerAction } from "@/lib/utils/site-origin-server";
 import {
   clientRegistrationSubmissionSchema,
   createInvitationSchema,
@@ -103,10 +103,8 @@ export async function createRegistrationInvitationAction(
 
   if (error) return dbErr(error, "createRegistrationInvitationAction");
 
-  const registrationUrl = buildAbsoluteRegistrationUrl(
-    rawToken,
-    getSiteOrigin(),
-  );
+  const origin = await getSiteOriginForServerAction();
+  const registrationUrl = buildAbsoluteRegistrationUrl(rawToken, origin);
 
   revalidatePath("/clients/registration-invites");
   return ok({ id: data.id, rawToken, registrationUrl });
@@ -197,10 +195,8 @@ export async function regenerateRegistrationInvitationTokenAction(
     return dbErr(error, "regenerateRegistrationInvitationTokenAction");
   }
 
-  const registrationUrl = buildAbsoluteRegistrationUrl(
-    rawToken,
-    getSiteOrigin(),
-  );
+  const origin = await getSiteOriginForServerAction();
+  const registrationUrl = buildAbsoluteRegistrationUrl(rawToken, origin);
 
   revalidatePath("/clients/registration-invites");
   revalidatePath(`/clients/registration-invites/${invitationId}`);
@@ -448,7 +444,8 @@ export async function copyRegistrationInvitationLinkAction(
     return err("Não foi possível recuperar o link.", "state_conflict");
   }
 
+  const origin = await getSiteOriginForServerAction();
   return ok({
-    registrationUrl: buildAbsoluteRegistrationUrl(rawToken, getSiteOrigin()),
+    registrationUrl: buildAbsoluteRegistrationUrl(rawToken, origin),
   });
 }

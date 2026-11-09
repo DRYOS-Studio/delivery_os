@@ -7,7 +7,7 @@ import {
   generateRegistrationToken,
   hashRegistrationToken,
 } from "@/lib/registration/token";
-import { getSiteOrigin } from "@/lib/utils/site-origin";
+import { getSiteOriginFromEnv } from "@/lib/utils/site-origin";
 import {
   clientPayloadFromSubmission,
   type ClientInsertFromSubmission,
@@ -81,7 +81,10 @@ export async function mcpCreateClientRegistrationInvitation(
     ok: true,
     data: {
       invitation_id: data.id,
-      registration_url: buildAbsoluteRegistrationUrl(rawToken, getSiteOrigin()),
+      registration_url: buildAbsoluteRegistrationUrl(
+        rawToken,
+        getSiteOriginFromEnv(),
+      ),
     },
   };
 }
@@ -286,7 +289,7 @@ export async function mcpGetClientRegistrationInvitationLink(
   return {
     ok: true,
     data: {
-      registration_url: buildAbsoluteRegistrationUrl(raw, getSiteOrigin()),
+      registration_url: buildAbsoluteRegistrationUrl(raw, getSiteOriginFromEnv()),
     },
   };
 }
