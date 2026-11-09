@@ -1,5 +1,6 @@
 import { createServer } from "@/lib/db/client";
 import type { ActivityEventRow } from "@/lib/db/queries/activity";
+import { resolveProfileDisplayNames } from "@/lib/db/queries/profile-display-names";
 export type ActivityResolveMaps = {
   persons: Map<string, string>;
   frentes: Map<string, string>;
@@ -63,14 +64,22 @@ export async function buildActivityFormatContext(
 
   const supabase = await createServer();
 
-  const [personRes, frenteRes, opRes, clientRes, areaRes, profileRes] =
+  const profileIds = [
+    ...new Set(
+      events
+        .map((e) => e.actorProfileId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+
+  const [personRes, frenteRes, opRes, clientRes, areaRes, profileNameMap] =
     await Promise.all([
       supabase.from("persons").select("id, name").in("id", idList),
       supabase.from("frentes").select("id, name").in("id", idList),
       supabase.from("operations").select("id, name").in("id", idList),
       supabase.from("clients").select("id, name").in("id", idList),
       supabase.from("areas").select("id, name").in("id", idList),
-      supabase.from("profiles").select("id, name").in("id", idList),
+      resolveProfileDisplayNames(profileIds),
     ]);
 
   for (const [k, v] of pickNames(personRes.data)) persons.set(k, v);
@@ -78,7 +87,7 @@ export async function buildActivityFormatContext(
   for (const [k, v] of pickNames(opRes.data)) operations.set(k, v);
   for (const [k, v] of pickNames(clientRes.data)) clients.set(k, v);
   for (const [k, v] of pickNames(areaRes.data)) areas.set(k, v);
-  for (const [k, v] of pickNames(profileRes.data)) profileNames.set(k, v);
+  for (const [k, v] of profileNameMap) profileNames.set(k, v);
 
   return { persons, frentes, operations, clients, areas, profileNames };
 }

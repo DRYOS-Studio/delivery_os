@@ -1,4 +1,8 @@
 import { createServer } from "@/lib/db/client";
+import {
+  pickProfileDisplayName,
+  resolveProfileDisplayNames,
+} from "@/lib/db/queries/profile-display-names";
 import type { Database } from "@/lib/db/types";
 
 type Role = Database["public"]["Enums"]["user_role"];
@@ -33,9 +37,14 @@ export async function listOperationMembers(
 
   if (error) throw error;
 
-  return (data ?? []).map((row) => ({
+  const rows = data ?? [];
+  const names = await resolveProfileDisplayNames(
+    rows.map((row) => row.profile_id),
+  );
+
+  return rows.map((row) => ({
     profileId: row.profile_id,
-    name: row.profile?.name ?? null,
+    name: pickProfileDisplayName(names, row.profile_id),
     role: row.profile?.role ?? "member",
     createdAt: row.created_at,
   }));
@@ -57,8 +66,14 @@ export async function listAssignableProfiles(
   if (existingRes.error) throw existingRes.error;
 
   const existing = new Set((existingRes.data ?? []).map((r) => r.profile_id));
-  return (allRes.data ?? [])
-    .filter((p) => !existing.has(p.id))
+  const candidates = (allRes.data ?? []).filter((p) => !existing.has(p.id));
+  const names = await resolveProfileDisplayNames(candidates.map((p) => p.id));
+
+  return candidates
+    .map((p) => ({
+      id: p.id,
+      name: pickProfileDisplayName(names, p.id),
+    }))
     .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
 }
 

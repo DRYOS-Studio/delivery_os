@@ -1,5 +1,6 @@
 import { InviteUserForm } from "@/components/domain/InviteUserForm";
 import { McpAgentTokensSection } from "@/components/domain/McpAgentTokensSection";
+import { ProfileDisplayNameControl } from "@/components/domain/ProfileDisplayNameControl";
 import { ProfilePersonLinkControl } from "@/components/domain/ProfilePersonLinkControl";
 import { SetUserRoleButton } from "@/components/domain/SetUserRoleButton";
 import { Avatar } from "@/components/ui/Avatar";
@@ -64,15 +65,15 @@ export function AdminUsersSection({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-body text-sm text-ink truncate">
-                      {p.email ?? "—"}
+                      {p.displayLabel ?? p.email ?? "—"}
                     </span>
                     <Pill variant={p.role === "admin" ? "sage" : "neutral"}>
                       {p.role === "admin" ? "Admin" : "Member"}
                     </Pill>
                   </div>
-                  {p.name && (
-                    <p className="text-xs text-mute mt-0.5">{p.name}</p>
-                  )}
+                  <p className="text-xs text-mute mt-0.5 truncate">
+                    {p.email ?? "—"}
+                  </p>
                   {p.personName && (
                     <p className="text-[10px] text-sage-deep font-mono mt-0.5">
                       Pessoa: {p.personName}
@@ -83,6 +84,12 @@ export function AdminUsersSection({
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 ml-auto">
+                  <ProfileDisplayNameControl
+                    profileId={p.id}
+                    initialName={p.name}
+                    resolvedLabel={p.displayLabel}
+                    email={p.email}
+                  />
                   <ProfilePersonLinkControl
                     profileId={p.id}
                     persons={persons}
