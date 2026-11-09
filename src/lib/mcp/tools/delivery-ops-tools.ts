@@ -1,8 +1,10 @@
 import type { Database } from "@/lib/db/types";
+import { getOperationMonthlyCosts } from "@/lib/db/queries/operation-costs";
 import { allocationSchema } from "@/lib/validators/allocation";
 import { incidentSchema } from "@/lib/validators/incident";
 import { operationCostSchema } from "@/lib/validators/operationCost";
 import { quickWinSchema } from "@/lib/validators/quick-win";
+import { computeMargin } from "@/lib/utils/margin";
 import {
   clampLimit,
   mcpRequireAdmin,
@@ -335,6 +337,75 @@ export async function mcpListOperationCosts(
     .order("started_at", { ascending: false });
   if (error) return { ok: false, message: error.message };
   return { ok: true, data: { costs: data ?? [] } };
+}
+
+export async function mcpGetOperationMonthlyCosts(
+  ctx: McpHandlerContext,
+  args: Record<string, unknown>,
+): Promise<
+  McpToolResult<{
+    breakdown: {
+      fixed_cost: number;
+      ad_hoc_monthly: number;
+      ad_hoc_once_total: number;
+      allocations_total: number;
+      tax_rate_pct: number | null;
+      tax_monthly_amount: number;
+      total_monthly: number;
+    };
+    margin: {
+      mrr: number | null;
+      value: number;
+      pct: number | null;
+    };
+  }>
+> {
+  const opId = typeof args.operation_id === "string" ? args.operation_id.trim() : "";
+  if (!opId) return { ok: false, message: "operation_id obrigatório." };
+  try {
+    const breakdown = await getOperationMonthlyCosts(opId, ctx.supabase);
+    const { data: opRow, error: opErr } = await ctx.supabase
+      .from("operations")
+      .select("monthly_recurring_revenue")
+      .eq("id", opId)
+      .maybeSingle();
+    if (opErr) return { ok: false, message: opErr.message };
+    if (!opRow) {
+      return {
+        ok: false,
+        message: "Operação não encontrada.",
+        notFound: true,
+      };
+    }
+    const mrr =
+      opRow.monthly_recurring_revenue === null ||
+      opRow.monthly_recurring_revenue === undefined
+        ? null
+        : Number(opRow.monthly_recurring_revenue);
+    const margin = computeMargin(mrr, breakdown.totalMonthly);
+    return {
+      ok: true,
+      data: {
+        breakdown: {
+          fixed_cost: breakdown.fixedCost,
+          ad_hoc_monthly: breakdown.adHocMonthly,
+          ad_hoc_once_total: breakdown.adHocOnceTotal,
+          allocations_total: breakdown.allocationsTotal,
+          tax_rate_pct: breakdown.taxRatePct,
+          tax_monthly_amount: breakdown.taxMonthlyAmount,
+          total_monthly: breakdown.totalMonthly,
+        },
+        margin: {
+          mrr,
+          value: margin.value,
+          pct: margin.pct,
+        },
+      },
+    };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Falha ao calcular custos.";
+    return { ok: false, message };
+  }
 }
 
 const costCreate = operationCostSchema.and(z.object({ operation_id: z.string().uuid() }));

@@ -1,6 +1,8 @@
 import { createServer } from "@/lib/db/client";
+import { computeTaxMonthlyAmount } from "@/lib/utils/operation-tax";
 import { ACTIVE_STATUSES } from "@/lib/utils/operation-status";
 import type { Database } from "@/lib/db/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type CostRecurrence = Database["public"]["Enums"]["cost_recurrence"];
 
@@ -36,6 +38,10 @@ export type OperationCostBreakdown = {
   adHocItems: OperationCostRow[];
   allocations: AllocationCost[];
   allocationsTotal: number;
+  /** Alíquota configurada na operação (%). */
+  taxRatePct: number | null;
+  /** Imposto mensal derivado (MRR × alíquota). */
+  taxMonthlyAmount: number;
   totalMonthly: number;
 };
 
@@ -132,11 +138,17 @@ function pickOne<T>(v: T | T[] | null): T | null {
 // e pelo agregado do dashboard: paridade de KPI por construção. Os guards de
 // frente/pessoa replicam os filtros server-side (defesa em profundidade contra
 // regressão de embed, padrão do tema 2).
-function computeBreakdown(
+export type OperationCostBreakdownInput = {
+  chargedRevenue?: number | null;
+  taxRatePct?: number | null;
+};
+
+export function computeBreakdown(
   operationId: string,
   fixedCost: number,
   adHocItems: OperationCostRow[],
   allocRows: AllocJoin[],
+  finance?: OperationCostBreakdownInput,
 ): OperationCostBreakdown {
   const adHocMonthly = adHocItems
     .filter((c) => c.recurrence === "mensal")
@@ -215,6 +227,15 @@ function computeBreakdown(
   }
   const allocationsTotal = allocations.reduce((s, x) => s + x.monthlyCost, 0);
 
+  const taxRatePct =
+    finance?.taxRatePct === null || finance?.taxRatePct === undefined
+      ? null
+      : Number(finance.taxRatePct);
+  const taxMonthlyAmount = computeTaxMonthlyAmount(
+    finance?.chargedRevenue,
+    taxRatePct,
+  );
+
   return {
     fixedCost,
     adHocMonthly,
@@ -222,7 +243,10 @@ function computeBreakdown(
     adHocItems,
     allocations,
     allocationsTotal,
-    totalMonthly: fixedCost + adHocMonthly + allocationsTotal,
+    taxRatePct,
+    taxMonthlyAmount,
+    totalMonthly:
+      fixedCost + adHocMonthly + allocationsTotal + taxMonthlyAmount,
   };
 }
 
@@ -235,8 +259,9 @@ const ALLOC_SELECT_FIELDS = `
 
 export async function getOperationMonthlyCosts(
   operationId: string,
+  supabaseClient?: SupabaseClient<Database>,
 ): Promise<OperationCostBreakdown> {
-  const supabase = await createServer();
+  const supabase = supabaseClient ?? (await createServer());
   const today = todayISO();
 
   // 3 queries paralelas, allocations filtradas pela operação NO SERVIDOR
@@ -246,7 +271,7 @@ export async function getOperationMonthlyCosts(
   const [opRes, costsRes, allocRes] = await Promise.all([
     supabase
       .from("operations")
-      .select("monthly_fixed_cost")
+      .select("monthly_fixed_cost, monthly_recurring_revenue, tax_rate_pct")
       .eq("id", operationId)
       .maybeSingle(),
     supabase
@@ -280,12 +305,24 @@ export async function getOperationMonthlyCosts(
     );
 
   const fixedCost = Number(opRes.data?.monthly_fixed_cost ?? 0);
+  const chargedRevenue =
+    opRes.data?.monthly_recurring_revenue === null ||
+    opRes.data?.monthly_recurring_revenue === undefined
+      ? null
+      : Number(opRes.data.monthly_recurring_revenue);
+  const taxRatePct =
+    opRes.data?.tax_rate_pct === null || opRes.data?.tax_rate_pct === undefined
+      ? null
+      : Number(opRes.data.tax_rate_pct);
   const adHocItems = (costsRes.data ?? []).map((r) =>
     mapCost(r as RawCostRow),
   );
   const allocRows = (allocRes.data ?? []) as unknown as AllocJoin[];
 
-  return computeBreakdown(operationId, fixedCost, adHocItems, allocRows);
+  return computeBreakdown(operationId, fixedCost, adHocItems, allocRows, {
+    chargedRevenue,
+    taxRatePct,
+  });
 }
 
 // Soma de custo mensal de TODAS as operações ativas em 3 queries fixas
@@ -299,7 +336,9 @@ export async function getActiveOperationsMonthlyCostsTotal(): Promise<number> {
   const [opsRes, costsRes, allocRes] = await Promise.all([
     supabase
       .from("operations")
-      .select("id, monthly_fixed_cost, client:clients!inner(archived_at)")
+      .select(
+        "id, monthly_fixed_cost, monthly_recurring_revenue, tax_rate_pct, client:clients!inner(archived_at)",
+      )
       .is("archived_at", null)
       .is("client.archived_at", null)
       .in("status", ACTIVE_STATUSES),
@@ -363,11 +402,21 @@ export async function getActiveOperationsMonthlyCostsTotal(): Promise<number> {
   // op ativa sem costs/allocations contribui com o monthly_fixed_cost.
   let total = 0;
   for (const op of opsRes.data ?? []) {
+    const chargedRevenue =
+      op.monthly_recurring_revenue === null ||
+      op.monthly_recurring_revenue === undefined
+        ? null
+        : Number(op.monthly_recurring_revenue);
+    const taxRatePct =
+      op.tax_rate_pct === null || op.tax_rate_pct === undefined
+        ? null
+        : Number(op.tax_rate_pct);
     const breakdown = computeBreakdown(
       op.id,
       Number(op.monthly_fixed_cost ?? 0),
       costsByOp.get(op.id) ?? [],
       allocsByOp.get(op.id) ?? [],
+      { chargedRevenue, taxRatePct },
     );
     total += breakdown.totalMonthly;
   }

@@ -260,6 +260,7 @@ export type OperationDetail = {
   recurrence: Op["recurrence"];
   monthlyRecurringRevenue: number | null;
   monthlyFixedCost: number | null;
+  taxRatePct: number | null;
   responseHours: number | null;
   resolutionHours: number | null;
   diagnosticId: string | null;
@@ -285,7 +286,7 @@ export async function getOperation(
     .select(
       `
       id, name, product_line, status, recurrence,
-      monthly_recurring_revenue, monthly_fixed_cost,
+      monthly_recurring_revenue, monthly_fixed_cost, tax_rate_pct,
       response_hours, resolution_hours,
       diagnostic_id, start_date, end_date, notification_webhook_url,
       created_at,
@@ -349,6 +350,7 @@ export async function getOperation(
     recurrence: data.recurrence,
     monthlyRecurringRevenue: data.monthly_recurring_revenue,
     monthlyFixedCost: data.monthly_fixed_cost,
+    taxRatePct: data.tax_rate_pct,
     responseHours: data.response_hours,
     resolutionHours: data.resolution_hours,
     diagnosticId: data.diagnostic_id,

@@ -627,7 +627,18 @@ const BASE_MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
   {
     name: "list_operation_costs",
     access: "read",
-    description: "Custos da operação.",
+    description: "Lista custos ad-hoc da operação (operation_costs).",
+    inputSchema: {
+      type: "object",
+      properties: { operation_id: { type: "string" } },
+      required: ["operation_id"],
+    },
+  },
+  {
+    name: "get_operation_monthly_costs",
+    access: "read",
+    description:
+      "Breakdown mensal de custos (fixo, ad-hoc, alocações, impostos) e margem sobre MRR.",
     inputSchema: {
       type: "object",
       properties: { operation_id: { type: "string" } },

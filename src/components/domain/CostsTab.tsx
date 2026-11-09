@@ -22,6 +22,8 @@ export function CostsTab({ operationId, breakdown }: Props) {
     adHocItems,
     allocations,
     allocationsTotal,
+    taxRatePct,
+    taxMonthlyAmount,
     totalMonthly,
   } = breakdown;
 
@@ -39,6 +41,13 @@ export function CostsTab({ operationId, breakdown }: Props) {
         <p className="font-mono text-[10px] uppercase tracking-wide text-mute">
           Fixo {formatMoneyBR(fixedCost)} · Ad-hoc {formatMoneyBR(adHocMonthly)}{" "}
           · Alocações {formatMoneyBR(allocationsTotal)}
+          {taxMonthlyAmount > 0 ? (
+            <>
+              {" "}
+              · Impostos {formatMoneyBR(taxMonthlyAmount)}
+              {taxRatePct !== null ? ` (${taxRatePct}%)` : ""}
+            </>
+          ) : null}
         </p>
         {adHocOnceTotal > 0 && (
           <p className="font-mono text-[10px] uppercase tracking-wide text-mute mt-1">
@@ -66,6 +75,46 @@ export function CostsTab({ operationId, breakdown }: Props) {
           </p>
           <p className="font-mono text-[10px] uppercase tracking-wide text-mute mt-1">
             Editar via formulário da Operação (campo "Custo fixo mensal").
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <div className="flex items-baseline justify-between mb-3">
+          <h3 className="font-display text-base text-ink font-semibold">
+            Impostos
+          </h3>
+          <Link
+            href={`/operations/${operationId}/edit`}
+            className="text-oak hover:underline text-sm font-medium"
+          >
+            Editar alíquota →
+          </Link>
+        </div>
+        <div className="bg-card border border-line rounded p-4 space-y-2">
+          <div className="flex items-baseline justify-between gap-4">
+            <p className="font-mono text-[10px] uppercase tracking-wide text-mute">
+              Alíquota sobre o valor cobrado (MRR)
+            </p>
+            <p className="font-display text-xl font-semibold text-ink">
+              {taxRatePct !== null && taxRatePct > 0
+                ? `${taxRatePct.toLocaleString("pt-BR", {
+                    maximumFractionDigits: 2,
+                  })}%`
+                : "—"}
+            </p>
+          </div>
+          <div className="flex items-baseline justify-between gap-4">
+            <p className="font-mono text-[10px] uppercase tracking-wide text-mute">
+              Imposto mensal (calculado)
+            </p>
+            <p className="font-display text-2xl font-semibold text-ink">
+              {formatMoneyBR(taxMonthlyAmount)}
+            </p>
+          </div>
+          <p className="font-body text-xs text-mute">
+            Valor cobrado × alíquota. Entra no total mensal e reduz a margem como
+            os demais custos. Deixe em branco ou 0 para não aplicar.
           </p>
         </div>
       </section>

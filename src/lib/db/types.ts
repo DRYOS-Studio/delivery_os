@@ -1195,6 +1195,7 @@ export type Database = {
           response_hours: number | null
           start_date: string | null
           status: Database["public"]["Enums"]["operation_status"]
+          tax_rate_pct: number | null
           updated_at: string
         }
         Insert: {
@@ -1214,6 +1215,7 @@ export type Database = {
           response_hours?: number | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["operation_status"]
+          tax_rate_pct?: number | null
           updated_at?: string
         }
         Update: {
@@ -1233,6 +1235,7 @@ export type Database = {
           response_hours?: number | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["operation_status"]
+          tax_rate_pct?: number | null
           updated_at?: string
         }
         Relationships: [

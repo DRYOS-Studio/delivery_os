@@ -43,6 +43,7 @@ const operationMcpBody = z
     response_hours: z.number().int().min(0).max(720).optional(),
     resolution_hours: z.number().int().min(0).max(720).optional(),
     monthly_fixed_cost: z.number().nonnegative().nullable().optional(),
+    tax_rate_pct: z.number().min(0).max(100).nullable().optional(),
     diagnostic_id: uuid.optional(),
     notification_webhook_url: z.string().max(500).optional(),
   })
@@ -110,6 +111,7 @@ export const MCP_TOOL_ZOD_ARGS: Record<string, z.ZodType> = {
   create_operation_cost: operationCostSchema.and(z.object({ operation_id: uuid })),
   update_operation_cost: operationCostSchema.and(z.object({ cost_id: uuid })),
   end_operation_cost: z.object({ cost_id: uuid, ended_at: isoDate }),
+  get_operation_monthly_costs: z.object({ operation_id: uuid }),
   create_service_product: serviceProductSchema,
   update_service_product: serviceProductSchema.extend({ product_id: uuid }),
   archive_service_product: z.object({ product_id: uuid }),
