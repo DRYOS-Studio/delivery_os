@@ -73,6 +73,7 @@ export async function listFrentesNeedingAttention(
 export type FrenteDetail = {
   id: string;
   operationId: string;
+  clientId: string;
   name: string;
   cycleType: Database["public"]["Enums"]["frente_cycle_type"];
   domain: Database["public"]["Enums"]["frente_domain"];
@@ -96,6 +97,7 @@ export async function getFrenteDetail(
       id, operation_id, name, cycle_type, domain, phase,
       actionable_status, actionable_status_since,
       start_date, end_date, responsible_person_id,
+      operation:operations!fk_frentes_operation_id ( client_id ),
       responsible:persons!fk_frentes_responsible_person_id(name)
       `,
     )
@@ -107,9 +109,13 @@ export async function getFrenteDetail(
   const resp = Array.isArray(data.responsible)
     ? (data.responsible[0] ?? null)
     : data.responsible;
+  const operation = Array.isArray(data.operation)
+    ? (data.operation[0] ?? null)
+    : data.operation;
   return {
     id: data.id,
     operationId: data.operation_id,
+    clientId: operation?.client_id ?? "",
     name: data.name,
     cycleType: data.cycle_type,
     domain: data.domain,

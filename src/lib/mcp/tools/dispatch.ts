@@ -17,6 +17,22 @@ import {
   mcpArchiveClient,
 } from "@/lib/mcp/tools/clients-tools";
 import {
+  mcpCreateClientSoftwareItem,
+  mcpCreateClientTechItem,
+  mcpDeleteClientSoftwareItem,
+  mcpDeleteClientTechItem,
+  mcpListClientSoftwareItems,
+  mcpListClientTechItems,
+  mcpUpdateClientSoftwareItem,
+  mcpUpdateClientTechItem,
+} from "@/lib/mcp/tools/client-tooling-tools";
+import {
+  mcpCreateRepositoryLink,
+  mcpDeleteRepositoryLink,
+  mcpListRepositoryLinks,
+  mcpUpdateRepositoryLink,
+} from "@/lib/mcp/tools/repository-links-tools";
+import {
   mcpBeginClientContractUpload,
   mcpCreateClientContract,
   mcpFinalizeClientContractUpload,
@@ -212,6 +228,54 @@ export async function dispatchMcpTool(input: DispatchInput): Promise<unknown> {
     }
     case "restore_client": {
       const r = await mcpRestoreClient(ctx, args);
+      return flattenResult(r);
+    }
+    case "list_repository_links": {
+      const r = await mcpListRepositoryLinks(ctx, args);
+      return flattenResult(r);
+    }
+    case "create_repository_link": {
+      const r = await mcpCreateRepositoryLink(ctx, args);
+      return flattenResult(r);
+    }
+    case "update_repository_link": {
+      const r = await mcpUpdateRepositoryLink(ctx, args);
+      return flattenResult(r);
+    }
+    case "delete_repository_link": {
+      const r = await mcpDeleteRepositoryLink(ctx, args);
+      return flattenResult(r);
+    }
+    case "list_client_tech_items": {
+      const r = await mcpListClientTechItems(ctx, args);
+      return flattenResult(r);
+    }
+    case "create_client_tech_item": {
+      const r = await mcpCreateClientTechItem(ctx, args);
+      return flattenResult(r);
+    }
+    case "update_client_tech_item": {
+      const r = await mcpUpdateClientTechItem(ctx, args);
+      return flattenResult(r);
+    }
+    case "delete_client_tech_item": {
+      const r = await mcpDeleteClientTechItem(ctx, args);
+      return flattenResult(r);
+    }
+    case "list_client_software_items": {
+      const r = await mcpListClientSoftwareItems(ctx, args);
+      return flattenResult(r);
+    }
+    case "create_client_software_item": {
+      const r = await mcpCreateClientSoftwareItem(ctx, args);
+      return flattenResult(r);
+    }
+    case "update_client_software_item": {
+      const r = await mcpUpdateClientSoftwareItem(ctx, args);
+      return flattenResult(r);
+    }
+    case "delete_client_software_item": {
+      const r = await mcpDeleteClientSoftwareItem(ctx, args);
       return flattenResult(r);
     }
     case "list_client_contracts": {

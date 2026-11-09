@@ -54,7 +54,6 @@ export function ClientIdentitySection({ client }: Props) {
     client.address_state,
     client.address_zip,
   );
-
   if (!hasPJ && !hasContact && !hasAddress) return null;
 
   const cnpj = formatCnpj(client.cnpj);
@@ -126,6 +125,7 @@ export function ClientIdentitySection({ client }: Props) {
             <p className="text-sm text-ink leading-relaxed">{addressLine}</p>
           </div>
         )}
+
       </div>
     </section>
   );

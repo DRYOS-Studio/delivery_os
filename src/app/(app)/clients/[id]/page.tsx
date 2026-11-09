@@ -6,6 +6,7 @@ import { ClientContractsSection } from "@/components/domain/ClientContractsSecti
 import { ClientHubTasksSection } from "@/components/domain/ClientHubTasksSection";
 import { ClientIdentitySection } from "@/components/domain/ClientIdentitySection";
 import { ClientSummarySection } from "@/components/domain/ClientSummarySection";
+import { ClientToolingSection } from "@/components/domain/ClientToolingSection";
 import { ExternalPersonsList } from "@/components/domain/ExternalPersonsList";
 import { OperationCard } from "@/components/domain/OperationCard";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -17,6 +18,11 @@ import { listClientContracts } from "@/lib/db/queries/client-contracts";
 import { listOpenTasksForClient } from "@/lib/db/queries/client-hub";
 import { getDiagnosticByClient } from "@/lib/db/queries/diagnostics";
 import { getActiveOperations } from "@/lib/db/queries/operations";
+import {
+  listClientSoftwareItems,
+  listClientTechItems,
+} from "@/lib/db/queries/client-tooling";
+import { listRepositoryLinksForClient } from "@/lib/db/queries/repository-links";
 import { getExternalPersonsByClient } from "@/lib/db/queries/persons";
 import { formatDateBR } from "@/lib/utils/date";
 
@@ -33,15 +39,27 @@ export default async function Page({
   const client = await getClient(id);
   if (!client) notFound();
 
-  const [operations, persons, diagnostic, summary, profile, openTasks] =
-    await Promise.all([
-      getActiveOperations({ clientId: id, scope: "visivel" }),
-      getExternalPersonsByClient(id),
-      getDiagnosticByClient(id),
-      getClientSummary(id),
-      getProfile(),
-      listOpenTasksForClient(id),
-    ]);
+  const [
+    operations,
+    persons,
+    diagnostic,
+    summary,
+    profile,
+    openTasks,
+    repoLinks,
+    techItems,
+    softwareItems,
+  ] = await Promise.all([
+    getActiveOperations({ clientId: id, scope: "visivel" }),
+    getExternalPersonsByClient(id),
+    getDiagnosticByClient(id),
+    getClientSummary(id),
+    getProfile(),
+    listOpenTasksForClient(id),
+    listRepositoryLinksForClient(id),
+    listClientTechItems(id),
+    listClientSoftwareItems(id),
+  ]);
   const isAdmin = profile?.role === "admin";
   const contracts = isAdmin ? await listClientContracts(id) : [];
 
@@ -78,6 +96,14 @@ export default async function Page({
 
       {isAdmin && <ClientContractsSection clientId={client.id} contracts={contracts} />}
       <ClientIdentitySection client={client} />
+
+      <ClientToolingSection
+        clientId={client.id}
+        isAdmin={isAdmin}
+        repoLinks={repoLinks}
+        techItems={techItems}
+        softwareItems={softwareItems}
+      />
 
       <ClientDiagnosticSection diagnostic={diagnostic} clientId={client.id} />
 

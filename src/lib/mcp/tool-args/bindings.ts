@@ -26,6 +26,18 @@ import {
   updateClientContractMcpSchema,
 } from "@/lib/mcp/tool-args/contracts";
 import { mcpInputSchemaFromZod } from "@/lib/mcp/tool-args/mcp-json-schema";
+import {
+  repositoryLinkCreateSchema,
+  repositoryLinkUpdateSchema,
+} from "@/lib/validators/repository-link";
+import {
+  clientTechItemSchema,
+  clientTechItemUpdateSchema,
+} from "@/lib/validators/client-tech-item";
+import {
+  clientSoftwareItemSchema,
+  clientSoftwareItemUpdateSchema,
+} from "@/lib/validators/client-software-item";
 
 const uuid = z.string().uuid();
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -128,6 +140,25 @@ export const MCP_TOOL_ZOD_ARGS: Record<string, z.ZodType> = {
       diagnostic_id: uuid.optional(),
     }),
   ),
+  list_repository_links: z.object({
+    client_id: uuid,
+    operation_id: uuid.optional(),
+    frente_id: uuid.optional(),
+    limit: z.number().int().positive().max(100).optional(),
+  }),
+  create_repository_link: repositoryLinkCreateSchema,
+  update_repository_link: repositoryLinkUpdateSchema,
+  delete_repository_link: z.object({ link_id: uuid }),
+  list_client_tech_items: z.object({ client_id: uuid }),
+  create_client_tech_item: clientTechItemSchema.and(z.object({ client_id: uuid })),
+  update_client_tech_item: clientTechItemUpdateSchema,
+  delete_client_tech_item: z.object({ client_id: uuid, item_id: uuid }),
+  list_client_software_items: z.object({ client_id: uuid }),
+  create_client_software_item: clientSoftwareItemSchema.and(
+    z.object({ client_id: uuid }),
+  ),
+  update_client_software_item: clientSoftwareItemUpdateSchema,
+  delete_client_software_item: z.object({ client_id: uuid, item_id: uuid }),
 };
 
 export function applyZodInputSchemas(definitions: McpToolDefinition[]): McpToolDefinition[] {

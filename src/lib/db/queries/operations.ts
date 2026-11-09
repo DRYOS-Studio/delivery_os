@@ -267,7 +267,11 @@ export type OperationDetail = {
   endDate: string | null;
   notificationWebhookUrl: string | null;
   createdAt: string;
-  client: { id: string; name: string; slug: string };
+  client: {
+    id: string;
+    name: string;
+    slug: string;
+  };
   frentes: FrenteListItem[];
 };
 

@@ -182,7 +182,6 @@ export function OperationForm(props: Props): React.JSX.Element {
     fd.set("start_date", data.start_date ?? "");
     fd.set("end_date", data.end_date ?? "");
     fd.set("notification_webhook_url", data.notification_webhook_url ?? "");
-
     const result = isEdit
       ? await updateOperationAction(props.initialData.id, fd)
       : await createOperationAction(fd);
