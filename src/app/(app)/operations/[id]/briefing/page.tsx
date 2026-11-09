@@ -51,7 +51,13 @@ export default async function Page({
     );
   }
 
-  const { latestVersion, authorEmail, versionsCount, updated_at } = briefing;
+  const {
+    latestVersion,
+    authorEmail,
+    authorDisplayName,
+    versionsCount,
+    updated_at,
+  } = briefing;
 
   return (
     <>
@@ -76,7 +82,11 @@ export default async function Page({
           Atualizado em {formatDateBR(updated_at)} · {relativeFromNow(updated_at)}
         </span>
         <span>·</span>
-        <span>por {authorEmail ?? "Usuário removido"}</span>
+        <span>
+          por{" "}
+          {authorDisplayName ??
+            (latestVersion?.author_id ? "Colega" : "Usuário removido")}
+        </span>
         <span>·</span>
         <Link
           href={`/operations/${op.id}/briefing/history`}

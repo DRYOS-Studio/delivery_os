@@ -10,6 +10,7 @@ import {
 import type { CommentRow } from "@/lib/db/queries/comments";
 import { Button } from "@/components/ui/Button";
 import { formatDateTimeBR } from "@/lib/utils/date";
+import { profileDisplayLabel } from "@/lib/utils/profile-display-label";
 
 type Props = {
   operationId: string;
@@ -93,7 +94,7 @@ export function OperationCommentsSection({
             >
               <div className="flex flex-wrap justify-between gap-2 mb-2">
                 <span className="font-medium text-ink">
-                  {c.authorName ?? "Usuário"}
+                  {profileDisplayLabel(c.authorName, c.authorId)}
                 </span>
                 <time className="font-mono text-[11px] text-mute" dateTime={c.createdAt}>
                   {formatDateTimeBR(c.createdAt)}

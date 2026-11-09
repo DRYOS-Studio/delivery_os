@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import type { BriefingVersionWithAuthor } from "@/lib/db/queries/briefings";
 import { formatDateBR, relativeFromNow } from "@/lib/utils/date";
-import { initialsFromEmail } from "@/lib/utils/initials";
+import { getInitials, initialsFromEmail } from "@/lib/utils/initials";
 
 const PREVIEW_FIELDS = [
   "contexto",
@@ -47,14 +47,20 @@ export function BriefingHistoryList({
     <ul className="space-y-3">
       {versions.map((v) => {
         const isCurrent = v.id === currentVersionId;
-        const authorLabel = v.authorEmail ?? "Usuário removido";
+        const authorLabel =
+          v.authorDisplayName ??
+          (v.author_id ? "Colega" : "Usuário removido");
         return (
           <li key={v.id}>
             <Card>
               <div className="flex items-start gap-3">
                 <Avatar
                   size="sm"
-                  initials={initialsFromEmail(v.authorEmail)}
+                  initials={
+                    v.authorDisplayName
+                      ? getInitials(v.authorDisplayName)
+                      : initialsFromEmail(v.authorEmail)
+                  }
                   color="oak"
                 />
                 <div className="flex-1 min-w-0">

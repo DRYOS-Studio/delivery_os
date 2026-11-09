@@ -47,7 +47,11 @@ export default async function Page({
         )}
         <span>{relativeFromNow(version.created_at)}</span>
         <span>·</span>
-        <span>por {version.authorEmail ?? "Usuário removido"}</span>
+        <span>
+          por{" "}
+          {version.authorDisplayName ??
+            (version.author_id ? "Colega" : "Usuário removido")}
+        </span>
         <span>·</span>
         <Link
           href={`/operations/${op.id}/briefing/history`}
