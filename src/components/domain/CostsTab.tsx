@@ -5,6 +5,10 @@ import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import { DeleteCostButton } from "@/components/domain/DeleteCostButton";
 import type { OperationCostBreakdown } from "@/lib/db/queries/operation-costs";
+import {
+  operationMonthlyCostCategoryLabel,
+  type OperationMonthlyCostCategory,
+} from "@/lib/utils/operation-monthly-cost-category";
 import { formatDateBR } from "@/lib/utils/date";
 import { getInitials } from "@/lib/utils/initials";
 import { formatMoneyBR } from "@/lib/utils/money";
@@ -17,6 +21,8 @@ type Props = {
 export function CostsTab({ operationId, breakdown }: Props) {
   const {
     fixedCost,
+    lineItems,
+    categorySubtotals,
     adHocMonthly,
     adHocOnceTotal,
     adHocItems,
@@ -39,7 +45,7 @@ export function CostsTab({ operationId, breakdown }: Props) {
           </p>
         </div>
         <p className="font-mono text-[10px] uppercase tracking-wide text-mute">
-          Fixo {formatMoneyBR(fixedCost)} · Ad-hoc {formatMoneyBR(adHocMonthly)}{" "}
+          Itens {formatMoneyBR(fixedCost)} · Ad-hoc {formatMoneyBR(adHocMonthly)}{" "}
           · Alocações {formatMoneyBR(allocationsTotal)}
           {taxMonthlyAmount > 0 ? (
             <>
@@ -57,26 +63,78 @@ export function CostsTab({ operationId, breakdown }: Props) {
         )}
       </section>
 
-      <section>
-        <div className="flex items-baseline justify-between mb-3">
+      <section data-testid="operation-monthly-cost-items">
+        <div className="flex items-center gap-2 mb-3">
           <h3 className="font-display text-base text-ink font-semibold">
-            Custo fixo mensal
+            Custos mensais por categoria
           </h3>
-          <Link
-            href={`/operations/${operationId}/edit`}
-            className="text-oak hover:underline text-sm font-medium"
-          >
-            Editar Operação →
-          </Link>
+          <Pill variant="neutral">{lineItems.length}</Pill>
+          <div className="ml-auto">
+            <Link
+              href={`/operations/${operationId}/edit`}
+              className="text-oak hover:underline text-sm font-medium"
+            >
+              Editar itens →
+            </Link>
+          </div>
         </div>
-        <div className="bg-card border border-line rounded p-4">
-          <p className="font-display text-2xl font-semibold text-ink">
-            {formatMoneyBR(fixedCost)}
-          </p>
-          <p className="font-mono text-[10px] uppercase tracking-wide text-mute mt-1">
-            Editar via formulário da Operação (campo Custo fixo mensal).
-          </p>
-        </div>
+        {lineItems.length === 0 ? (
+          <div className="bg-card border border-line rounded p-7 text-center">
+            <p className="font-body text-sm text-mute mb-2">
+              Nenhum item de custo mensal.
+            </p>
+            <Link href={`/operations/${operationId}/edit`}>
+              <Button variant="sage" size="sm">
+                <Plus className="w-3.5 h-3.5" strokeWidth={1.75} />
+                Adicionar no formulário
+              </Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="bg-card border border-line rounded shadow-sm overflow-hidden">
+            <ul>
+              {lineItems.map((item, idx) => (
+                <li
+                  key={item.id}
+                  className={`px-4 py-3 flex flex-col gap-1 md:grid md:grid-cols-12 md:gap-3 md:items-center ${
+                    idx !== lineItems.length - 1 ? "border-b border-line" : ""
+                  }`}
+                >
+                  <div className="md:col-span-3 font-medium text-ink">
+                    {operationMonthlyCostCategoryLabel(item.category)}
+                  </div>
+                  <div className="md:col-span-3 font-mono text-sm text-ink">
+                    {formatMoneyBR(item.amount)}
+                  </div>
+                  <div className="md:col-span-6 text-sm text-mute truncate">
+                    {item.description?.trim() || "—"}
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="border-t border-line px-4 py-3 space-y-1 bg-cream/30">
+              {(
+                Object.entries(categorySubtotals) as Array<
+                  [OperationMonthlyCostCategory, number]
+                >
+              ).map(([cat, val]) => (
+                <div
+                  key={cat}
+                  className="flex justify-between text-sm text-mute"
+                >
+                  <span>Subtotal {operationMonthlyCostCategoryLabel(cat)}</span>
+                  <span className="font-mono text-ink">{formatMoneyBR(val)}</span>
+                </div>
+              ))}
+              <div className="flex justify-between font-semibold text-ink pt-1">
+                <span>Total itens</span>
+                <span className="font-display text-lg">
+                  {formatMoneyBR(fixedCost)}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
       <section>

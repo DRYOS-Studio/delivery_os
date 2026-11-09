@@ -27,7 +27,6 @@ type CreateInput = {
   status: OperationStatus;
   recurrence: "mensal" | "trimestral" | "anual" | "unica" | null;
   monthly_recurring_revenue: number | null;
-  monthly_fixed_cost: number | null;
   tax_rate_pct: number | null;
   response_hours: number | null;
   resolution_hours: number | null;
@@ -44,7 +43,6 @@ function parseFormDataToInput(formData: FormData): {
   status: string;
   recurrence: string;
   monthly_recurring_revenue: number | null;
-  monthly_fixed_cost: string;
   tax_rate_pct: string;
   response_hours: string;
   resolution_hours: string;
@@ -55,8 +53,6 @@ function parseFormDataToInput(formData: FormData): {
 } {
   const mrrRaw = (formData.get("monthly_recurring_revenue") as string | null) ?? "";
   const mrrNumber = mrrRaw === "" ? null : Number(mrrRaw);
-  const costRaw =
-    (formData.get("monthly_fixed_cost") as string | null) ?? "";
   const taxRaw = (formData.get("tax_rate_pct") as string | null) ?? "";
   return {
     client_id: ((formData.get("client_id") as string | null) ?? "").trim(),
@@ -66,7 +62,6 @@ function parseFormDataToInput(formData: FormData): {
     recurrence: ((formData.get("recurrence") as string | null) ?? "").trim(),
     monthly_recurring_revenue:
       mrrNumber !== null && Number.isFinite(mrrNumber) ? mrrNumber : null,
-    monthly_fixed_cost: costRaw,
     tax_rate_pct: taxRaw,
     response_hours: ((formData.get("response_hours") as string | null) ?? "").trim(),
     resolution_hours: ((formData.get("resolution_hours") as string | null) ?? "").trim(),
@@ -95,7 +90,6 @@ function validate(formData: FormData): ActionResult<CreateInput> {
     status: parsed.data.status,
     recurrence: parsed.data.recurrence ?? null,
     monthly_recurring_revenue: parsed.data.monthly_recurring_revenue ?? null,
-    monthly_fixed_cost: parsed.data.monthly_fixed_cost ?? null,
     tax_rate_pct: parsed.data.tax_rate_pct ?? null,
     response_hours: parsed.data.response_hours ?? null,
     resolution_hours: parsed.data.resolution_hours ?? null,
@@ -165,7 +159,6 @@ export async function updateOperationAction(
       status: v.data.status,
       recurrence: v.data.recurrence,
       monthly_recurring_revenue: v.data.monthly_recurring_revenue,
-      monthly_fixed_cost: v.data.monthly_fixed_cost,
       tax_rate_pct: v.data.tax_rate_pct,
       response_hours: v.data.response_hours,
       resolution_hours: v.data.resolution_hours,

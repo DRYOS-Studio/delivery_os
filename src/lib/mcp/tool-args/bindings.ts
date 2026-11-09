@@ -16,6 +16,7 @@ import {
   assignVillainSchema,
   editOperationVillainSchema,
 } from "@/lib/validators/operation-villain";
+import { mcpUpdateOperationMonthlyCostItemSchema } from "@/lib/mcp/tool-args/operation-monthly-cost-item-update";
 import { mcpUpdateTaskSchema } from "@/lib/mcp/tool-args/task-update";
 import { mcpDecisionUpdateSchema } from "@/lib/mcp/tool-args/decision-update";
 import {
@@ -67,7 +68,6 @@ const operationMcpBody = z
     end_date: isoDate.optional(),
     response_hours: z.number().int().min(0).max(720).optional(),
     resolution_hours: z.number().int().min(0).max(720).optional(),
-    monthly_fixed_cost: z.number().nonnegative().nullable().optional(),
     tax_rate_pct: z.number().min(0).max(100).nullable().optional(),
     diagnostic_id: uuid.optional(),
     notification_webhook_url: z.string().max(500).optional(),
@@ -139,6 +139,21 @@ export const MCP_TOOL_ZOD_ARGS: Record<string, z.ZodType> = {
   update_operation_cost: operationCostSchema.and(z.object({ cost_id: uuid })),
   end_operation_cost: z.object({ cost_id: uuid, ended_at: isoDate }),
   get_operation_monthly_costs: z.object({ operation_id: uuid }),
+  list_operation_monthly_cost_items: z.object({ operation_id: uuid }),
+  create_operation_monthly_cost_item: z
+    .object({
+      operation_id: uuid,
+      category: z.enum([
+        "comissoes",
+        "servicos_terceiros",
+        "time",
+        "infra",
+      ]),
+      amount: z.number().nonnegative(),
+      description: z.string().max(500).nullable().optional(),
+    }),
+  update_operation_monthly_cost_item: mcpUpdateOperationMonthlyCostItemSchema,
+  delete_operation_monthly_cost_item: z.object({ item_id: uuid }),
   create_service_product: serviceProductSchema,
   update_service_product: serviceProductSchema.extend({ product_id: uuid }),
   archive_service_product: z.object({ product_id: uuid }),

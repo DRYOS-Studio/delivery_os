@@ -13,6 +13,15 @@ import { getOperationMonthlyCosts } from "@/lib/db/queries/operation-costs";
 import { allocationSchema } from "@/lib/validators/allocation";
 import { incidentSchema } from "@/lib/validators/incident";
 import { operationCostSchema } from "@/lib/validators/operationCost";
+import {
+  getOperationMonthlyCostItemsSummary,
+} from "@/lib/db/queries/operation-monthly-cost-items";
+import {
+  buildOperationMonthlyCostItemPatch,
+  mcpUpdateOperationMonthlyCostItemSchema,
+} from "@/lib/mcp/tool-args/operation-monthly-cost-item-update";
+import { operationMonthlyCostItemCreateSchema } from "@/lib/validators/operation-monthly-cost-item";
+import { operationMonthlyCostCategoryLabel } from "@/lib/utils/operation-monthly-cost-category";
 import { quickWinSchema } from "@/lib/validators/quick-win";
 import { computeMargin } from "@/lib/utils/margin";
 import {
@@ -344,24 +353,7 @@ export async function mcpListOperationCosts(
 export async function mcpGetOperationMonthlyCosts(
   ctx: McpHandlerContext,
   args: Record<string, unknown>,
-): Promise<
-  McpToolResult<{
-    breakdown: {
-      fixed_cost: number;
-      ad_hoc_monthly: number;
-      ad_hoc_once_total: number;
-      allocations_total: number;
-      tax_rate_pct: number | null;
-      tax_monthly_amount: number;
-      total_monthly: number;
-    };
-    margin: {
-      mrr: number | null;
-      value: number;
-      pct: number | null;
-    };
-  }>
-> {
+): Promise<McpToolResult<Record<string, unknown>>> {
   const opId = typeof args.operation_id === "string" ? args.operation_id.trim() : "";
   if (!opId) return { ok: false, message: "operation_id obrigatório." };
   try {
@@ -390,6 +382,14 @@ export async function mcpGetOperationMonthlyCosts(
       data: {
         breakdown: {
           fixed_cost: breakdown.fixedCost,
+          monthly_cost_items: breakdown.lineItems.map((i) => ({
+            id: i.id,
+            category: i.category,
+            category_label: operationMonthlyCostCategoryLabel(i.category),
+            amount: i.amount,
+            description: i.description,
+          })),
+          category_subtotals: breakdown.categorySubtotals,
           ad_hoc_monthly: breakdown.adHocMonthly,
           ad_hoc_once_total: breakdown.adHocOnceTotal,
           allocations_total: breakdown.allocationsTotal,
@@ -779,4 +779,110 @@ export async function mcpPromoteMeetingNextStepToTask(
     ok: true,
     data: { task_id: taskRow.id, next_step_id: nextStepId },
   };
+}
+
+export async function mcpListOperationMonthlyCostItems(
+  ctx: McpHandlerContext,
+  args: Record<string, unknown>,
+): Promise<
+  McpToolResult<{
+    items: unknown[];
+    category_subtotals: Record<string, number>;
+    total_monthly: number;
+  }>
+> {
+  const opId = typeof args.operation_id === "string" ? args.operation_id.trim() : "";
+  if (!opId) return { ok: false, message: "operation_id obrigatório." };
+  const summary = await getOperationMonthlyCostItemsSummary(opId, ctx.supabase);
+  return {
+    ok: true,
+    data: {
+      items: summary.items.map((i) => ({
+        id: i.id,
+        operation_id: i.operationId,
+        category: i.category,
+        category_label: operationMonthlyCostCategoryLabel(i.category),
+        amount: i.amount,
+        description: i.description,
+      })),
+      category_subtotals: summary.categorySubtotals,
+      total_monthly: summary.totalMonthly,
+    },
+  };
+}
+
+const monthlyCostItemCreate = operationMonthlyCostItemCreateSchema.and(
+  z.object({ operation_id: z.string().uuid() }),
+);
+
+export async function mcpCreateOperationMonthlyCostItem(
+  ctx: McpHandlerContext,
+  args: Record<string, unknown>,
+): Promise<McpToolResult<{ id: string }>> {
+  const denied = await mcpRequireAdmin(ctx);
+  if (denied) return denied;
+  const parsed = monthlyCostItemCreate.safeParse(args);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      message: parsed.error.issues[0]?.message ?? "Dados inválidos.",
+    };
+  }
+  const { operation_id, ...item } = parsed.data;
+  const { data, error } = await ctx.supabase
+    .from("operation_monthly_cost_items")
+    .insert({
+      operation_id,
+      category: item.category,
+      amount: item.amount,
+      description: item.description?.trim() || null,
+    })
+    .select("id")
+    .single();
+  if (error) return { ok: false, message: error.message };
+  if (!data) return { ok: false, message: "Falha ao criar item." };
+  return { ok: true, data: { id: data.id } };
+}
+
+export async function mcpUpdateOperationMonthlyCostItem(
+  ctx: McpHandlerContext,
+  args: Record<string, unknown>,
+): Promise<McpToolResult<{ id: string }>> {
+  const denied = await mcpRequireAdmin(ctx);
+  if (denied) return denied;
+  const parsed = mcpUpdateOperationMonthlyCostItemSchema.safeParse(args);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      message: parsed.error.issues[0]?.message ?? "Dados inválidos.",
+    };
+  }
+  const patch = buildOperationMonthlyCostItemPatch(parsed.data);
+  if (Object.keys(patch).length === 0) {
+    return { ok: false, message: "Nenhum campo para atualizar." };
+  }
+  const { error } = await ctx.supabase
+    .from("operation_monthly_cost_items")
+    .update(
+      patch as Database["public"]["Tables"]["operation_monthly_cost_items"]["Update"],
+    )
+    .eq("id", parsed.data.item_id);
+  if (error) return { ok: false, message: error.message };
+  return { ok: true, data: { id: parsed.data.item_id } };
+}
+
+export async function mcpDeleteOperationMonthlyCostItem(
+  ctx: McpHandlerContext,
+  args: Record<string, unknown>,
+): Promise<McpToolResult<{ id: string }>> {
+  const denied = await mcpRequireAdmin(ctx);
+  if (denied) return denied;
+  const id = typeof args.item_id === "string" ? args.item_id.trim() : "";
+  if (!id) return { ok: false, message: "item_id obrigatório." };
+  const { error } = await ctx.supabase
+    .from("operation_monthly_cost_items")
+    .delete()
+    .eq("id", id);
+  if (error) return { ok: false, message: error.message };
+  return { ok: true, data: { id } };
 }

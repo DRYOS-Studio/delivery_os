@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { getProfile } from "@/lib/auth/server";
 import { listClients } from "@/lib/db/queries/clients";
 import { listDiagnosticsForSelect } from "@/lib/db/queries/diagnostics";
+import { listOperationMonthlyCostItems } from "@/lib/db/queries/operation-monthly-cost-items";
 import { getOperation } from "@/lib/db/queries/operations";
 import { isActiveStatus } from "@/lib/utils/operation-status";
 
@@ -17,10 +18,11 @@ export default async function Page({
   const { id } = await params;
   if (!UUID_RE.test(id)) redirect("/operations");
 
-  const [op, clients, diagnosticsByClient] = await Promise.all([
+  const [op, clients, diagnosticsByClient, monthlyCostItems] = await Promise.all([
     getOperation(id),
     listClients(),
     listDiagnosticsForSelect(),
+    listOperationMonthlyCostItems(id),
   ]);
   if (!op) redirect("/operations");
 
@@ -43,6 +45,7 @@ export default async function Page({
             : null
         }
         diagnosticsByClient={diagnosticsByClient}
+        initialMonthlyCostItems={monthlyCostItems}
         isAdmin={isAdmin}
       />
     </>

@@ -817,11 +817,74 @@ const BASE_MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
     name: "get_operation_monthly_costs",
     access: "read",
     description:
-      "Breakdown mensal de custos (fixo, ad-hoc, alocações, impostos) e margem sobre MRR.",
+      "Breakdown mensal de custos (itens categorizados, ad-hoc, alocações, impostos) e margem sobre MRR.",
     inputSchema: {
       type: "object",
       properties: { operation_id: { type: "string" } },
       required: ["operation_id"],
+    },
+  },
+  {
+    name: "list_operation_monthly_cost_items",
+    access: "read",
+    description:
+      "Lista itens de custo mensal categorizado (Comissões, Terceiros, Time, Infra) com subtotais.",
+    inputSchema: {
+      type: "object",
+      properties: { operation_id: { type: "string" } },
+      required: ["operation_id"],
+    },
+  },
+  {
+    name: "create_operation_monthly_cost_item",
+    access: "admin",
+    idempotent: true,
+    description: "Adiciona item de custo mensal categorizado à operação.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        operation_id: { type: "string" },
+        category: {
+          type: "string",
+          enum: ["comissoes", "servicos_terceiros", "time", "infra"],
+        },
+        amount: { type: "number" },
+        description: { type: "string" },
+        ...idem,
+      },
+      required: ["operation_id", "category", "amount"],
+    },
+  },
+  {
+    name: "update_operation_monthly_cost_item",
+    access: "admin",
+    idempotent: true,
+    description:
+      "Atualiza item de custo mensal. description: null limpa (clearable).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        item_id: { type: "string" },
+        category: {
+          type: "string",
+          enum: ["comissoes", "servicos_terceiros", "time", "infra"],
+        },
+        amount: { type: "number" },
+        description: { type: ["string", "null"] },
+        ...idem,
+      },
+      required: ["item_id"],
+    },
+  },
+  {
+    name: "delete_operation_monthly_cost_item",
+    access: "admin",
+    idempotent: true,
+    description: "Remove item de custo mensal categorizado.",
+    inputSchema: {
+      type: "object",
+      properties: { item_id: { type: "string" }, ...idem },
+      required: ["item_id"],
     },
   },
   {

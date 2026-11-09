@@ -71,7 +71,9 @@ import {
   mcpAddMeetingAgendaItem,
   mcpAddMeetingNextStep,
   mcpCreateAllocation,
+  mcpCreateOperationMonthlyCostItem,
   mcpCreateOperationCost,
+  mcpDeleteOperationMonthlyCostItem,
   mcpCreateQuickWin,
   mcpCreateSlaIncident,
   mcpEndAllocation,
@@ -82,6 +84,7 @@ import {
   mcpListMeetingAgendaItems,
   mcpListMeetingNextSteps,
   mcpGetOperationMonthlyCosts,
+  mcpListOperationMonthlyCostItems,
   mcpListOperationCosts,
   mcpCreateOperationRiskBlocker,
   mcpListOperationRiskBlockers,
@@ -93,6 +96,7 @@ import {
   mcpUpdateAllocation,
   mcpUpdateMeetingAgendaItem,
   mcpUpdateMeetingNextStep,
+  mcpUpdateOperationMonthlyCostItem,
   mcpUpdateOperationCost,
   mcpUpdateQuickWin,
   mcpUpdateSlaIncident,
@@ -538,6 +542,18 @@ export async function dispatchMcpTool(input: DispatchInput): Promise<unknown> {
     }
     case "end_operation_cost": {
       return flattenResult(await mcpEndOperationCost(ctx, args));
+    }
+    case "list_operation_monthly_cost_items": {
+      return flattenResult(await mcpListOperationMonthlyCostItems(ctx, args));
+    }
+    case "create_operation_monthly_cost_item": {
+      return flattenResult(await mcpCreateOperationMonthlyCostItem(ctx, args));
+    }
+    case "update_operation_monthly_cost_item": {
+      return flattenResult(await mcpUpdateOperationMonthlyCostItem(ctx, args));
+    }
+    case "delete_operation_monthly_cost_item": {
+      return flattenResult(await mcpDeleteOperationMonthlyCostItem(ctx, args));
     }
     case "list_meeting_agenda_items": {
       return flattenResult(await mcpListMeetingAgendaItems(ctx, args));

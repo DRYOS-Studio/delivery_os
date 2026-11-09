@@ -1429,6 +1429,44 @@ export type Database = {
           },
         ]
       }
+      operation_monthly_cost_items: {
+        Row: {
+          amount: number
+          category: Database["public"]["Enums"]["operation_monthly_cost_category"]
+          created_at: string
+          description: string | null
+          id: string
+          operation_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          category: Database["public"]["Enums"]["operation_monthly_cost_category"]
+          created_at?: string
+          description?: string | null
+          id?: string
+          operation_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: Database["public"]["Enums"]["operation_monthly_cost_category"]
+          created_at?: string
+          description?: string | null
+          id?: string
+          operation_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_operation_monthly_cost_items_operation"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "operations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       operation_members: {
         Row: {
           created_at: string
@@ -2512,6 +2550,13 @@ export type Database = {
         | "meeting"
         | "decision"
         | "operation_risk_blocker"
+        | "operation_monthly_cost_item"
+      operation_monthly_cost_category:
+        | "comissoes"
+        | "servicos_terceiros"
+        | "time"
+        | "infra"
+        | "a_classificar"
       operation_risk_kind: "risk" | "blocker"
       operation_risk_origin: "dryos" | "client" | "vendor"
       operation_risk_severity: "low" | "medium" | "high"
@@ -2691,6 +2736,14 @@ export const Constants = {
         "meeting",
         "decision",
         "operation_risk_blocker",
+        "operation_monthly_cost_item",
+      ],
+      operation_monthly_cost_category: [
+        "comissoes",
+        "servicos_terceiros",
+        "time",
+        "infra",
+        "a_classificar",
       ],
       operation_risk_kind: ["risk", "blocker"],
       operation_risk_origin: ["dryos", "client", "vendor"],
