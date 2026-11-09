@@ -409,7 +409,8 @@ export async function mcpGetOperationMonthlyCosts(
   }
 }
 
-const costCreate = operationCostCreateSchema.and(
+const costCreate = z.intersection(
+  operationCostCreateSchema,
   z.object({ operation_id: z.string().uuid() }),
 );
 

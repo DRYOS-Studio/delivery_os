@@ -52,26 +52,26 @@ const operationCostBase = z.object({
   notes: optionalNotes,
 });
 
-function withDateRefine<T extends z.ZodType>(
-  schema: T,
-): z.ZodType<z.infer<T>, z.infer<T>, z.input<T>> {
-  return schema.refine(
-    (d: { ended_at?: string | undefined; started_at?: string }) =>
-      !d.ended_at || !d.started_at || d.ended_at >= d.started_at,
-    {
-      message: "Data de fim deve ser ≥ data de início.",
-      path: ["ended_at"],
-    },
-  ) as z.ZodType<z.infer<T>, z.infer<T>, z.input<T>>;
-}
+const dateRangeCheck = (d: {
+  ended_at?: string | undefined;
+  started_at: string;
+}): boolean => !d.ended_at || d.ended_at >= d.started_at;
 
-export const operationCostSchema = withDateRefine(operationCostBase);
+const dateRangeIssue = {
+  message: "Data de fim deve ser ≥ data de início.",
+  path: ["ended_at" as const],
+};
 
-export const operationCostCreateSchema = withDateRefine(
-  operationCostBase.extend({
-    category: z.enum(OPERATION_COST_CATEGORIES_UI),
-  }),
+export const operationCostSchema = operationCostBase.refine(
+  dateRangeCheck,
+  dateRangeIssue,
 );
+
+export const operationCostCreateSchema = operationCostBase
+  .extend({
+    category: z.enum(OPERATION_COST_CATEGORIES_UI),
+  })
+  .refine(dateRangeCheck, dateRangeIssue);
 
 export type OperationCostInput = z.input<typeof operationCostSchema>;
 export type OperationCostOutput = z.output<typeof operationCostSchema>;

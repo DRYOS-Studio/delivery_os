@@ -8,6 +8,7 @@ import { getOperationCost } from "@/lib/db/queries/operation-costs";
 import {
   operationCostCreateSchema,
   operationCostSchema,
+  type OperationCostOutput,
 } from "@/lib/validators/operationCost";
 
 function parseFormData(formData: FormData) {
@@ -25,7 +26,7 @@ function parseFormData(formData: FormData) {
 function validate(
   formData: FormData,
   mode: "create" | "edit",
-) {
+): ActionResult<OperationCostOutput> {
   const raw = parseFormData(formData);
   const parsed = (mode === "create"
     ? operationCostCreateSchema

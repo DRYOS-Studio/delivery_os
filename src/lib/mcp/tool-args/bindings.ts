@@ -150,7 +150,8 @@ export const MCP_TOOL_ZOD_ARGS: Record<string, z.ZodType> = {
   update_quick_win: quickWinSchema.and(z.object({ quick_win_id: uuid })),
   create_sla_incident: incidentSchema.and(z.object({ operation_id: uuid })),
   update_sla_incident: incidentSchema.and(z.object({ incident_id: uuid })),
-  create_operation_cost: operationCostCreateSchema.and(
+  create_operation_cost: z.intersection(
+    operationCostCreateSchema,
     z.object({ operation_id: uuid }),
   ),
   update_operation_cost: mcpUpdateOperationCostSchema,
