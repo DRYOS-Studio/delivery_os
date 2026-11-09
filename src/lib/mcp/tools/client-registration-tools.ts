@@ -15,6 +15,7 @@ import {
 import {
   clientRegistrationSubmissionSchema,
   createInvitationSchema,
+  firstClientRegistrationValidationMessage,
 } from "@/lib/validators/client-registration";
 import {
   parseSubmittedPayload,
@@ -50,7 +51,10 @@ export async function mcpCreateClientRegistrationInvitation(
 
   const parsed = createInvitationSchema.safeParse(args);
   if (!parsed.success) {
-    return { ok: false, message: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+    return {
+      ok: false,
+      message: firstClientRegistrationValidationMessage(parsed.error),
+    };
   }
 
   const rawToken = generateRegistrationToken();
@@ -181,7 +185,10 @@ export async function mcpApproveClientRegistrationInvitation(
 
   const validated = clientRegistrationSubmissionSchema.safeParse(submission);
   if (!validated.success) {
-    return { ok: false, message: "Submissão não passa na validação." };
+    return {
+      ok: false,
+      message: firstClientRegistrationValidationMessage(validated.error),
+    };
   }
 
   let slugAttempt = 0;

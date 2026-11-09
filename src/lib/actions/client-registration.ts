@@ -35,8 +35,10 @@ import { getSiteOrigin } from "@/lib/utils/site-origin";
 import {
   clientRegistrationSubmissionSchema,
   createInvitationSchema,
+  firstClientRegistrationValidationMessage,
   type ClientRegistrationSubmission,
 } from "@/lib/validators/client-registration";
+import { nullishToEmptyString } from "@/lib/validators/nullish";
 
 const INVITE_TTL_DAYS = 14;
 
@@ -67,14 +69,17 @@ export async function createRegistrationInvitationAction(
   if (!profile) return err("Perfil não encontrado.", "forbidden");
 
   const parsed = createInvitationSchema.safeParse({
-    prefill_contact_name: formData.get("prefill_contact_name"),
-    prefill_contact_phone: formData.get("prefill_contact_phone"),
+    prefill_contact_name: nullishToEmptyString(formData.get("prefill_contact_name")),
+    prefill_contact_phone: nullishToEmptyString(formData.get("prefill_contact_phone")),
     invite_note: formData.get("invite_note"),
   });
   if (!parsed.success) {
     const first = parsed.error.issues[0];
     const field = (first?.path[0] as string | undefined) ?? "validation";
-    return err(first?.message ?? "Dados inválidos.", `validation_${field}`);
+    return err(
+      firstClientRegistrationValidationMessage(parsed.error),
+      `validation_${field}`,
+    );
   }
 
   const rawToken = generateRegistrationToken();
@@ -238,7 +243,10 @@ export async function submitClientRegistrationAction(
   if (!parsed.success) {
     const first = parsed.error.issues[0];
     const field = (first?.path.join(".") as string | undefined) ?? "validation";
-    return err(first?.message ?? "Dados inválidos.", `validation_${field}`);
+    return err(
+      firstClientRegistrationValidationMessage(parsed.error),
+      `validation_${field}`,
+    );
   }
 
   const admin = createAdmin();
@@ -291,8 +299,10 @@ export async function updateRegistrationSubmissionAction(
 
   const parsed = clientRegistrationSubmissionSchema.safeParse(payload);
   if (!parsed.success) {
-    const first = parsed.error.issues[0];
-    return err(first?.message ?? "Dados inválidos.", "validation_failed");
+    return err(
+      firstClientRegistrationValidationMessage(parsed.error),
+      "validation_failed",
+    );
   }
 
   const supabase = await createServer();

@@ -38,7 +38,7 @@ export function RegistrationInviteCreateForm(): React.JSX.Element {
     const fd = new FormData();
     fd.set("prefill_contact_name", data.prefill_contact_name);
     fd.set("prefill_contact_phone", data.prefill_contact_phone);
-    if (data.invite_note) fd.set("invite_note", data.invite_note);
+    fd.set("invite_note", data.invite_note ?? "");
 
     const result = await createRegistrationInvitationAction(fd);
     if (!result.ok) {
