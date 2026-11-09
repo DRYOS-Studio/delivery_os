@@ -408,6 +408,26 @@ const BASE_MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
     inputSchema: { type: "object", properties: {} },
   },
   {
+    name: "list_activity_events",
+    access: "read",
+    description:
+      "Histórico de atividade (RLS). Informe task_id ou operation_id. Filtros: category (all|created|updated|status|assignee|comments), date_preset (all|today|7d|30d).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        task_id: { type: "string" },
+        operation_id: { type: "string" },
+        category: {
+          type: "string",
+          enum: ["all", "created", "updated", "status", "assignee", "comments"],
+        },
+        date_preset: { type: "string", enum: ["all", "today", "7d", "30d"] },
+        limit: { type: "number" },
+        offset: { type: "number" },
+      },
+    },
+  },
+  {
     name: "get_task",
     access: "read",
     description: "Detalhe tarefa.",

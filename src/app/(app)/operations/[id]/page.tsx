@@ -396,7 +396,10 @@ export default async function Page({
             isAdmin={isAdmin}
           />
           <FinanceCards op={op} isAdmin={isAdmin} />
-          <ActivityFeedSection events={activityEvents} />
+          <ActivityFeedSection
+            events={activityEvents}
+            scope={{ kind: "operation", operationId: id }}
+          />
           {profile?.user?.id ? (
             <OperationCommentsSection
               operationId={op.id}

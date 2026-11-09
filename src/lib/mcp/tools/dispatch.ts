@@ -132,6 +132,7 @@ import {
   mcpListTasks,
   mcpUpdateTask,
 } from "@/lib/mcp/tools/task-tools";
+import { mcpListActivityEvents } from "@/lib/mcp/tools/activity-tools";
 
 export type DispatchInput = {
   toolName: string;
@@ -334,6 +335,10 @@ export async function dispatchMcpTool(input: DispatchInput): Promise<unknown> {
     case "list_tasks": {
       const r = await mcpListTasks(ctx.supabase, args);
       return r.ok ? { ok: true, tasks: r.tasks } : { ok: false, error: r.message };
+    }
+    case "list_activity_events": {
+      const r = await mcpListActivityEvents(ctx.supabase, args);
+      return r.ok ? { ok: true, events: r.events } : { ok: false, error: r.message };
     }
     case "get_task": {
       const r = await mcpGetTask(ctx.supabase, args);
