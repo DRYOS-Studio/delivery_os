@@ -7,7 +7,7 @@ import {
   generateRegistrationToken,
   hashRegistrationToken,
 } from "@/lib/registration/token";
-import { getSiteOrigin } from "@/lib/utils/site-origin";
+import { getSiteOriginFromEnv } from "@/lib/utils/site-origin";
 import {
   clientPayloadFromSubmission,
   type ClientInsertFromSubmission,
@@ -15,6 +15,7 @@ import {
 import {
   clientRegistrationSubmissionSchema,
   createInvitationSchema,
+  firstClientRegistrationValidationMessage,
 } from "@/lib/validators/client-registration";
 import {
   parseSubmittedPayload,
@@ -50,7 +51,10 @@ export async function mcpCreateClientRegistrationInvitation(
 
   const parsed = createInvitationSchema.safeParse(args);
   if (!parsed.success) {
-    return { ok: false, message: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+    return {
+      ok: false,
+      message: firstClientRegistrationValidationMessage(parsed.error),
+    };
   }
 
   const rawToken = generateRegistrationToken();
@@ -77,7 +81,10 @@ export async function mcpCreateClientRegistrationInvitation(
     ok: true,
     data: {
       invitation_id: data.id,
-      registration_url: buildAbsoluteRegistrationUrl(rawToken, getSiteOrigin()),
+      registration_url: buildAbsoluteRegistrationUrl(
+        rawToken,
+        getSiteOriginFromEnv(),
+      ),
     },
   };
 }
@@ -181,7 +188,10 @@ export async function mcpApproveClientRegistrationInvitation(
 
   const validated = clientRegistrationSubmissionSchema.safeParse(submission);
   if (!validated.success) {
-    return { ok: false, message: "Submissão não passa na validação." };
+    return {
+      ok: false,
+      message: firstClientRegistrationValidationMessage(validated.error),
+    };
   }
 
   let slugAttempt = 0;
@@ -279,7 +289,7 @@ export async function mcpGetClientRegistrationInvitationLink(
   return {
     ok: true,
     data: {
-      registration_url: buildAbsoluteRegistrationUrl(raw, getSiteOrigin()),
+      registration_url: buildAbsoluteRegistrationUrl(raw, getSiteOriginFromEnv()),
     },
   };
 }
