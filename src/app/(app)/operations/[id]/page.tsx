@@ -9,6 +9,7 @@ import { FinanceCards } from "@/components/domain/FinanceCards";
 import { FrentesListSection } from "@/components/domain/FrentesListSection";
 import { MeetingsDecisionsTimeline } from "@/components/domain/MeetingsDecisionsTimeline";
 import { OperationHero } from "@/components/domain/OperationHero";
+import { RepositoryLinksPanel } from "@/components/domain/RepositoryLinksPanel";
 import { OperationVillainsSection } from "@/components/domain/OperationVillainsSection";
 import { PublicLinksSection } from "@/components/domain/PublicLinksSection";
 import { QuickWinsSection } from "@/components/domain/QuickWinsSection";
@@ -45,6 +46,10 @@ import {
 import { canWriteOperation } from "@/lib/db/queries/operation-members";
 import { listArchivedFrentesByOperation } from "@/lib/db/queries/frentes";
 import { getOperation } from "@/lib/db/queries/operations";
+import {
+  listRepositoryLinksForOperation,
+  listRepositoryLinksScopedToOperationOnly,
+} from "@/lib/db/queries/repository-links";
 import { listPublicLinksByOperation } from "@/lib/db/queries/publicLinks";
 import { canCreateAreaTaskInOperation } from "@/lib/db/queries/areas";
 import { listActiveQuickWinCatalog } from "@/lib/db/queries/quick-win-catalog";
@@ -257,6 +262,11 @@ export default async function Page({
   ]);
   if (!op) notFound();
 
+  const [repositoryLinks, operationOnlyLinks] = await Promise.all([
+    listRepositoryLinksForOperation(op.client.id, op.id),
+    listRepositoryLinksScopedToOperationOnly(op.id),
+  ]);
+
   const isAdmin = profile?.role === "admin";
   // Frente arquivada não aparece em nenhuma outra tela (getFrente e o embed de
   // getOperation filtram) — é aqui que o restore item-a-item existe.
@@ -339,6 +349,7 @@ export default async function Page({
         briefingFreshness={briefingFreshness}
         isAdmin={isAdmin}
         margin={margin}
+        repositoryLinks={repositoryLinks}
       />
 
       <TabsNav<OperationTabKey>
@@ -349,6 +360,21 @@ export default async function Page({
 
       {tab === "visao" && (
         <>
+          {(repositoryLinks.length > 0 || canWrite) && (
+            <div className="mb-7 border border-line rounded p-4 bg-card">
+              <RepositoryLinksPanel
+                scope={{
+                  kind: "operation",
+                  clientId: op.client.id,
+                  operationId: op.id,
+                }}
+                displayLinks={repositoryLinks}
+                manageableLinks={operationOnlyLinks}
+                canManageLocal={canWrite}
+                hint="Repositórios da Operação somam-se aos do Cliente; cada link mostra o escopo."
+              />
+            </div>
+          )}
           <OperationVillainsSection
             items={operationVillains}
             availableVillains={availableVillains}

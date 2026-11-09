@@ -567,6 +567,155 @@ export type Database = {
           },
         ]
       }
+      client_software_items: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          purpose: string | null
+          sort_order: number
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          purpose?: string | null
+          sort_order?: number
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          purpose?: string | null
+          sort_order?: number
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_client_software_items_client"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_tech_items: {
+        Row: {
+          category: string | null
+          client_id: string
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          sort_order: number
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          category?: string | null
+          client_id: string
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          sort_order?: number
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          category?: string | null
+          client_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          sort_order?: number
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_client_tech_items_client"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      repository_links: {
+        Row: {
+          client_id: string
+          created_at: string
+          frente_id: string | null
+          id: string
+          label: string
+          notes: string | null
+          operation_id: string | null
+          sort_order: number
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          frente_id?: string | null
+          id?: string
+          label: string
+          notes?: string | null
+          operation_id?: string | null
+          sort_order?: number
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          frente_id?: string | null
+          id?: string
+          label?: string
+          notes?: string | null
+          operation_id?: string | null
+          sort_order?: number
+          updated_at?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_repository_links_client"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_repository_links_operation"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "operations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_repository_links_frente"
+            columns: ["frente_id"]
+            isOneToOne: false
+            referencedRelation: "frentes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       decisions: {
         Row: {
           agenda_item_id: string | null

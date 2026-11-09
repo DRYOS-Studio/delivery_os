@@ -169,7 +169,6 @@ export function FrenteForm(props: Props): React.JSX.Element {
     fd.set("product_id", data.product_id ?? "");
     fd.set("start_date", data.start_date ?? "");
     fd.set("end_date", data.end_date ?? "");
-
     const result = isEdit
       ? await updateFrenteAction(props.initialData.id, fd)
       : await createFrenteAction(props.operationId, fd);

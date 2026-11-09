@@ -12,7 +12,7 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 
 | Módulo | Tabelas | Total |
 |---|---|---|
-| **Cliente** | `clients`, `client_contracts` | 2 |
+| **Cliente** | `clients`, `client_contracts`, `repository_links`, `client_tech_items`, `client_software_items` | 5 |
 | **Operação** | `operations` | 1 |
 | **Entrega** | `frentes`, `allocations`, `tasks`, `task_assignees` | 4 |
 | **Pessoas** | `persons` | 1 |
@@ -65,6 +65,38 @@ Origem de Operações, Pessoas externas, Credenciais (v2).
 
 CHECKs: `cnpj`, `address_state`, `address_zip` (length), `primary_contact_email` (shape).
 RLS: `authenticated_full_access` (sem 1). Granularidade Admin/Membro entra com `profiles` (sem 2+).
+
+### `repository_links` — repositórios Git (múltiplos por escopo)
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `client_id` | uuid NOT NULL | âncora RLS |
+| `operation_id`, `frente_id` | uuid NULL | escopo Operação/Frente; ambos null = nível Cliente |
+| `label` | text NOT NULL | nome/finalidade do repo |
+| `url` | text NOT NULL | https, validado no app |
+| `notes` | text | opcional, curto |
+
+Migration `20261108040000` importa colunas legadas `git_repository_url` (se existirem) com label `Principal` **sem** remover as colunas singulares. A remoção fica em `20261108050000_drop_legacy_git_repository_url_columns.sql` (após deploy do app novo). Ver `docs/ROLLOUT_REPOSITORY_TOOLING.md`.
+
+### `client_tech_items` — stack técnica (dev/infra)
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `name` | text NOT NULL | texto livre |
+| `category` | text | ex.: cloud, linguagem |
+| `url` | text | https opcional (docs/console) |
+| `notes` | text | opcional |
+
+### `client_software_items` — softwares que o cliente usa
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `name` | text NOT NULL | texto livre (sem catálogo fechado) |
+| `purpose` | text | finalidade no cliente |
+| `url` | text | opcional — acesso ao **workspace/sistema do cliente**, não só site do fornecedor |
+| `notes` | text | opcional |
+
+Escrita (tech/software): admin. Repositórios em Operação/Frente: membro com `can_see_operation`.
 
 ---
 
@@ -185,6 +217,7 @@ CHECK `chk_persons_kind_consistency`: garante exclusividade.
 | `start_date`, `end_date` | date | nullable; Tipo C/E não tem fim (validado via Frente) |
 | `response_hours` | int | SLA prometido pra primeira resposta. CHECK 0-720. Null = sem SLA |
 | `resolution_hours` | int | SLA prometido pra resolução total. CHECK 0-720. Null = sem SLA |
+| `notification_webhook_url` | text | nullable; webhook n8n por Operação |
 | `created_at`, `updated_at`, `archived_at` | timestamptz | |
 
 ---

@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
+import { RepositoryLinksList } from "@/components/domain/RepositoryLinksList";
+import { RepositoryLinksPanel } from "@/components/domain/RepositoryLinksPanel";
 import { Pill, type PillVariant } from "@/components/ui/Pill";
 import { StalenessPill } from "@/components/ui/StalenessPill";
 import type { FrenteDetail } from "@/lib/db/queries/frentes";
+import type { RepositoryLinkRow } from "@/lib/db/queries/repository-links";
 import { formatCycleTypeShort } from "@/lib/utils/cycle-type";
 import { getInitials } from "@/lib/utils/initials";
 
@@ -28,8 +31,14 @@ const PHASE_VARIANT: Record<FrenteDetail["phase"], PillVariant> = {
 
 export function FrenteMetaCard({
   frente,
+  repositoryLinks,
+  frenteOnlyLinks,
+  canManageRepos,
 }: {
   frente: FrenteDetail;
+  repositoryLinks: RepositoryLinkRow[];
+  frenteOnlyLinks: RepositoryLinkRow[];
+  canManageRepos: boolean;
 }) {
   return (
     <section className="mb-7 bg-card border border-line rounded p-5">
@@ -81,6 +90,23 @@ export function FrenteMetaCard({
           )}
         </div>
       </div>
+
+      {(repositoryLinks.length > 0 || canManageRepos) && (
+        <div className="mt-4 pt-4 border-t border-line">
+          <RepositoryLinksPanel
+            scope={{
+              kind: "frente",
+              clientId: frente.clientId,
+              operationId: frente.operationId,
+              frenteId: frente.id,
+            }}
+            displayLinks={repositoryLinks}
+            manageableLinks={frenteOnlyLinks}
+            canManageLocal={canManageRepos}
+            hint="Links com badge Cliente / Operação / Frente indicam onde foram cadastrados."
+          />
+        </div>
+      )}
     </section>
   );
 }

@@ -1,5 +1,7 @@
 import { Edit2, FileText, Users } from "lucide-react";
 import Link from "next/link";
+import { RepositoryLinksList } from "@/components/domain/RepositoryLinksList";
+import type { RepositoryLinkRow } from "@/lib/db/queries/repository-links";
 import type { OperationDetail } from "@/lib/db/queries/operations";
 import { formatDateBR, relativeFromNow } from "@/lib/utils/date";
 import {
@@ -48,11 +50,13 @@ export function OperationHero({
   briefingFreshness,
   isAdmin = false,
   margin,
+  repositoryLinks = [],
 }: {
   op: OperationDetail;
   briefingFreshness?: BriefingFreshness | undefined;
   isAdmin?: boolean;
   margin?: MarginResult | null;
+  repositoryLinks?: RepositoryLinkRow[];
 }) {
   return (
     <section className="relative bg-oak text-bg rounded-lg p-8 overflow-hidden mb-9">
@@ -138,6 +142,12 @@ export function OperationHero({
           {op.client.name}
         </h1>
         <p className="font-body text-base opacity-70 mt-1">{op.name}</p>
+
+        {repositoryLinks.length > 0 && (
+          <div className="mt-4">
+            <RepositoryLinksList links={repositoryLinks} variant="onDark" />
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-x-7 gap-y-3 mt-7">
           {isAdmin && (
