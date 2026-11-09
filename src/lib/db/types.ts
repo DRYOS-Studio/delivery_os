@@ -1385,6 +1385,7 @@ export type Database = {
       operation_costs: {
         Row: {
           amount: number
+          category: Database["public"]["Enums"]["operation_cost_category"]
           created_at: string
           ended_at: string | null
           id: string
@@ -1397,6 +1398,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          category?: Database["public"]["Enums"]["operation_cost_category"]
           created_at?: string
           ended_at?: string | null
           id?: string
@@ -1409,6 +1411,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          category?: Database["public"]["Enums"]["operation_cost_category"]
           created_at?: string
           ended_at?: string | null
           id?: string
@@ -1422,44 +1425,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "fk_operation_costs_operation_id"
-            columns: ["operation_id"]
-            isOneToOne: false
-            referencedRelation: "operations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      operation_monthly_cost_items: {
-        Row: {
-          amount: number
-          category: Database["public"]["Enums"]["operation_monthly_cost_category"]
-          created_at: string
-          description: string | null
-          id: string
-          operation_id: string
-          updated_at: string
-        }
-        Insert: {
-          amount: number
-          category: Database["public"]["Enums"]["operation_monthly_cost_category"]
-          created_at?: string
-          description?: string | null
-          id?: string
-          operation_id: string
-          updated_at?: string
-        }
-        Update: {
-          amount?: number
-          category?: Database["public"]["Enums"]["operation_monthly_cost_category"]
-          created_at?: string
-          description?: string | null
-          id?: string
-          operation_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_operation_monthly_cost_items_operation"
             columns: ["operation_id"]
             isOneToOne: false
             referencedRelation: "operations"
@@ -2550,8 +2515,8 @@ export type Database = {
         | "meeting"
         | "decision"
         | "operation_risk_blocker"
-        | "operation_monthly_cost_item"
-      operation_monthly_cost_category:
+        | "operation_cost"
+      operation_cost_category:
         | "comissoes"
         | "servicos_terceiros"
         | "time"
@@ -2736,9 +2701,9 @@ export const Constants = {
         "meeting",
         "decision",
         "operation_risk_blocker",
-        "operation_monthly_cost_item",
+        "operation_cost",
       ],
-      operation_monthly_cost_category: [
+      operation_cost_category: [
         "comissoes",
         "servicos_terceiros",
         "time",

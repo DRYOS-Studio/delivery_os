@@ -1,5 +1,5 @@
-import { getOperationMonthlyCostItemsSummary } from "@/lib/db/queries/operation-monthly-cost-items";
-import { operationMonthlyCostCategoryLabel } from "@/lib/utils/operation-monthly-cost-category";
+import { getOperationMonthlyCosts } from "@/lib/db/queries/operation-costs";
+import { operationCostCategoryLabel } from "@/lib/utils/operation-cost-category";
 import { operationSchema } from "@/lib/validators/operation";
 import {
   clampLimit,
@@ -64,22 +64,27 @@ export async function mcpGetOperation(
     .maybeSingle();
   if (error) return { ok: false, message: error.message };
   if (!data) return { ok: false, message: "Operação não encontrada.", notFound: true };
-  const summary = await getOperationMonthlyCostItemsSummary(opId, ctx.supabase);
+  const breakdown = await getOperationMonthlyCosts(opId, ctx.supabase);
   return {
     ok: true,
     data: {
       operation: {
         ...data,
         monthly_fixed_cost_legacy: data.monthly_fixed_cost,
-        monthly_cost_items: summary.items.map((i) => ({
-          id: i.id,
-          category: i.category,
-          category_label: operationMonthlyCostCategoryLabel(i.category),
-          amount: i.amount,
-          description: i.description,
+        operation_costs: breakdown.adHocItems.map((c) => ({
+          id: c.id,
+          category: c.category,
+          category_label: operationCostCategoryLabel(c.category),
+          label: c.label,
+          amount: c.amount,
+          recurrence: c.recurrence,
+          started_at: c.startedAt,
+          ended_at: c.endedAt,
+          notes: c.notes,
         })),
-        monthly_cost_category_subtotals: summary.categorySubtotals,
-        monthly_cost_items_total: summary.totalMonthly,
+        monthly_cost_category_subtotals: breakdown.categorySubtotals,
+        monthly_costs_total: breakdown.adHocMonthly,
+        monthly_costs_breakdown_total: breakdown.totalMonthly,
       },
     },
   };

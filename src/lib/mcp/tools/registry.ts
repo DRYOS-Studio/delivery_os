@@ -825,21 +825,11 @@ const BASE_MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
     },
   },
   {
-    name: "list_operation_monthly_cost_items",
-    access: "read",
-    description:
-      "Lista itens de custo mensal categorizado (Comissões, Terceiros, Time, Infra) com subtotais.",
-    inputSchema: {
-      type: "object",
-      properties: { operation_id: { type: "string" } },
-      required: ["operation_id"],
-    },
-  },
-  {
-    name: "create_operation_monthly_cost_item",
+    name: "create_operation_cost",
     access: "admin",
     idempotent: true,
-    description: "Adiciona item de custo mensal categorizado à operação.",
+    description:
+      "Adiciona custo à operação (categoria, recorrência, datas).",
     inputSchema: {
       type: "object",
       properties: {
@@ -848,65 +838,54 @@ const BASE_MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
           type: "string",
           enum: ["comissoes", "servicos_terceiros", "time", "infra"],
         },
-        amount: { type: "number" },
-        description: { type: "string" },
         ...idem,
       },
-      required: ["operation_id", "category", "amount"],
-    },
-  },
-  {
-    name: "update_operation_monthly_cost_item",
-    access: "admin",
-    idempotent: true,
-    description:
-      "Atualiza item de custo mensal. description: null limpa (clearable).",
-    inputSchema: {
-      type: "object",
-      properties: {
-        item_id: { type: "string" },
-        category: {
-          type: "string",
-          enum: ["comissoes", "servicos_terceiros", "time", "infra"],
-        },
-        amount: { type: "number" },
-        description: { type: ["string", "null"] },
-        ...idem,
-      },
-      required: ["item_id"],
-    },
-  },
-  {
-    name: "delete_operation_monthly_cost_item",
-    access: "admin",
-    idempotent: true,
-    description: "Remove item de custo mensal categorizado.",
-    inputSchema: {
-      type: "object",
-      properties: { item_id: { type: "string" }, ...idem },
-      required: ["item_id"],
-    },
-  },
-  {
-    name: "create_operation_cost",
-    access: "admin",
-    idempotent: true,
-    description: "Adiciona custo à operação.",
-    inputSchema: {
-      type: "object",
-      properties: { operation_id: { type: "string" }, ...idem },
-      required: ["operation_id", "label", "amount", "recurrence", "started_at"],
+      required: [
+        "operation_id",
+        "category",
+        "label",
+        "amount",
+        "recurrence",
+        "started_at",
+      ],
     },
   },
   {
     name: "update_operation_cost",
     access: "admin",
     idempotent: true,
-    description: "Atualiza custo.",
+    description:
+      "Atualiza custo parcialmente. notes e ended_at: null limpam (clearable).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        cost_id: { type: "string" },
+        category: {
+          type: "string",
+          enum: [
+            "comissoes",
+            "servicos_terceiros",
+            "time",
+            "infra",
+            "a_classificar",
+          ],
+        },
+        notes: { type: ["string", "null"] },
+        ended_at: { type: ["string", "null"] },
+        ...idem,
+      },
+      required: ["cost_id"],
+    },
+  },
+  {
+    name: "delete_operation_cost",
+    access: "admin",
+    idempotent: true,
+    description: "Remove um custo da operação.",
     inputSchema: {
       type: "object",
       properties: { cost_id: { type: "string" }, ...idem },
-      required: ["cost_id", "label", "amount", "recurrence", "started_at"],
+      required: ["cost_id"],
     },
   },
   {

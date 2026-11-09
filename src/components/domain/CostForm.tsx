@@ -11,6 +11,11 @@ import {
   updateOperationCostAction,
 } from "@/lib/actions/operationCosts";
 import type { OperationCostRow } from "@/lib/db/queries/operation-costs";
+import {
+  OPERATION_COST_CATEGORIES_UI,
+  operationCostCategoryLabel,
+  type OperationCostCategory,
+} from "@/lib/utils/operation-cost-category";
 
 type Props = (
   | { mode: "create"; operationId: string }
@@ -22,6 +27,7 @@ type Props = (
 ) & { isAdmin: boolean };
 
 type FormShape = {
+  category: OperationCostCategory;
   label: string;
   amount: string;
   recurrence: "mensal" | "unica";
@@ -47,6 +53,7 @@ export function CostForm(props: Props): React.JSX.Element {
 
   const defaultValues: FormShape = isEdit
     ? {
+        category: props.initialData.category,
         label: props.initialData.label,
         amount: String(props.initialData.amount),
         recurrence: props.initialData.recurrence,
@@ -55,6 +62,7 @@ export function CostForm(props: Props): React.JSX.Element {
         notes: props.initialData.notes ?? "",
       }
     : {
+        category: "time",
         label: "",
         amount: "",
         recurrence: "mensal",
@@ -73,6 +81,7 @@ export function CostForm(props: Props): React.JSX.Element {
   async function onSubmit(values: FormShape) {
     setGeneralError(null);
     const fd = new FormData();
+    fd.set("category", values.category);
     fd.set("label", values.label);
     fd.set("amount", values.amount);
     fd.set("recurrence", values.recurrence);
@@ -109,6 +118,33 @@ export function CostForm(props: Props): React.JSX.Element {
           {generalError}
         </div>
       )}
+
+      <Field
+        label="Categoria"
+        htmlFor="category"
+        required
+        error={errors.category?.message}
+      >
+        <select
+          id="category"
+          {...register("category")}
+          disabled={isSubmitting}
+          className={inputCn}
+        >
+          {(
+            isEdit && props.initialData.category === "a_classificar"
+              ? ([
+                  "a_classificar",
+                  ...OPERATION_COST_CATEGORIES_UI,
+                ] as const)
+              : OPERATION_COST_CATEGORIES_UI
+          ).map((c) => (
+            <option key={c} value={c}>
+              {operationCostCategoryLabel(c)}
+            </option>
+          ))}
+        </select>
+      </Field>
 
       <Field label="Descrição" htmlFor="label" required error={errors.label?.message}>
         <input

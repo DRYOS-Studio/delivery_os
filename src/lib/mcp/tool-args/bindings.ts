@@ -1,7 +1,10 @@
 import { clientSchema } from "@/lib/validators/client";
 import { decisionSchema } from "@/lib/validators/decision";
 import { allocationSchema } from "@/lib/validators/allocation";
-import { operationCostSchema } from "@/lib/validators/operationCost";
+import {
+  mcpUpdateOperationCostSchema,
+  operationCostCreateSchema,
+} from "@/lib/validators/operationCost";
 import { quickWinSchema } from "@/lib/validators/quick-win";
 import { personSchema } from "@/lib/validators/person";
 import { meetingSchema } from "@/lib/validators/meeting";
@@ -16,7 +19,6 @@ import {
   assignVillainSchema,
   editOperationVillainSchema,
 } from "@/lib/validators/operation-villain";
-import { mcpUpdateOperationMonthlyCostItemSchema } from "@/lib/mcp/tool-args/operation-monthly-cost-item-update";
 import { mcpUpdateTaskSchema } from "@/lib/mcp/tool-args/task-update";
 import { mcpDecisionUpdateSchema } from "@/lib/mcp/tool-args/decision-update";
 import {
@@ -135,25 +137,13 @@ export const MCP_TOOL_ZOD_ARGS: Record<string, z.ZodType> = {
   update_quick_win: quickWinSchema.and(z.object({ quick_win_id: uuid })),
   create_sla_incident: incidentSchema.and(z.object({ operation_id: uuid })),
   update_sla_incident: incidentSchema.and(z.object({ incident_id: uuid })),
-  create_operation_cost: operationCostSchema.and(z.object({ operation_id: uuid })),
-  update_operation_cost: operationCostSchema.and(z.object({ cost_id: uuid })),
+  create_operation_cost: operationCostCreateSchema.and(
+    z.object({ operation_id: uuid }),
+  ),
+  update_operation_cost: mcpUpdateOperationCostSchema,
   end_operation_cost: z.object({ cost_id: uuid, ended_at: isoDate }),
+  delete_operation_cost: z.object({ cost_id: uuid }),
   get_operation_monthly_costs: z.object({ operation_id: uuid }),
-  list_operation_monthly_cost_items: z.object({ operation_id: uuid }),
-  create_operation_monthly_cost_item: z
-    .object({
-      operation_id: uuid,
-      category: z.enum([
-        "comissoes",
-        "servicos_terceiros",
-        "time",
-        "infra",
-      ]),
-      amount: z.number().nonnegative(),
-      description: z.string().max(500).nullable().optional(),
-    }),
-  update_operation_monthly_cost_item: mcpUpdateOperationMonthlyCostItemSchema,
-  delete_operation_monthly_cost_item: z.object({ item_id: uuid }),
   create_service_product: serviceProductSchema,
   update_service_product: serviceProductSchema.extend({ product_id: uuid }),
   archive_service_product: z.object({ product_id: uuid }),

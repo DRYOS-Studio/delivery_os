@@ -1,9 +1,8 @@
 import { createServer } from "@/lib/db/client";
-import type { OperationMonthlyCostItemRow } from "@/lib/db/queries/operation-monthly-cost-items";
 import {
   categorySubtotals,
-  type OperationMonthlyCostCategory,
-} from "@/lib/utils/operation-monthly-cost-category";
+  type OperationCostCategory,
+} from "@/lib/utils/operation-cost-category";
 import { computeTaxMonthlyAmount } from "@/lib/utils/operation-tax";
 import { ACTIVE_STATUSES } from "@/lib/utils/operation-status";
 import type { Database } from "@/lib/db/types";
@@ -16,6 +15,7 @@ export type OperationCostRow = {
   operationId: string;
   label: string;
   amount: number;
+  category: OperationCostCategory;
   recurrence: CostRecurrence;
   startedAt: string;
   endedAt: string | null;
@@ -37,18 +37,15 @@ export type AllocationCost = {
 };
 
 export type OperationCostBreakdown = {
-  /** Soma dos itens categorizados (operation_monthly_cost_items). */
+  /** Soma dos custos mensais vigentes (operation_costs recurrence=mensal). */
   fixedCost: number;
-  lineItems: OperationMonthlyCostItemRow[];
-  categorySubtotals: Partial<Record<OperationMonthlyCostCategory, number>>;
+  categorySubtotals: Partial<Record<OperationCostCategory, number>>;
   adHocMonthly: number;
   adHocOnceTotal: number;
   adHocItems: OperationCostRow[];
   allocations: AllocationCost[];
   allocationsTotal: number;
-  /** Alíquota configurada na operação (%). */
   taxRatePct: number | null;
-  /** Imposto mensal derivado (MRR × alíquota). */
   taxMonthlyAmount: number;
   totalMonthly: number;
 };
@@ -58,6 +55,7 @@ type RawCostRow = {
   operation_id: string;
   label: string;
   amount: number | string;
+  category: OperationCostCategory;
   recurrence: CostRecurrence;
   started_at: string;
   ended_at: string | null;
@@ -72,6 +70,7 @@ function mapCost(r: RawCostRow): OperationCostRow {
     operationId: r.operation_id,
     label: r.label,
     amount: Number(r.amount),
+    category: r.category,
     recurrence: r.recurrence,
     startedAt: r.started_at,
     endedAt: r.ended_at,
@@ -142,10 +141,6 @@ function pickOne<T>(v: T | T[] | null): T | null {
   return Array.isArray(v) ? (v[0] ?? null) : v;
 }
 
-// Matemática do breakdown — função pura compartilhada pelo caminho single-op
-// e pelo agregado do dashboard: paridade de KPI por construção. Os guards de
-// frente/pessoa replicam os filtros server-side (defesa em profundidade contra
-// regressão de embed, padrão do tema 2).
 export type OperationCostBreakdownInput = {
   chargedRevenue?: number | null;
   taxRatePct?: number | null;
@@ -153,19 +148,16 @@ export type OperationCostBreakdownInput = {
 
 export function computeBreakdown(
   operationId: string,
-  lineItems: OperationMonthlyCostItemRow[],
   adHocItems: OperationCostRow[],
   allocRows: AllocJoin[],
   finance?: OperationCostBreakdownInput,
 ): OperationCostBreakdown {
-  const fixedCost = lineItems.reduce((s, i) => s + i.amount, 0);
-  const subtotals = categorySubtotals(lineItems);
-  const adHocMonthly = adHocItems
-    .filter((c) => c.recurrence === "mensal")
-    .reduce((s, c) => s + c.amount, 0);
+  const monthlyActive = adHocItems.filter((c) => c.recurrence === "mensal");
+  const adHocMonthly = monthlyActive.reduce((s, c) => s + c.amount, 0);
   const adHocOnceTotal = adHocItems
     .filter((c) => c.recurrence === "unica")
     .reduce((s, c) => s + c.amount, 0);
+  const subtotals = categorySubtotals(monthlyActive);
 
   const allocations: AllocationCost[] = [];
   for (const a of allocRows) {
@@ -247,8 +239,7 @@ export function computeBreakdown(
   );
 
   return {
-    fixedCost,
-    lineItems,
+    fixedCost: adHocMonthly,
     categorySubtotals: subtotals,
     adHocMonthly,
     adHocOnceTotal,
@@ -257,8 +248,7 @@ export function computeBreakdown(
     allocationsTotal,
     taxRatePct,
     taxMonthlyAmount,
-    totalMonthly:
-      fixedCost + adHocMonthly + allocationsTotal + taxMonthlyAmount,
+    totalMonthly: adHocMonthly + allocationsTotal + taxMonthlyAmount,
   };
 }
 
@@ -276,21 +266,12 @@ export async function getOperationMonthlyCosts(
   const supabase = supabaseClient ?? (await createServer());
   const today = todayISO();
 
-  // 3 queries paralelas, allocations filtradas pela operação NO SERVIDOR
-  // (antes: seriais + scan da tabela inteira filtrado em JS).
-  // Sem filtro de operação arquivada aqui: quem decide visibilidade é o caller
-  // (op page já 404a arquivada) — preserva o comportamento atual.
-  const [opRes, lineItemsRes, costsRes, allocRes] = await Promise.all([
+  const [opRes, costsRes, allocRes] = await Promise.all([
     supabase
       .from("operations")
       .select("monthly_recurring_revenue, tax_rate_pct")
       .eq("id", operationId)
       .maybeSingle(),
-    supabase
-      .from("operation_monthly_cost_items")
-      .select("*")
-      .eq("operation_id", operationId)
-      .order("created_at", { ascending: true }),
     supabase
       .from("operation_costs")
       .select("*")
@@ -312,10 +293,6 @@ export async function getOperationMonthlyCosts(
     throw new Error(
       `getOperationMonthlyCosts.operation: ${opRes.error.message}`,
     );
-  if (lineItemsRes.error)
-    throw new Error(
-      `getOperationMonthlyCosts.lineItems: ${lineItemsRes.error.message}`,
-    );
   if (costsRes.error)
     throw new Error(
       `getOperationMonthlyCosts.costs: ${costsRes.error.message}`,
@@ -325,17 +302,6 @@ export async function getOperationMonthlyCosts(
       `getOperationMonthlyCosts.allocations: ${allocRes.error.message}`,
     );
 
-  const lineItems: OperationMonthlyCostItemRow[] = (lineItemsRes.data ?? []).map(
-    (r) => ({
-      id: r.id,
-      operationId: r.operation_id,
-      category: r.category,
-      amount: Number(r.amount),
-      description: r.description,
-      createdAt: r.created_at,
-      updatedAt: r.updated_at,
-    }),
-  );
   const chargedRevenue =
     opRes.data?.monthly_recurring_revenue === null ||
     opRes.data?.monthly_recurring_revenue === undefined
@@ -350,21 +316,17 @@ export async function getOperationMonthlyCosts(
   );
   const allocRows = (allocRes.data ?? []) as unknown as AllocJoin[];
 
-  return computeBreakdown(operationId, lineItems, adHocItems, allocRows, {
+  return computeBreakdown(operationId, adHocItems, allocRows, {
     chargedRevenue,
     taxRatePct,
   });
 }
 
-// Soma de custo mensal de TODAS as operações ativas em 3 queries fixas
-// (independente de K) com payload constante — filtro de "operação ativa" via
-// join embedado, nunca `.in(K uuids)`. Substitui o N+1 do dashboard
-// (3 queries seriais × K operações; audit #9).
 export async function getActiveOperationsMonthlyCostsTotal(): Promise<number> {
   const supabase = await createServer();
   const today = todayISO();
 
-  const [opsRes, lineItemsRes, costsRes, allocRes] = await Promise.all([
+  const [opsRes, costsRes, allocRes] = await Promise.all([
     supabase
       .from("operations")
       .select(
@@ -374,21 +336,12 @@ export async function getActiveOperationsMonthlyCostsTotal(): Promise<number> {
       .is("client.archived_at", null)
       .in("status", ACTIVE_STATUSES),
     supabase
-      .from("operation_monthly_cost_items")
-      .select(
-        "*, operation:operations!fk_operation_monthly_cost_items_operation!inner(archived_at, status)",
-      )
-      .is("operation.archived_at", null)
-      .in("operation.status", ACTIVE_STATUSES),
-    supabase
       .from("operation_costs")
       .select(
         "*, operation:operations!fk_operation_costs_operation_id!inner(archived_at, status)",
       )
       .is("operation.archived_at", null)
       .in("operation.status", ACTIVE_STATUSES)
-      // O agregado só usa custos mensais (totalMonthly não inclui `unica`) —
-      // não trafegar o histórico de custos pontuais do org inteiro.
       .eq("recurrence", "mensal")
       .lte("started_at", today)
       .or(`ended_at.is.null,ended_at.gte.${today}`),
@@ -410,10 +363,6 @@ export async function getActiveOperationsMonthlyCostsTotal(): Promise<number> {
     throw new Error(
       `getActiveOperationsMonthlyCostsTotal.operations: ${opsRes.error.message}`,
     );
-  if (lineItemsRes.error)
-    throw new Error(
-      `getActiveOperationsMonthlyCostsTotal.lineItems: ${lineItemsRes.error.message}`,
-    );
   if (costsRes.error)
     throw new Error(
       `getActiveOperationsMonthlyCostsTotal.costs: ${costsRes.error.message}`,
@@ -422,22 +371,6 @@ export async function getActiveOperationsMonthlyCostsTotal(): Promise<number> {
     throw new Error(
       `getActiveOperationsMonthlyCostsTotal.allocations: ${allocRes.error.message}`,
     );
-
-  const lineItemsByOp = new Map<string, OperationMonthlyCostItemRow[]>();
-  for (const r of lineItemsRes.data ?? []) {
-    const row: OperationMonthlyCostItemRow = {
-      id: r.id,
-      operationId: r.operation_id,
-      category: r.category,
-      amount: Number(r.amount),
-      description: r.description,
-      createdAt: r.created_at,
-      updatedAt: r.updated_at,
-    };
-    const list = lineItemsByOp.get(row.operationId) ?? [];
-    list.push(row);
-    lineItemsByOp.set(row.operationId, list);
-  }
 
   const costsByOp = new Map<string, OperationCostRow[]>();
   for (const r of costsRes.data ?? []) {
@@ -456,8 +389,6 @@ export async function getActiveOperationsMonthlyCostsTotal(): Promise<number> {
     allocsByOp.set(frente.operation_id, list);
   }
 
-  // Itera sobre o resultado de `operations` (não sobre as rows agrupadas):
-  // op ativa sem costs/allocations ainda entra com line items / imposto.
   let total = 0;
   for (const op of opsRes.data ?? []) {
     const chargedRevenue =
@@ -471,7 +402,6 @@ export async function getActiveOperationsMonthlyCostsTotal(): Promise<number> {
         : Number(op.tax_rate_pct);
     const breakdown = computeBreakdown(
       op.id,
-      lineItemsByOp.get(op.id) ?? [],
       costsByOp.get(op.id) ?? [],
       allocsByOp.get(op.id) ?? [],
       { chargedRevenue, taxRatePct },

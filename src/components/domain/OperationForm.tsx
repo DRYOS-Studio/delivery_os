@@ -11,14 +11,7 @@ import {
   createOperationAction,
   updateOperationAction,
 } from "@/lib/actions/operations";
-import { syncOperationMonthlyCostItemsAction } from "@/lib/actions/operation-monthly-cost-items";
-import {
-  initialMonthlyCostFormRows,
-  OperationMonthlyCostItemsField,
-} from "@/components/domain/OperationMonthlyCostItemsField";
-import type { OperationMonthlyCostItemRow } from "@/lib/db/queries/operation-monthly-cost-items";
 import type { OperationDetail } from "@/lib/db/queries/operations";
-import type { OperationMonthlyCostItemFormRow } from "@/lib/validators/operation-monthly-cost-item";
 import { formatMoneyBR, parseMoneyBR } from "@/lib/utils/money";
 import {
   operationSchema,
@@ -47,7 +40,6 @@ type Props =
       /** Motivo exibido quando `canArchive` é falso. `null` quando liberado. */
       archiveBlockedReason: string | null;
       diagnosticsByClient: DiagnosticOption[];
-      initialMonthlyCostItems?: OperationMonthlyCostItemRow[];
       isAdmin?: boolean;
     };
 
@@ -78,13 +70,6 @@ export function OperationForm(props: Props): React.JSX.Element {
       ? formatMrrInput(props.initialData.monthlyRecurringRevenue)
       : "",
   );
-  const [costItems, setCostItems] = useState<OperationMonthlyCostItemFormRow[]>(
-    () =>
-      isEdit && props.initialMonthlyCostItems
-        ? initialMonthlyCostFormRows(props.initialMonthlyCostItems)
-        : [],
-  );
-  const [costItemsError, setCostItemsError] = useState<string | null>(null);
   const [taxRateInput, setTaxRateInput] = useState(
     isEdit ? formatTaxRateInput(props.initialData.taxRatePct ?? null) : "",
   );
@@ -194,19 +179,9 @@ export function OperationForm(props: Props): React.JSX.Element {
     fd.set("start_date", data.start_date ?? "");
     fd.set("end_date", data.end_date ?? "");
     fd.set("notification_webhook_url", data.notification_webhook_url ?? "");
-    setCostItemsError(null);
     const result = isEdit
       ? await updateOperationAction(props.initialData.id, fd)
       : await createOperationAction(fd);
-
-    if (result.ok && isAdmin) {
-      const opId = isEdit ? props.initialData.id : result.data.id;
-      const sync = await syncOperationMonthlyCostItemsAction(opId, costItems);
-      if (!sync.ok) {
-        setCostItemsError(sync.error);
-        return;
-      }
-    }
 
     if (result.ok) {
       const id = isEdit ? props.initialData.id : result.data.id;
@@ -397,13 +372,6 @@ export function OperationForm(props: Props): React.JSX.Element {
               />
             </Field>
           </div>
-
-          <OperationMonthlyCostItemsField
-            items={costItems}
-            onChange={setCostItems}
-            disabled={busy}
-            error={costItemsError ?? undefined}
-          />
 
           <Field
             label="Impostos (%)"

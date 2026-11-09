@@ -6,9 +6,9 @@ import {
 } from "@/lib/utils/operation-status";
 import { formatMoneyBR } from "@/lib/utils/money";
 import {
-  operationMonthlyCostCategoryLabel,
-  type OperationMonthlyCostCategory,
-} from "@/lib/utils/operation-monthly-cost-category";
+  operationCostCategoryLabel,
+  type OperationCostCategory,
+} from "@/lib/utils/operation-cost-category";
 import type { Database } from "@/lib/db/types";
 
 type TaskStatus = Database["public"]["Enums"]["task_status"];
@@ -251,8 +251,8 @@ function subjectTypeLabel(t: ActivitySubjectType): string {
       return "decisão";
     case "operation_risk_blocker":
       return "risco/bloqueio";
-    case "operation_monthly_cost_item":
-      return "custo mensal";
+    case "operation_cost":
+      return "custo";
     default: {
       const _exhaustive: never = t;
       return _exhaustive;
@@ -287,17 +287,15 @@ function monthlyCostPayloadMeta(
         ? Number(amountRaw)
         : NaN;
   if (!Number.isFinite(amount)) return null;
-  const label = operationMonthlyCostCategoryLabel(
-    cat as OperationMonthlyCostCategory,
-  );
+  const label = operationCostCategoryLabel(cat as OperationCostCategory);
   return { category: label, amount };
 }
 
-function formatMonthlyCostItemSentence(
+function formatOperationCostSentence(
   event: ActivityEventRow,
   actor: string,
 ): string | null {
-  if (event.subjectType !== "operation_monthly_cost_item") return null;
+  if (event.subjectType !== "operation_cost") return null;
   const meta = monthlyCostPayloadMeta(event);
   if (!meta) return null;
 
@@ -337,7 +335,7 @@ function formatCreatedSentence(
   actor: string,
   ctx: ActivityFormatContext,
 ): string {
-  const costLine = formatMonthlyCostItemSentence(event, actor);
+  const costLine = formatOperationCostSentence(event, actor);
   if (costLine && event.action === "created") return costLine;
 
   const payload = extractCreatedPayload(event.newValue);
@@ -450,7 +448,7 @@ export function formatActivitySentence(
 ): string {
   const actor = formatActivityActorLabel(event, ctx);
 
-  const costLine = formatMonthlyCostItemSentence(event, actor);
+  const costLine = formatOperationCostSentence(event, actor);
   if (costLine) return costLine;
 
   if (event.action === "created") {

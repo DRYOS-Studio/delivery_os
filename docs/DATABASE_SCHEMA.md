@@ -28,7 +28,7 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 | **Profiles** | `profiles` | 1 |
 | **Integração (MCP)** | `profile_agent_tokens`, `mcp_idempotent_responses` | 2 |
 | **Auth · Scope** | `operation_members`, `profile_areas`, `areas`, `area_clients`, `area_operations` | 5 |
-| **Operação · Custos** | `operation_costs`, `operation_monthly_cost_items` | 2 |
+| **Operação · Custos** | `operation_costs` | 1 |
 | **Catálogo · Produtos** | `service_products` | 1 |
 | **Catálogo · Quick Wins** | `quick_win_catalog` | 1 |
 | **Notificações** | `notifications_log` | 1 |
@@ -227,7 +227,7 @@ CHECK `chk_persons_kind_consistency`: garante exclusividade.
 | `name` | text NOT NULL | |
 | `status` | enum `operation_status` default `em_construcao` | ativos: em_construcao / em_operacao / janela_critica · terminais: concluida / cancelada (e arquivada, legado — nunca escrito). Terminal e `archived_at` são eixos distintos: terminal sai dos agregados, `archived_at` tira da vista |
 | `monthly_recurring_revenue` | numeric(14,2) | nullable (Studio one-off) |
-| `monthly_fixed_cost` | numeric(12,2) | **LEGADO** — migrado para `operation_monthly_cost_items`; não usar em código novo |
+| `monthly_fixed_cost` | numeric(12,2) | **LEGADO** — migrado para `operation_costs`; não usar em código novo |
 | `tax_rate_pct` | numeric(5,2) | nullable; alíquota de imposto (0–100) sobre `monthly_recurring_revenue`; valor derivado entra no custo mensal/margem. Admin-only via UI/MCP |
 | `recurrence` | enum `recurrence` | mensal / trimestral / anual / unica; nullable |
 | `start_date`, `end_date` | date | nullable; Tipo C/E não tem fim (validado via Frente) |
@@ -373,13 +373,14 @@ RLS: `pa_admin_all` (admin gere tudo) + `pa_member_select_self` (member lê só 
 
 ### `operation_costs` — custos ad-hoc por Operação
 
-Itens de custo ad-hoc (recorrente ou única). Custos mensais categorizados vivem em `operation_monthly_cost_items`. Custos derivados de pessoas vêm de `allocations × persons.hourly_rate` (não materializados).
+Itens de custo com categoria (`operation_cost_category`), recorrência mensal ou única e vigência por datas. A soma dos mensais vigentes entra na margem. Custos derivados de pessoas vêm de `allocations × persons.hourly_rate` (não materializados).
 
 | Coluna | Tipo | Notas |
 |---|---|---|
 | `id` | uuid PK | gen_random_uuid() |
 | `operation_id` | uuid NOT NULL → operations (CASCADE) | |
-| `label` | text NOT NULL | CHECK length >= 2 |
+| `label` | text NOT NULL | CHECK length >= 2 (descrição do custo) |
+| `category` | enum `operation_cost_category` NOT NULL | comissoes, servicos_terceiros, time, infra, a_classificar |
 | `amount` | numeric(12,2) NOT NULL | CHECK >= 0 |
 | `recurrence` | enum `cost_recurrence` | `mensal` (entra na margem) ou `unica` (informativo) |
 | `started_at` | date NOT NULL default current_date | |
@@ -388,24 +389,7 @@ Itens de custo ad-hoc (recorrente ou única). Custos mensais categorizados vivem
 | `created_at`, `updated_at` | timestamptz | |
 
 Index: `(operation_id, recurrence)`.
-RLS: `operation_costs_authenticated_full` (CRUD gated por `requireAdminAction` — Inv. 14).
-
----
-
-### `operation_monthly_cost_items` — custos mensais categorizados
-
-| Coluna | Tipo | Notas |
-|---|---|---|
-| `id` | uuid PK | |
-| `operation_id` | uuid NOT NULL → operations | |
-| `category` | enum `operation_monthly_cost_category` | comissoes, servicos_terceiros, time, infra, a_classificar |
-| `amount` | numeric(12,2) | BRL/mês, ≥ 0 |
-| `description` | text | opcional, max 500 |
-| `created_at`, `updated_at` | timestamptz | |
-
-Soma dos itens entra na margem (com alocações, ad-hoc e imposto). Enum `a_classificar` reservado para migração do legado `monthly_fixed_cost`.
-
-RLS: `operation_monthly_cost_items_scoped_*` (`can_see_operation`). Auditoria: `activity_events` subject `operation_monthly_cost_item`.
+RLS: `operation_costs_scoped_*` (`can_see_operation`). Auditoria: `activity_events` subject `operation_cost`.
 
 ---
 
