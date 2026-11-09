@@ -38,6 +38,7 @@ import {
   clientSoftwareItemSchema,
   clientSoftwareItemUpdateSchema,
 } from "@/lib/validators/client-software-item";
+import { createInvitationSchema } from "@/lib/validators/client-registration";
 
 const uuid = z.string().uuid();
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -161,6 +162,16 @@ export const MCP_TOOL_ZOD_ARGS: Record<string, z.ZodType> = {
   ),
   update_client_software_item: clientSoftwareItemUpdateSchema,
   delete_client_software_item: z.object({ client_id: uuid, item_id: uuid }),
+  create_client_registration_invitation: createInvitationSchema,
+  list_client_registration_invitations: z.object({
+    status: z
+      .enum(["enviado", "preenchido", "aprovado", "expirado", "cancelado"])
+      .optional(),
+    limit: z.number().int().positive().max(100).optional(),
+    offset: z.number().int().nonnegative().optional(),
+  }),
+  get_client_registration_submission: z.object({ invitation_id: uuid }),
+  approve_client_registration_invitation: z.object({ invitation_id: uuid }),
 };
 
 export function applyZodInputSchemas(definitions: McpToolDefinition[]): McpToolDefinition[] {

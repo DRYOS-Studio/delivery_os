@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Link2, Plus } from "lucide-react";
 import Link from "next/link";
 import { ClientsSearch } from "@/components/domain/ClientsSearch";
 import { ClientsTable } from "@/components/domain/ClientsTable";
@@ -38,12 +38,20 @@ export default async function Page({
         subtitle={subtitle}
         actions={
           isAdmin ? (
-            <Link href="/clients/new">
-              <Button variant="sage">
-                <Plus className="w-4 h-4" strokeWidth={1.75} />
-                Novo cliente
-              </Button>
-            </Link>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link href="/clients/registration-invites?new=1">
+                <Button variant="ghost">
+                  <Link2 className="w-4 h-4" strokeWidth={1.75} />
+                  Novo cadastro por link
+                </Button>
+              </Link>
+              <Link href="/clients/new">
+                <Button variant="sage">
+                  <Plus className="w-4 h-4" strokeWidth={1.75} />
+                  Novo cliente
+                </Button>
+              </Link>
+            </div>
           ) : null
         }
       />
