@@ -76,6 +76,14 @@ export function SLASection({
         </div>
         {canWrite && (
           <Link
+            href={`/operations/${operationId}/settings/ntfy`}
+            className="inline-flex items-center gap-1.5 rounded font-medium px-2.5 py-1.5 text-xs border border-line text-ink-soft hover:text-ink transition-colors"
+          >
+            Tópicos ntfy
+          </Link>
+        )}
+        {canWrite && (
+          <Link
             href={`/operations/${operationId}/incidents/new`}
             className="inline-flex items-center gap-1.5 rounded font-medium px-2.5 py-1.5 text-xs bg-sage-bg text-sage-deep hover:bg-sage hover:text-bg transition-colors"
           >
@@ -100,7 +108,8 @@ export function SLASection({
           </p>
         ) : (
           <p className="text-sm text-mute italic">
-            Sem SLA definido pra esta Operação.{" "}
+            SLA sem prazo cadastrado nesta Operação. Incidentes abrem mesmo assim;
+            breach não é calculado até definir prazos.{" "}
             <Link
               href={`/operations/${operationId}/edit`}
               className="text-oak hover:underline not-italic"
@@ -148,6 +157,7 @@ function IncidentRow({
       opened_at: incident.openedAt,
       responded_at: incident.respondedAt,
       resolved_at: incident.resolvedAt,
+      problem_origin: incident.problemOrigin,
     },
     op,
   );
@@ -184,6 +194,18 @@ function IncidentRow({
               </Pill>
               {breachPill && (
                 <Pill variant={breachPill.variant}>{breachPill.text}</Pill>
+              )}
+              {incident.source === "ntfy" && (
+                <Pill variant="neutral">ntfy</Pill>
+              )}
+              {incident.occurrenceCount > 1 && (
+                <Pill variant="oak">{incident.occurrenceCount} ocorrências</Pill>
+              )}
+              {incident.problemOrigin === "vendor" && (
+                <Pill variant="neutral">Fornecedor (fora SLA Dryos)</Pill>
+              )}
+              {incident.problemOrigin === "unclassified" && (
+                <Pill variant="warning">Origem a classificar</Pill>
               )}
             </div>
             <p className="font-mono text-[11px] text-mute">

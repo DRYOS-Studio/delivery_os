@@ -254,6 +254,8 @@ function subjectTypeLabel(t: ActivitySubjectType): string {
       return "risco/bloqueio";
     case "operation_cost":
       return "custo";
+    case "sla_incident":
+      return "incidente SLA";
     default: {
       const _exhaustive: never = t;
       return _exhaustive;

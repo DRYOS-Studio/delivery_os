@@ -294,6 +294,7 @@ export async function mcpCreateSlaIncident(
       responded_at: i.responded_at ?? null,
       resolved_at: i.resolved_at ?? null,
       opened_by: ctx.callerUserId,
+      source: "mcp",
     })
     .select("id")
     .single();

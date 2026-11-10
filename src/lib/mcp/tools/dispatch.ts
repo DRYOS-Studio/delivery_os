@@ -40,6 +40,12 @@ import {
   mcpUpdateRepositoryLink,
 } from "@/lib/mcp/tools/repository-links-tools";
 import {
+  mcpCreateOperationNtfyTopic,
+  mcpDeleteOperationNtfyTopic,
+  mcpListNtfyUnmappedAlerts,
+  mcpListOperationNtfyTopics,
+} from "@/lib/mcp/tools/operation-ntfy-topics-tools";
+import {
   mcpBeginClientContractUpload,
   mcpCreateClientContract,
   mcpFinalizeClientContractUpload,
@@ -529,6 +535,18 @@ export async function dispatchMcpTool(input: DispatchInput): Promise<unknown> {
     }
     case "update_sla_incident": {
       return flattenResult(await mcpUpdateSlaIncident(ctx, args));
+    }
+    case "list_operation_ntfy_topics": {
+      return flattenResult(await mcpListOperationNtfyTopics(ctx, args));
+    }
+    case "create_operation_ntfy_topic": {
+      return flattenResult(await mcpCreateOperationNtfyTopic(ctx, args));
+    }
+    case "delete_operation_ntfy_topic": {
+      return flattenResult(await mcpDeleteOperationNtfyTopic(ctx, args));
+    }
+    case "list_ntfy_unmapped_alerts": {
+      return flattenResult(await mcpListNtfyUnmappedAlerts(ctx, args));
     }
     case "list_operation_costs": {
       return flattenResult(await mcpListOperationCosts(ctx, args));

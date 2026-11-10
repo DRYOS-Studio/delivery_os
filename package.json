@@ -13,6 +13,7 @@
     "test:catalog-isolated": "bash scripts/catalog-conteudo-v2-isolated-test.sh",
     "test:mcp-expanded-rls": "bash scripts/mcp-expanded-rls-isolated.sh",
     "test:repository-tooling-isolated": "bash scripts/repository-tooling-isolated-test.sh",
+    "test:ntfy-ingest-isolated": "bash scripts/ntfy-ingest-isolated-test.sh",
     "gen:types": "supabase gen types typescript --project-id tmsaucxoeqpfluzwrwkc > src/lib/db/types.ts"
   },
   "dependencies": {

@@ -1,0 +1,10 @@
+{
+  "name": "@dryos/ntfy-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Worker VPS: stream JSON ntfy → DeliveryOS ingest",
+  "scripts": {
+    "start": "node index.mjs"
+  }
+}

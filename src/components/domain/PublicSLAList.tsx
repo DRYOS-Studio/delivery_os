@@ -110,6 +110,7 @@ function Row({
       opened_at: incident.openedAt,
       responded_at: incident.respondedAt,
       resolved_at: incident.resolvedAt,
+      problem_origin: incident.problemOrigin,
     },
     op,
   );

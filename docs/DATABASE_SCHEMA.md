@@ -603,7 +603,28 @@ SLA prometido vive em `operations.response_hours/resolution_hours`. Breach calcu
 | `responded_at` | timestamptz | exigido se status >= responded |
 | `resolved_at` | timestamptz | exigido se status = resolved |
 | `opened_by` | uuid → auth.users (SET NULL) | |
+| `source` | enum `sla_incident_source` default `manual` | manual / mcp / ntfy |
+| `problem_origin` | enum `sla_problem_origin` default `unclassified` | dryos / client / vendor / unclassified — **vendor** não conta breach SLA Dryos |
+| `ntfy_topic` | text | tópico de origem (ingestão ntfy) |
+| `dedupe_key` | text | chave de agrupamento (padrão: tópico) |
+| `occurrence_count` | int default 1 | ocorrências agrupadas no mesmo incidente aberto |
+| `last_occurrence_at` | timestamptz | última mensagem ntfy no grupo |
+| `closed_via` | text | fechamento automático (ex. `ntfy:tag:resolved`) |
+| `ntfy_last_message_id` | text | idempotência / rastreio ntfy |
 | `created_at`, `updated_at` | timestamptz | |
+
+### `operation_ntfy_topics` — mapeamento tópico → operação
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `topic` | text UNIQUE | um tópico global por operação |
+| `recovery_tags` | text[] | tags ntfy que fecham incidente aberto |
+| `priority_severity_map` | jsonb | priority 1–5 → `sla_severity` |
+| `default_problem_origin` | `sla_problem_origin` | default na abertura |
+
+### `ntfy_unmapped_alerts` / `ntfy_message_receipts`
+
+Fila de triagem (admin) e log idempotente (`ntfy_message_id` PK) da ingestão `POST /api/integrations/ntfy`.
 
 CHECKs:
 - `responded_at >= opened_at`

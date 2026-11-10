@@ -11,6 +11,7 @@ export type IncidentForBreach = {
   opened_at: string;
   responded_at: string | null;
   resolved_at: string | null;
+  problem_origin?: "dryos" | "client" | "vendor" | "unclassified";
 };
 
 export type OpSLAConfig = {
@@ -32,6 +33,7 @@ export function slaBreachLevel(
   op: OpSLAConfig,
 ): BreachLevel {
   if (incident.status === "cancelled") return "ok";
+  if (incident.problem_origin === "vendor") return "ok";
 
   const now = new Date().toISOString();
 
