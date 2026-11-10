@@ -5,6 +5,10 @@ import {
   type OperationStatus,
 } from "@/lib/utils/operation-status";
 import { formatMoneyBR } from "@/lib/utils/money";
+import {
+  operationCostCategoryLabel,
+  type OperationCostCategory,
+} from "@/lib/utils/operation-cost-category";
 import type { Database } from "@/lib/db/types";
 
 type TaskStatus = Database["public"]["Enums"]["task_status"];
@@ -248,6 +252,8 @@ function subjectTypeLabel(t: ActivitySubjectType): string {
       return "decisão";
     case "operation_risk_blocker":
       return "risco/bloqueio";
+    case "operation_cost":
+      return "custo";
     default: {
       const _exhaustive: never = t;
       return _exhaustive;
@@ -265,11 +271,74 @@ function extractCreatedPayload(
   return null;
 }
 
+function monthlyCostPayloadMeta(
+  event: ActivityEventRow,
+): { category: string; amount: number } | null {
+  const fromNew = extractCreatedPayload(event.newValue);
+  const fromOld = extractCreatedPayload(event.oldValue);
+  const payload = fromNew ?? fromOld;
+  if (!payload) return null;
+  const cat = payload["category"];
+  const amountRaw = payload["amount"];
+  if (typeof cat !== "string") return null;
+  const amount =
+    typeof amountRaw === "number"
+      ? amountRaw
+      : typeof amountRaw === "string"
+        ? Number(amountRaw)
+        : NaN;
+  if (!Number.isFinite(amount)) return null;
+  const label = operationCostCategoryLabel(cat as OperationCostCategory);
+  return { category: label, amount };
+}
+
+function formatOperationCostSentence(
+  event: ActivityEventRow,
+  actor: string,
+): string | null {
+  if (event.subjectType !== "operation_cost") return null;
+  const meta = monthlyCostPayloadMeta(event);
+  if (!meta) return null;
+
+  if (event.action === "created") {
+    return `${actor} adicionou custo ${meta.category} ${formatMoneyBR(meta.amount)}`;
+  }
+  if (event.action === "deleted") {
+    return `${actor} removeu custo ${meta.category} ${formatMoneyBR(meta.amount)}`;
+  }
+  if (event.action === "updated" && event.fieldKey === "amount") {
+    const before = resolveEntityName("amount", event.oldValue, {
+      persons: {},
+      frentes: {},
+      operations: {},
+      clients: {},
+      areas: {},
+      profileNames: {},
+    });
+    const after = resolveEntityName("amount", event.newValue, {
+      persons: {},
+      frentes: {},
+      operations: {},
+      clients: {},
+      areas: {},
+      profileNames: {},
+    });
+    return `${actor} alterou custo ${meta.category}: ${before} → ${after}`;
+  }
+  if (event.action === "updated" && event.fieldKey === "category") {
+    return `${actor} reclassificou um item de custo mensal`;
+  }
+  return `${actor} atualizou um item de custo ${meta.category}`;
+}
+
 function formatCreatedSentence(
   event: ActivityEventRow,
   actor: string,
   ctx: ActivityFormatContext,
 ): string {
+  const costLine = formatOperationCostSentence(event, actor);
+  if (costLine && event.action === "created") return costLine;
+
   const payload = extractCreatedPayload(event.newValue);
   const subject = subjectTypeLabel(event.subjectType);
 
@@ -379,6 +448,9 @@ export function formatActivitySentence(
   ctx: ActivityFormatContext,
 ): string {
   const actor = formatActivityActorLabel(event, ctx);
+
+  const costLine = formatOperationCostSentence(event, actor);
+  if (costLine) return costLine;
 
   if (event.action === "created") {
     return formatCreatedSentence(event, actor, ctx);

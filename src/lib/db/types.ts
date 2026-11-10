@@ -1391,6 +1391,7 @@ export type Database = {
       operation_costs: {
         Row: {
           amount: number
+          category: Database["public"]["Enums"]["operation_cost_category"]
           created_at: string
           ended_at: string | null
           id: string
@@ -1403,6 +1404,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          category?: Database["public"]["Enums"]["operation_cost_category"]
           created_at?: string
           ended_at?: string | null
           id?: string
@@ -1415,6 +1417,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          category?: Database["public"]["Enums"]["operation_cost_category"]
           created_at?: string
           ended_at?: string | null
           id?: string
@@ -2532,6 +2535,13 @@ export type Database = {
         | "meeting"
         | "decision"
         | "operation_risk_blocker"
+        | "operation_cost"
+      operation_cost_category:
+        | "comissoes"
+        | "servicos_terceiros"
+        | "time"
+        | "infra"
+        | "a_classificar"
       operation_risk_kind: "risk" | "blocker"
       operation_risk_origin: "dryos" | "client" | "vendor"
       operation_risk_severity: "low" | "medium" | "high"
@@ -2720,6 +2730,14 @@ export const Constants = {
         "meeting",
         "decision",
         "operation_risk_blocker",
+        "operation_cost",
+      ],
+      operation_cost_category: [
+        "comissoes",
+        "servicos_terceiros",
+        "time",
+        "infra",
+        "a_classificar",
       ],
       operation_risk_kind: ["risk", "blocker"],
       operation_risk_origin: ["dryos", "client", "vendor"],

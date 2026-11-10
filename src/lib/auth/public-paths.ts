@@ -8,6 +8,7 @@ export const PUBLIC_PATH_PREFIXES = [
   "/api/mcp",
   "/public",
   "/cadastro",
+  "/dev-screenshots",
 ] as const;
 
 export function isPublicPath(pathname: string): boolean {

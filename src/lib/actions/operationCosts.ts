@@ -5,10 +5,15 @@ import { type ActionResult, dbErr, err, ok } from "@/lib/actions/_types";
 import { requireAdminAction } from "@/lib/auth/server";
 import { createServer } from "@/lib/db/client";
 import { getOperationCost } from "@/lib/db/queries/operation-costs";
-import { operationCostSchema } from "@/lib/validators/operationCost";
+import {
+  operationCostCreateSchema,
+  operationCostSchema,
+  type OperationCostOutput,
+} from "@/lib/validators/operationCost";
 
 function parseFormData(formData: FormData) {
   return {
+    category: ((formData.get("category") as string | null) ?? "time").trim(),
     label: ((formData.get("label") as string | null) ?? "").trim(),
     amount: ((formData.get("amount") as string | null) ?? "").trim(),
     recurrence: ((formData.get("recurrence") as string | null) ?? "mensal").trim(),
@@ -18,8 +23,15 @@ function parseFormData(formData: FormData) {
   };
 }
 
-function validate(formData: FormData) {
-  const parsed = operationCostSchema.safeParse(parseFormData(formData));
+function validate(
+  formData: FormData,
+  mode: "create" | "edit",
+): ActionResult<OperationCostOutput> {
+  const raw = parseFormData(formData);
+  const parsed = (mode === "create"
+    ? operationCostCreateSchema
+    : operationCostSchema
+  ).safeParse(raw);
   if (!parsed.success) {
     const first = parsed.error.issues[0];
     const message = first?.message ?? "Dados inválidos.";
@@ -41,7 +53,7 @@ export async function createOperationCostAction(
   const guard = await requireAdminAction();
   if (!guard.ok) return guard;
 
-  const v = validate(formData);
+  const v = validate(formData, "create");
   if (!v.ok) return v;
   const data = v.data;
 
@@ -50,6 +62,7 @@ export async function createOperationCostAction(
     .from("operation_costs")
     .insert({
       operation_id: operationId,
+      category: data.category,
       label: data.label,
       amount: data.amount,
       recurrence: data.recurrence,
@@ -76,7 +89,7 @@ export async function updateOperationCostAction(
   const current = await getOperationCost(id);
   if (!current) return err("Custo não encontrado.", "not_found");
 
-  const v = validate(formData);
+  const v = validate(formData, "edit");
   if (!v.ok) return v;
   const data = v.data;
 
@@ -84,6 +97,7 @@ export async function updateOperationCostAction(
   const { error } = await supabase
     .from("operation_costs")
     .update({
+      category: data.category,
       label: data.label,
       amount: data.amount,
       recurrence: data.recurrence,

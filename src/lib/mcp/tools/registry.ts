@@ -838,7 +838,7 @@ const BASE_MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
     name: "get_operation_monthly_costs",
     access: "read",
     description:
-      "Breakdown mensal de custos (fixo, ad-hoc, alocações, impostos) e margem sobre MRR.",
+      "Breakdown mensal de custos (itens categorizados, ad-hoc, alocações, impostos) e margem sobre MRR.",
     inputSchema: {
       type: "object",
       properties: { operation_id: { type: "string" } },
@@ -849,22 +849,64 @@ const BASE_MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
     name: "create_operation_cost",
     access: "admin",
     idempotent: true,
-    description: "Adiciona custo à operação.",
+    description:
+      "Adiciona custo à operação (categoria, recorrência, datas).",
     inputSchema: {
       type: "object",
-      properties: { operation_id: { type: "string" }, ...idem },
-      required: ["operation_id", "label", "amount", "recurrence", "started_at"],
+      properties: {
+        operation_id: { type: "string" },
+        category: {
+          type: "string",
+          enum: ["comissoes", "servicos_terceiros", "time", "infra"],
+        },
+        ...idem,
+      },
+      required: [
+        "operation_id",
+        "category",
+        "label",
+        "amount",
+        "recurrence",
+        "started_at",
+      ],
     },
   },
   {
     name: "update_operation_cost",
     access: "admin",
     idempotent: true,
-    description: "Atualiza custo.",
+    description:
+      "Atualiza custo parcialmente. notes e ended_at: null limpam (clearable).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        cost_id: { type: "string" },
+        category: {
+          type: "string",
+          enum: [
+            "comissoes",
+            "servicos_terceiros",
+            "time",
+            "infra",
+            "a_classificar",
+          ],
+        },
+        notes: { type: ["string", "null"] },
+        ended_at: { type: ["string", "null"] },
+        ...idem,
+      },
+      required: ["cost_id"],
+    },
+  },
+  {
+    name: "delete_operation_cost",
+    access: "admin",
+    idempotent: true,
+    description: "Remove um custo da operação.",
     inputSchema: {
       type: "object",
       properties: { cost_id: { type: "string" }, ...idem },
-      required: ["cost_id", "label", "amount", "recurrence", "started_at"],
+      required: ["cost_id"],
     },
   },
   {

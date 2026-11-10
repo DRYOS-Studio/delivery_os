@@ -73,6 +73,7 @@ import {
   mcpAddMeetingNextStep,
   mcpCreateAllocation,
   mcpCreateOperationCost,
+  mcpDeleteOperationCost,
   mcpCreateQuickWin,
   mcpCreateSlaIncident,
   mcpEndAllocation,
@@ -543,6 +544,9 @@ export async function dispatchMcpTool(input: DispatchInput): Promise<unknown> {
     }
     case "end_operation_cost": {
       return flattenResult(await mcpEndOperationCost(ctx, args));
+    }
+    case "delete_operation_cost": {
+      return flattenResult(await mcpDeleteOperationCost(ctx, args));
     }
     case "list_meeting_agenda_items": {
       return flattenResult(await mcpListMeetingAgendaItems(ctx, args));

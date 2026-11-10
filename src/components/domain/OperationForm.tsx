@@ -72,11 +72,6 @@ export function OperationForm(props: Props): React.JSX.Element {
       ? formatMrrInput(props.initialData.monthlyRecurringRevenue)
       : "",
   );
-  const [fixedCostInput, setFixedCostInput] = useState(
-    isEdit
-      ? formatMrrInput(props.initialData.monthlyFixedCost ?? null)
-      : "",
-  );
   const [taxRateInput, setTaxRateInput] = useState(
     isEdit ? formatTaxRateInput(props.initialData.taxRatePct ?? null) : "",
   );
@@ -96,8 +91,6 @@ export function OperationForm(props: Props): React.JSX.Element {
         recurrence: props.initialData.recurrence ?? undefined,
         monthly_recurring_revenue:
           props.initialData.monthlyRecurringRevenue ?? null,
-        monthly_fixed_cost:
-          props.initialData.monthlyFixedCost ?? null,
         tax_rate_pct: props.initialData.taxRatePct ?? null,
         response_hours: props.initialData.responseHours ?? undefined,
         resolution_hours: props.initialData.resolutionHours ?? undefined,
@@ -117,7 +110,6 @@ export function OperationForm(props: Props): React.JSX.Element {
         status: "em_construcao",
         recurrence: undefined,
         monthly_recurring_revenue: null,
-        monthly_fixed_cost: null,
         tax_rate_pct: null,
         response_hours: undefined,
         resolution_hours: undefined,
@@ -168,12 +160,6 @@ export function OperationForm(props: Props): React.JSX.Element {
       data.monthly_recurring_revenue !== null &&
         data.monthly_recurring_revenue !== undefined
         ? String(data.monthly_recurring_revenue)
-        : "",
-    );
-    fd.set(
-      "monthly_fixed_cost",
-      data.monthly_fixed_cost !== null && data.monthly_fixed_cost !== undefined
-        ? String(data.monthly_fixed_cost)
         : "",
     );
     fd.set(
@@ -401,31 +387,6 @@ export function OperationForm(props: Props): React.JSX.Element {
           </div>
 
           <Field
-            label="Custo fixo mensal"
-            htmlFor="monthly_fixed_cost"
-            error={errors.monthly_fixed_cost?.message}
-            hint="Hospedagem, infra etc. Custos de pessoas vêm das alocações."
-          >
-            <input
-              id="monthly_fixed_cost"
-              type="text"
-              inputMode="decimal"
-              value={fixedCostInput}
-              onChange={(e) => {
-                const raw = e.target.value;
-                setFixedCostInput(raw);
-                const parsed = parseMoneyBR(raw);
-                setValue("monthly_fixed_cost", parsed, {
-                  shouldValidate: true,
-                });
-              }}
-              placeholder="R$ 0,00"
-              disabled={busy}
-              className={inputCn}
-            />
-          </Field>
-
-          <Field
             label="Impostos (%)"
             htmlFor="tax_rate_pct"
             error={errors.tax_rate_pct?.message}
@@ -455,7 +416,6 @@ export function OperationForm(props: Props): React.JSX.Element {
             type="hidden"
             {...register("monthly_recurring_revenue")}
           />
-          <input type="hidden" {...register("monthly_fixed_cost")} />
           <input type="hidden" {...register("tax_rate_pct")} />
         </>
       )}

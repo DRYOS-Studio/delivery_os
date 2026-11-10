@@ -1,3 +1,5 @@
+import { getOperationMonthlyCosts } from "@/lib/db/queries/operation-costs";
+import { operationCostCategoryLabel } from "@/lib/utils/operation-cost-category";
 import { operationSchema } from "@/lib/validators/operation";
 import {
   clampLimit,
@@ -21,7 +23,6 @@ function operationInsert(data: z.infer<typeof operationSchema>) {
     status: data.status,
     recurrence: data.recurrence ?? null,
     monthly_recurring_revenue: data.monthly_recurring_revenue ?? null,
-    monthly_fixed_cost: data.monthly_fixed_cost ?? null,
     tax_rate_pct: data.tax_rate_pct ?? null,
     start_date: data.start_date ?? null,
     end_date: data.end_date ?? null,
@@ -63,7 +64,30 @@ export async function mcpGetOperation(
     .maybeSingle();
   if (error) return { ok: false, message: error.message };
   if (!data) return { ok: false, message: "Operação não encontrada.", notFound: true };
-  return { ok: true, data: { operation: data } };
+  const breakdown = await getOperationMonthlyCosts(opId, ctx.supabase);
+  return {
+    ok: true,
+    data: {
+      operation: {
+        ...data,
+        monthly_fixed_cost_legacy: data.monthly_fixed_cost,
+        operation_costs: breakdown.adHocItems.map((c) => ({
+          id: c.id,
+          category: c.category,
+          category_label: operationCostCategoryLabel(c.category),
+          label: c.label,
+          amount: c.amount,
+          recurrence: c.recurrence,
+          started_at: c.startedAt,
+          ended_at: c.endedAt,
+          notes: c.notes,
+        })),
+        monthly_cost_category_subtotals: breakdown.categorySubtotals,
+        monthly_costs_total: breakdown.adHocMonthly,
+        monthly_costs_breakdown_total: breakdown.totalMonthly,
+      },
+    },
+  };
 }
 
 const createOpArgs = operationSchema;

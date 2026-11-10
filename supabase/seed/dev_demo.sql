@@ -171,3 +171,65 @@ WHERE NOT EXISTS (
                        WHERE o.name = 'Gama Studio Launch — Edicao 12' AND f.name = 'Infra')
     AND a.role = 'responsavel'
 );
+
+-- ============================================================================
+-- 6. Custos demo (após migration 20261109250000_operation_costs_category)
+-- Acme Core: legado migrado + exemplos categorizados para aba Custos.
+-- ============================================================================
+
+UPDATE public.operations
+SET monthly_fixed_cost = 1200.00
+WHERE name = 'Acme Core'
+  AND (monthly_fixed_cost IS NULL OR monthly_fixed_cost = 0);
+
+INSERT INTO public.operation_costs (
+  operation_id, label, amount, recurrence, started_at, category, notes
+)
+SELECT
+  (SELECT id FROM public.operations WHERE name = 'Acme Core'),
+  'Custo migrado do campo único',
+  1200.00,
+  'mensal'::public.cost_recurrence,
+  current_date - interval '60 days',
+  'a_classificar'::public.operation_cost_category,
+  NULL
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.operation_costs c
+  WHERE c.operation_id = (SELECT id FROM public.operations WHERE name = 'Acme Core')
+    AND c.label = 'Custo migrado do campo único'
+    AND c.category = 'a_classificar'::public.operation_cost_category
+);
+
+INSERT INTO public.operation_costs (
+  operation_id, label, amount, recurrence, started_at, category, notes
+)
+SELECT
+  (SELECT id FROM public.operations WHERE name = 'Acme Core'),
+  'Ferramentas de observabilidade',
+  350.00,
+  'mensal'::public.cost_recurrence,
+  current_date - interval '30 days',
+  'infra'::public.operation_cost_category,
+  'Datadog + logs'
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.operation_costs c
+  WHERE c.operation_id = (SELECT id FROM public.operations WHERE name = 'Acme Core')
+    AND c.label = 'Ferramentas de observabilidade'
+);
+
+INSERT INTO public.operation_costs (
+  operation_id, label, amount, recurrence, started_at, category, notes
+)
+SELECT
+  (SELECT id FROM public.operations WHERE name = 'Acme Core'),
+  'Squads de entrega',
+  2800.00,
+  'mensal'::public.cost_recurrence,
+  current_date - interval '90 days',
+  'time'::public.operation_cost_category,
+  NULL
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.operation_costs c
+  WHERE c.operation_id = (SELECT id FROM public.operations WHERE name = 'Acme Core')
+    AND c.label = 'Squads de entrega'
+);

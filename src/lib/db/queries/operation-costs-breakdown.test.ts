@@ -6,7 +6,6 @@ describe("computeBreakdown com imposto", () => {
   it("inclui imposto no total mensal e na margem (3000 × 6% = 180)", () => {
     const breakdown = computeBreakdown(
       "00000000-0000-4000-8000-000000000001",
-      0,
       [],
       [],
       { chargedRevenue: 3000, taxRatePct: 6 },
@@ -17,15 +16,46 @@ describe("computeBreakdown com imposto", () => {
     expect(margin.value).toBe(2820);
   });
 
-  it("sem alíquota não altera o total", () => {
-    const breakdown = computeBreakdown(
-      "00000000-0000-4000-8000-000000000001",
-      500,
-      [],
-      [],
-      { chargedRevenue: 3000, taxRatePct: null },
-    );
-    expect(breakdown.taxMonthlyAmount).toBe(0);
-    expect(breakdown.totalMonthly).toBe(500);
+  it("soma custos mensais vigentes por categoria", () => {
+    const opId = "00000000-0000-4000-8000-000000000001";
+    const costs = [
+      {
+        id: "00000000-0000-4000-8000-000000000010",
+        operationId: opId,
+        label: "Time",
+        category: "time" as const,
+        amount: 500,
+        recurrence: "mensal" as const,
+        startedAt: "2026-01-01",
+        endedAt: null,
+        notes: null,
+        createdAt: "",
+        updatedAt: "",
+      },
+      {
+        id: "00000000-0000-4000-8000-000000000011",
+        operationId: opId,
+        label: "Infra",
+        category: "infra" as const,
+        amount: 300,
+        recurrence: "mensal" as const,
+        startedAt: "2026-01-01",
+        endedAt: null,
+        notes: null,
+        createdAt: "",
+        updatedAt: "",
+      },
+    ];
+    const breakdown = computeBreakdown(opId, costs, [], {
+      chargedRevenue: 3000,
+      taxRatePct: 6,
+    });
+    expect(breakdown.adHocMonthly).toBe(800);
+    expect(breakdown.categorySubtotals.time).toBe(500);
+    expect(breakdown.categorySubtotals.infra).toBe(300);
+    expect(breakdown.taxMonthlyAmount).toBe(180);
+    expect(breakdown.totalMonthly).toBe(980);
+    const margin = computeMargin(3000, breakdown.totalMonthly);
+    expect(margin.value).toBe(2020);
   });
 });
