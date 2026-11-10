@@ -14,7 +14,7 @@ export function DeleteCostButton({
   costId: string;
   label: string;
   redirectTo?: string;
-  variant?: "icon" | "button";
+  variant?: "icon" | "button" | "row";
 }): React.JSX.Element {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -42,6 +42,20 @@ export function DeleteCostButton({
       >
         <Trash2 className="w-3.5 h-3.5" strokeWidth={1.75} />
         Excluir custo
+      </button>
+    );
+  }
+
+  if (variant === "row") {
+    return (
+      <button
+        type="button"
+        onClick={handleClick}
+        disabled={busy}
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono rounded text-critical border border-line hover:bg-critical-bg disabled:opacity-50 transition-colors min-h-[32px]"
+      >
+        <Trash2 className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} aria-hidden />
+        {busy ? "…" : "Excluir"}
       </button>
     );
   }

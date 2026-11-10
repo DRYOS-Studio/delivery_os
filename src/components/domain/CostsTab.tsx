@@ -4,6 +4,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import { DeleteCostButton } from "@/components/domain/DeleteCostButton";
+import { RowEditLink } from "@/components/domain/RowEditLink";
 import type { OperationCostBreakdown } from "@/lib/db/queries/operation-costs";
 import {
   operationCostCategoryLabel,
@@ -13,6 +14,7 @@ import { formatDateBR } from "@/lib/utils/date";
 import { getInitials } from "@/lib/utils/initials";
 import { isCommissionPercentCost } from "@/lib/utils/operation-cost-amount";
 import { formatMoneyBR } from "@/lib/utils/money";
+import { operationCostEditPath } from "@/lib/utils/operation-cost-routes";
 
 type Props = {
   operationId: string;
@@ -141,13 +143,8 @@ export function CostsTab({ operationId, breakdown }: Props) {
                     idx !== adHocItems.length - 1 ? "border-b border-line" : ""
                   }`}
                 >
-                  <div className="md:col-span-3 font-medium text-ink min-w-0">
-                    <Link
-                      href={`/operations/${operationId}/costs/${c.id}/edit`}
-                      className="hover:underline md:truncate"
-                    >
-                      {c.label}
-                    </Link>
+                  <div className="md:col-span-3 font-medium text-ink min-w-0 truncate">
+                    {c.label}
                   </div>
                   <div className="md:col-span-2">
                     <Pill variant="neutral">
@@ -179,13 +176,21 @@ export function CostsTab({ operationId, breakdown }: Props) {
                         {c.recurrence === "mensal" ? "Mensal" : "Única"}
                       </Pill>
                     </div>
-                    <div className="md:col-span-2 font-mono text-[10px] text-mute">
+                    <div className="md:col-span-1 font-mono text-[10px] text-mute min-w-0">
                       {formatDateBR(c.startedAt)}
                       {c.endedAt ? ` → ${formatDateBR(c.endedAt)}` : ""}
                     </div>
                   </div>
-                  <div className="md:col-span-1 flex md:justify-end">
-                    <DeleteCostButton costId={c.id} label={c.label} />
+                  <div className="md:col-span-2 flex flex-wrap items-center justify-end gap-2">
+                    <RowEditLink
+                      href={operationCostEditPath(operationId, c.id)}
+                      data-testid={`operation-cost-edit-${c.id}`}
+                    />
+                    <DeleteCostButton
+                      costId={c.id}
+                      label={c.label}
+                      variant="row"
+                    />
                   </div>
                 </li>
               ))}

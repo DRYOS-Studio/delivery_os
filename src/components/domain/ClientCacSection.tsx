@@ -7,6 +7,8 @@ import { useState } from "react";
 import { deleteClientAcquisitionCostAction } from "@/lib/actions/client-acquisition-costs";
 import type { ClientAcquisitionCostRow } from "@/lib/db/queries/client-acquisition-costs";
 import { Button } from "@/components/ui/Button";
+import { RowDeleteButton } from "@/components/domain/RowDeleteButton";
+import { RowEditLink } from "@/components/domain/RowEditLink";
 import { clientCacCategoryLabel } from "@/lib/utils/client-cac-category";
 import { formatDateBR } from "@/lib/utils/date";
 import { formatMoneyBR } from "@/lib/utils/money";
@@ -27,13 +29,6 @@ export function ClientCacSection({
   const [error, setError] = useState<string | null>(null);
 
   async function onDelete(id: string) {
-    if (
-      !globalThis.confirm(
-        "Excluir este custo de aquisição? O total de CAC será recalculado.",
-      )
-    ) {
-      return;
-    }
     setBusy(id);
     setError(null);
     const res = await deleteClientAcquisitionCostAction(clientId, id);
@@ -92,21 +87,18 @@ export function ClientCacSection({
                 <p className="font-mono text-sm text-ink">
                   {formatMoneyBR(item.amount)}
                 </p>
-                <div className="flex gap-3 text-sm">
-                  <Link
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <RowEditLink
                     href={`/clients/${clientId}/cac/${item.id}/edit`}
-                    className="text-oak hover:underline"
-                  >
-                    Editar
-                  </Link>
-                  <button
-                    type="button"
-                    className="text-critical hover:underline"
-                    disabled={busy !== null}
+                    data-testid={`client-cac-edit-${item.id}`}
+                  />
+                  <RowDeleteButton
+                    label={item.description}
+                    busy={busy === item.id}
+                    disabled={busy !== null && busy !== item.id}
+                    confirmMessage="Excluir este custo de aquisição? O total de CAC será recalculado."
                     onClick={() => void onDelete(item.id)}
-                  >
-                    Excluir
-                  </button>
+                  />
                 </div>
               </div>
             </li>
