@@ -34,7 +34,7 @@ while IFS= read -r -d '' f; do
   base="$(basename "$f")"
   echo "  ${base}"
   run_sql -f "$f"
-  if [[ "$base" == "20261110100001_client_charges.sql" ]]; then
+  if [[ "$base" == "20261110300000_client_charge_discount.sql" ]]; then
     break
   fi
 done < <(find "${ROOT}/supabase/migrations" -maxdepth 1 -name '*.sql' -print0 | sort -z)
@@ -50,4 +50,11 @@ run_sql -tAc "
   WHERE indexname = 'uq_client_charges_contract_type_competence';
 " | grep -q 1
 
-echo "OK: migrations 20261110100000 + 20261110100001 validadas."
+run_sql -tAc "
+  SELECT COUNT(*) FROM information_schema.columns
+  WHERE table_schema = 'public'
+    AND table_name = 'client_charges'
+    AND column_name IN ('discount_kind', 'discount_input', 'discount_amount');
+" | grep -q 3
+
+echo "OK: client_charges + desconto (20261110300000) validados."

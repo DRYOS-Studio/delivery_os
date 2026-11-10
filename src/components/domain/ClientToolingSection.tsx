@@ -37,6 +37,8 @@ export function ClientToolingSection({
   techItems,
   softwareItems,
 }: Props): React.JSX.Element {
+  const [showTechForm, setShowTechForm] = useState(false);
+  const [showSoftwareForm, setShowSoftwareForm] = useState(false);
   return (
     <section className="mb-9">
       <h2 className="font-display text-lg text-ink font-semibold mb-2">
@@ -86,8 +88,23 @@ export function ClientToolingSection({
               ))}
             </ul>
           )}
-          {isAdmin && (
-            <InlineTechForm clientId={clientId} disabled={false} />
+          {isAdmin && !showTechForm && (
+            <Button
+              type="button"
+              size="sm"
+              variant="primary"
+              className="mt-4"
+              onClick={() => setShowTechForm(true)}
+            >
+              Adicionar tecnologia
+            </Button>
+          )}
+          {isAdmin && showTechForm && (
+            <InlineTechForm
+              clientId={clientId}
+              disabled={false}
+              onClose={() => setShowTechForm(false)}
+            />
           )}
         </ToolingBlock>
 
@@ -121,8 +138,23 @@ export function ClientToolingSection({
               ))}
             </ul>
           )}
-          {isAdmin && (
-            <InlineSoftwareForm clientId={clientId} disabled={false} />
+          {isAdmin && !showSoftwareForm && (
+            <Button
+              type="button"
+              size="sm"
+              variant="primary"
+              className="mt-4"
+              onClick={() => setShowSoftwareForm(true)}
+            >
+              Adicionar software
+            </Button>
+          )}
+          {isAdmin && showSoftwareForm && (
+            <InlineSoftwareForm
+              clientId={clientId}
+              disabled={false}
+              onClose={() => setShowSoftwareForm(false)}
+            />
           )}
         </ToolingBlock>
       </div>
@@ -311,9 +343,11 @@ function EditableToolingRow({
 function InlineTechForm({
   clientId,
   disabled,
+  onClose,
 }: {
   clientId: string;
   disabled: boolean;
+  onClose: () => void;
 }) {
   const router = useRouter();
   const ref = useRef<HTMLFormElement>(null);
@@ -330,6 +364,7 @@ function InlineTechForm({
       return;
     }
     ref.current?.reset();
+    onClose();
     router.refresh();
   }
 
@@ -366,9 +401,20 @@ function InlineTechForm({
         className={inputCn}
         disabled={disabled || busy}
       />
-      <Button type="submit" size="sm" variant="primary" disabled={disabled || busy}>
-        Adicionar tecnologia
-      </Button>
+      <div className="flex gap-2">
+        <Button type="submit" size="sm" variant="primary" disabled={disabled || busy}>
+          Salvar
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          disabled={busy}
+          onClick={onClose}
+        >
+          Cancelar
+        </Button>
+      </div>
     </form>
   );
 }
@@ -376,9 +422,11 @@ function InlineTechForm({
 function InlineSoftwareForm({
   clientId,
   disabled,
+  onClose,
 }: {
   clientId: string;
   disabled: boolean;
+  onClose: () => void;
 }) {
   const router = useRouter();
   const ref = useRef<HTMLFormElement>(null);
@@ -395,6 +443,7 @@ function InlineSoftwareForm({
       return;
     }
     ref.current?.reset();
+    onClose();
     router.refresh();
   }
 
@@ -431,9 +480,20 @@ function InlineSoftwareForm({
         className={inputCn}
         disabled={disabled || busy}
       />
-      <Button type="submit" size="sm" variant="primary" disabled={disabled || busy}>
-        Adicionar software
-      </Button>
+      <div className="flex gap-2">
+        <Button type="submit" size="sm" variant="primary" disabled={disabled || busy}>
+          Salvar
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          disabled={busy}
+          onClick={onClose}
+        >
+          Cancelar
+        </Button>
+      </div>
     </form>
   );
 }

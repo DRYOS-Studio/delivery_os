@@ -56,9 +56,13 @@ import {
   mcpUploadClientContract,
 } from "@/lib/mcp/tools/contracts-tools";
 import {
+  mcpCancelClientCharge,
+  mcpDeleteClientCharge,
   mcpGenerateClientCharges,
   mcpListClientCharges,
   mcpMarkClientChargePaid,
+  mcpUndoClientChargePayment,
+  mcpUpdateClientCharge,
 } from "@/lib/mcp/tools/client-charges-tools";
 import {
   mcpCreateDecision,
@@ -365,6 +369,22 @@ export async function dispatchMcpTool(input: DispatchInput): Promise<unknown> {
     }
     case "mark_client_charge_paid": {
       const r = await mcpMarkClientChargePaid(ctx, args);
+      return flattenResult(r);
+    }
+    case "update_client_charge": {
+      const r = await mcpUpdateClientCharge(ctx, args);
+      return flattenResult(r);
+    }
+    case "delete_client_charge": {
+      const r = await mcpDeleteClientCharge(ctx, args);
+      return flattenResult(r);
+    }
+    case "cancel_client_charge": {
+      const r = await mcpCancelClientCharge(ctx, args);
+      return flattenResult(r);
+    }
+    case "undo_client_charge_payment": {
+      const r = await mcpUndoClientChargePayment(ctx, args);
       return flattenResult(r);
     }
     case "list_frentes": {

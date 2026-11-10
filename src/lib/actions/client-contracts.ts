@@ -14,6 +14,13 @@ function parseContractForm(formData: FormData) {
   return {
     label: ((formData.get("label") as string | null) ?? "").trim(),
     monthly_value: ((formData.get("monthly_value") as string | null) ?? "").trim(),
+    implementation_fee: (
+      (formData.get("implementation_fee") as string | null) ?? ""
+    ).trim(),
+    implementation_fee_paid: formData.get("implementation_fee_paid"),
+    first_billing_date: (
+      (formData.get("first_billing_date") as string | null) ?? ""
+    ).trim(),
     currency: ((formData.get("currency") as string | null) ?? "BRL").trim(),
     reajuste_notes: ((formData.get("reajuste_notes") as string | null) ?? "").trim(),
     start_date: ((formData.get("start_date") as string | null) ?? "").trim(),
@@ -24,6 +31,12 @@ function parseContractForm(formData: FormData) {
     status: ((formData.get("status") as string | null) ?? "rascunho").trim(),
     notes: ((formData.get("notes") as string | null) ?? "").trim(),
   };
+}
+
+function revalidateClientContractPaths(clientId: string) {
+  revalidatePath(`/clients/${clientId}`);
+  revalidatePath(`/clients/${clientId}/contratos`);
+  revalidatePath(`/clients/${clientId}/cobrancas`);
 }
 
 export async function createClientContractAction(
@@ -66,6 +79,9 @@ export async function createClientContractAction(
       client_id: clientId,
       label: d.label,
       monthly_value: d.monthly_value,
+      implementation_fee: d.implementation_fee,
+      implementation_fee_paid: d.implementation_fee_paid,
+      first_billing_date: d.first_billing_date,
       currency: d.currency ?? "BRL",
       reajuste_notes: d.reajuste_notes ?? null,
       start_date: d.start_date ?? null,
@@ -91,8 +107,95 @@ export async function createClientContractAction(
     return err("Falha ao salvar contrato.", "no_data");
   }
 
-  revalidatePath(`/clients/${clientId}`);
+  revalidateClientContractPaths(clientId);
   return ok({ id: row.id });
+}
+
+export async function updateClientContractAction(
+  clientId: string,
+  contractId: string,
+  formData: FormData,
+): Promise<ActionResult<{ id: string }>> {
+  const userResult = await requireUserAction();
+  if (!userResult.ok) return userResult;
+  const admin = await requireAdminAction();
+  if (!admin.ok) return admin;
+
+  const parsed = clientContractFormSchema.safeParse(parseContractForm(formData));
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    return err(first?.message ?? "Dados inválidos.", "validation_form");
+  }
+  const d = parsed.data;
+
+  const supabase = await createServer();
+  const { data: existing, error: fetchErr } = await supabase
+    .from("client_contracts")
+    .select("id, client_id, storage_path, filename")
+    .eq("id", contractId)
+    .maybeSingle();
+  if (fetchErr) return dbErr(fetchErr, "updateClientContractAction.fetch");
+  if (!existing || existing.client_id !== clientId) {
+    return err("Contrato não encontrado.", "not_found");
+  }
+
+  const basePatch = {
+    label: d.label,
+    monthly_value: d.monthly_value,
+    implementation_fee: d.implementation_fee,
+    implementation_fee_paid: d.implementation_fee_paid,
+    first_billing_date: d.first_billing_date,
+    currency: d.currency ?? "BRL",
+    reajuste_notes: d.reajuste_notes ?? null,
+    start_date: d.start_date ?? null,
+    end_date: d.end_date ?? null,
+    payment_day_of_month: d.payment_day_of_month,
+    status: d.status,
+    notes: d.notes ?? null,
+  };
+
+  const file = formData.get("file");
+  if (file instanceof File && file.size > 0) {
+    if (file.size > MAX_BYTES) {
+      return err("Arquivo maior que 50MB.", "validation_size_bytes");
+    }
+    const sanitized = sanitizeFilename(file.name);
+    const storagePath = `${clientId}/${crypto.randomUUID()}-${sanitized}`;
+    const mime = file.type || "application/octet-stream";
+    const { error: upErr } = await supabase.storage
+      .from(BUCKET)
+      .upload(storagePath, file, { contentType: mime, upsert: false });
+    if (upErr) return dbErr(upErr, "updateClientContractAction.storage");
+    const oldPath = existing.storage_path;
+  const { error: updErr } = await supabase
+      .from("client_contracts")
+      .update({
+        ...basePatch,
+        storage_path: storagePath,
+        filename: file.name,
+        mime_type: mime,
+        size_bytes: file.size,
+      })
+      .eq("id", contractId);
+    if (updErr) {
+      await supabase.storage.from(BUCKET).remove([storagePath]).catch(() => undefined);
+      return dbErr(updErr, "updateClientContractAction.db");
+    }
+    if (oldPath) {
+      await supabase.storage.from(BUCKET).remove([oldPath]).catch(() => undefined);
+    }
+    revalidateClientContractPaths(clientId);
+    return ok({ id: contractId });
+  }
+
+  const { error: updErr } = await supabase
+    .from("client_contracts")
+    .update(basePatch)
+    .eq("id", contractId);
+  if (updErr) return dbErr(updErr, "updateClientContractAction.db");
+
+  revalidateClientContractPaths(clientId);
+  return ok({ id: contractId });
 }
 
 export async function deleteClientContractAction(
@@ -124,6 +227,6 @@ export async function deleteClientContractAction(
   if (row.storage_path) {
     await supabase.storage.from(BUCKET).remove([row.storage_path]).catch(() => undefined);
   }
-  revalidatePath(`/clients/${clientId}`);
+  revalidateClientContractPaths(clientId);
   return ok({ id: contractId });
 }
