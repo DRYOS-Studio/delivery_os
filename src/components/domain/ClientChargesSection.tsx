@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { ClientContractRow } from "@/lib/db/queries/client-contracts";
@@ -13,6 +12,8 @@ import {
   undoClientChargePaymentAction,
 } from "@/lib/actions/client-charges";
 import { Button } from "@/components/ui/Button";
+import { RowDeleteButton } from "@/components/domain/RowDeleteButton";
+import { RowEditLink } from "@/components/domain/RowEditLink";
 import { Pill } from "@/components/ui/Pill";
 import { clientChargeStatusLabel } from "@/lib/utils/client-charge-status";
 import {
@@ -99,9 +100,6 @@ export function ClientChargesSection({
   }
 
   async function onDelete(chargeId: string) {
-    if (!globalThis.confirm("Apagar esta cobrança? Esta ação não pode ser desfeita.")) {
-      return;
-    }
     setBusy(`del-${chargeId}`);
     const res = await deleteClientChargeAction(clientId, chargeId);
     setBusy(null);
@@ -230,22 +228,20 @@ export function ClientChargesSection({
                     </Pill>
                   </div>
 
-                  <div className="flex flex-wrap gap-2 text-sm">
-                    <Link
+                  <div className="flex flex-wrap items-center gap-2">
+                    <RowEditLink
                       href={`/clients/${clientId}/cobrancas/${c.id}/edit`}
-                      className="text-oak hover:underline"
-                    >
-                      Editar
-                    </Link>
+                      data-testid={`client-charge-edit-${c.id}`}
+                    />
                     {canDelete && (
-                      <button
-                        type="button"
-                        className="text-critical hover:underline"
-                        disabled={busy !== null}
+                      <RowDeleteButton
+                        label={TYPE_LABEL[c.chargeType]}
+                        actionLabel="Apagar"
+                        confirmMessage="Apagar esta cobrança? Esta ação não pode ser desfeita."
+                        busy={busy === `del-${c.id}`}
+                        disabled={busy !== null && busy !== `del-${c.id}`}
                         onClick={() => void onDelete(c.id)}
-                      >
-                        Apagar
-                      </button>
+                      />
                     )}
                     {hasPay && !canDelete && c.effectiveStatus !== "cancelada" && (
                       <button
