@@ -145,6 +145,31 @@ Trigger `set_client_contracts_updated_at`. Trigger `trg_activity_client_contract
 
 ---
 
+### `client_charges` — cobranças previstas/recebidas (Fase 1)
+
+Registro interno de caixa por cliente/contrato/operação. Sem gateway nesta fase; `external_provider` / `external_id` reservados. Admin-only (RLS). Activity: `subject_type = client_charge`.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `client_id` | uuid → clients | CASCADE |
+| `client_contract_id` | uuid → client_contracts | nullable só em `avulsa` |
+| `operation_id` | uuid → operations | SET NULL; inferida na geração |
+| `charge_type` | enum | `mensalidade` \| `implantacao` \| `avulsa` |
+| `competence` | date | 1º dia do mês (mensalidade) ou referência |
+| `due_date` | date | vencimento |
+| `amount` | numeric(14,2) | > 0 |
+| `status` | enum | `prevista` \| `emitida` \| `paga` \| `atrasada` \| `cancelada` |
+| `paid_at` | date | nullable |
+| `paid_amount` | numeric(14,2) | parcial permitido (≤ amount) |
+| `payment_method` | text | nullable |
+| `notes` | text | |
+| `external_provider` / `external_id` | text | futuro emissor/gateway |
+
+Índice único parcial `(client_contract_id, charge_type, competence)` para geração idempotente.
+
+---
+
 ### `activity_events` — histórico de mudanças (audit trail)
 
 Eventos gerados por triggers em `clients`, `operations`, `frentes`, `tasks`, `task_assignees` (responsáveis) e `client_contracts`, e por RPC a partir de ações admin em `profiles` (convite, troca de papel, vínculo de pessoa). Cada linha referencia o assunto (`subject_type` + `subject_id`), denormaliza `operation_id` / `client_id` quando aplicável e guarda `actor_profile_id` = `auth.uid()` no momento da mudança. Assunto `profile` é visível só para admin (`can_read_activity_subject`).

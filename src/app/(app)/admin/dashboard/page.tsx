@@ -1,9 +1,11 @@
+import { DashboardCashSection } from "@/components/domain/DashboardCashSection";
 import { DashboardCountsGrid } from "@/components/domain/DashboardCountsGrid";
 import { DashboardMRRSection } from "@/components/domain/DashboardMRRSection";
 import { DashboardPersonsSection } from "@/components/domain/DashboardPersonsSection";
 import { DashboardVillainsSection } from "@/components/domain/DashboardVillainsSection";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { requireAdmin } from "@/lib/auth/server";
+import { getGlobalClientCashSummary } from "@/lib/db/queries/client-charges";
 import {
   getDashboardSummary,
   getTopClientsByMRR,
@@ -13,10 +15,11 @@ import {
 export default async function Page() {
   await requireAdmin();
 
-  const [summary, topClients, topVillains] = await Promise.all([
+  const [summary, topClients, topVillains, cashSummary] = await Promise.all([
     getDashboardSummary(),
     getTopClientsByMRR(5),
     getTopVillainsByFrequency(5),
+    getGlobalClientCashSummary(),
   ]);
 
   return (
@@ -33,6 +36,7 @@ export default async function Page() {
           monthlyCostsTotal={summary.monthlyCostsTotal}
           monthlyMarginTotal={summary.monthlyMarginTotal}
         />
+        <DashboardCashSection summary={cashSummary} />
         <DashboardCountsGrid
           activeOperations={summary.activeOperations}
           archivedOperations={summary.archivedOperations}

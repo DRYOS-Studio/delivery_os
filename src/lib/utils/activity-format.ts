@@ -256,6 +256,8 @@ function subjectTypeLabel(t: ActivitySubjectType): string {
       return "custo";
     case "sla_incident":
       return "incidente SLA";
+    case "client_charge":
+      return "cobrança";
     default: {
       const _exhaustive: never = t;
       return _exhaustive;
