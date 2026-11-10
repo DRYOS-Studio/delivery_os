@@ -105,12 +105,19 @@ export async function POST(req: NextRequest) {
         if (hit !== null) return jsonRpcResult(id ?? null, toolText(hit));
       }
 
-      const out = await dispatchMcpTool({
-        toolName,
-        args,
-        ctx: handlerCtx,
-        mcpCtx,
-      });
+      let out: unknown;
+      try {
+        out = await dispatchMcpTool({
+          toolName,
+          args,
+          ctx: handlerCtx,
+          mcpCtx,
+        });
+      } catch (e) {
+        const msg =
+          e instanceof Error ? e.message : "Erro interno ao executar ferramenta.";
+        return jsonRpcError(id ?? null, -32603, msg, 500);
+      }
 
       const okPayload =
         typeof out === "object" &&

@@ -1,5 +1,8 @@
+import type { Database } from "@/lib/db/types";
 import { clientContractStatusSchema } from "@/lib/validators/client-contract";
 import { z } from "zod";
+
+type ClientContractUpdate = Database["public"]["Tables"]["client_contracts"]["Update"];
 
 const isoDate = z
   .string()
@@ -66,9 +69,37 @@ export const createClientContractMcpSchema = clientContractMcpBodySchema.extend(
   client_id: z.string().uuid(),
 });
 
-export const updateClientContractMcpSchema = clientContractMcpBodySchema.extend({
-  contract_id: z.string().uuid(),
-});
+/** Atualização MCP: campos opcionais (patch), sem .omit() no schema refinado (Zod 4). */
+export const updateClientContractMcpSchema = z
+  .object({
+    contract_id: z.string().uuid(),
+    label: z.string().trim().min(2).max(200).optional(),
+    monthly_value: money,
+    implementation_fee: money,
+    implementation_fee_paid: z.boolean().optional(),
+    currency: z.string().trim().max(8).optional(),
+    reajuste_notes: z.string().max(2000).nullable().optional(),
+    start_date: isoDate,
+    first_billing_date: isoDate,
+    end_date: isoDate,
+    payment_day_of_month: z
+      .number()
+      .int()
+      .min(1)
+      .max(28)
+      .nullable()
+      .optional(),
+    status: clientContractStatusSchema.optional(),
+    notes: z.string().max(4000).nullable().optional(),
+  })
+  .superRefine(contractDateRefine)
+  .refine(
+    (d) =>
+      Object.keys(d).some(
+        (k) => k !== "contract_id" && d[k as keyof typeof d] !== undefined,
+      ),
+    { message: "Informe ao menos um campo além de contract_id." },
+  );
 
 export function coerceContractMoney(v: number | string | null | undefined): number | null {
   if (v === null || v === undefined) return null;
@@ -80,6 +111,37 @@ export function coerceContractMoney(v: number | string | null | undefined): numb
 }
 
 export type ClientContractMcpBody = z.infer<typeof clientContractMcpBodySchema>;
+
+export function clientContractFieldsToDbPatch(
+  d: z.infer<typeof updateClientContractMcpSchema>,
+): ClientContractUpdate {
+  const patch: ClientContractUpdate = {};
+  if (d.label !== undefined) patch.label = d.label;
+  if (d.monthly_value !== undefined) {
+    patch.monthly_value = coerceContractMoney(d.monthly_value);
+  }
+  if (d.implementation_fee !== undefined) {
+    patch.implementation_fee = coerceContractMoney(d.implementation_fee);
+  }
+  if (d.implementation_fee_paid !== undefined) {
+    patch.implementation_fee_paid = d.implementation_fee_paid;
+  }
+  if (d.currency !== undefined) {
+    patch.currency = (d.currency ?? "BRL").trim() || "BRL";
+  }
+  if (d.reajuste_notes !== undefined) patch.reajuste_notes = d.reajuste_notes;
+  if (d.start_date !== undefined) patch.start_date = d.start_date;
+  if (d.first_billing_date !== undefined) {
+    patch.first_billing_date = d.first_billing_date;
+  }
+  if (d.end_date !== undefined) patch.end_date = d.end_date;
+  if (d.payment_day_of_month !== undefined) {
+    patch.payment_day_of_month = d.payment_day_of_month;
+  }
+  if (d.status !== undefined) patch.status = d.status;
+  if (d.notes !== undefined) patch.notes = d.notes;
+  return patch;
+}
 
 export function clientContractMcpToRow(
   clientId: string,
