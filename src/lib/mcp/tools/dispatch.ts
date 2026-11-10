@@ -139,6 +139,14 @@ import {
   mcpUpdateClientAcquisitionCost,
 } from "@/lib/mcp/tools/client-acquisition-costs-tools";
 import {
+  mcpArchiveClientCredential,
+  mcpCreateClientCredential,
+  mcpListClientCredentialAuditLogs,
+  mcpListClientCredentials,
+  mcpRevealClientCredential,
+  mcpUpdateClientCredential,
+} from "@/lib/mcp/tools/client-credentials-tools";
+import {
   mcpAddOperationComment,
   mcpArchivePerson,
   mcpAssignOperationVillain,
@@ -412,6 +420,30 @@ export async function dispatchMcpTool(input: DispatchInput): Promise<unknown> {
     }
     case "undo_client_charge_payment": {
       const r = await mcpUndoClientChargePayment(ctx, args);
+      return flattenResult(r);
+    }
+    case "list_client_credentials": {
+      const r = await mcpListClientCredentials(ctx, args);
+      return flattenResult(r);
+    }
+    case "create_client_credential": {
+      const r = await mcpCreateClientCredential(ctx, args);
+      return flattenResult(r);
+    }
+    case "update_client_credential": {
+      const r = await mcpUpdateClientCredential(ctx, args);
+      return flattenResult(r);
+    }
+    case "archive_client_credential": {
+      const r = await mcpArchiveClientCredential(ctx, args);
+      return flattenResult(r);
+    }
+    case "reveal_client_credential": {
+      const r = await mcpRevealClientCredential(ctx, args);
+      return flattenResult(r);
+    }
+    case "list_client_credential_audit_logs": {
+      const r = await mcpListClientCredentialAuditLogs(ctx, args);
       return flattenResult(r);
     }
     case "list_frentes": {

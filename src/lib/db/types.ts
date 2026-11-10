@@ -841,6 +841,116 @@ export type Database = {
           },
         ]
       }
+      client_credential_audit_logs: {
+        Row: {
+          action: Database["public"]["Enums"]["client_credential_audit_action"]
+          actor_mcp: boolean
+          actor_user_id: string | null
+          client_id: string
+          created_at: string
+          credential_id: string | null
+          id: string
+          reason: string | null
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["client_credential_audit_action"]
+          actor_mcp?: boolean
+          actor_user_id?: string | null
+          client_id: string
+          created_at?: string
+          credential_id?: string | null
+          id?: string
+          reason?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["client_credential_audit_action"]
+          actor_mcp?: boolean
+          actor_user_id?: string | null
+          client_id?: string
+          created_at?: string
+          credential_id?: string | null
+          id?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_client_credential_audit_client"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_credentials: {
+        Row: {
+          archived_at: string | null
+          client_id: string
+          created_at: string
+          created_by: string
+          id: string
+          key_version: number
+          login_username: string | null
+          notes_ciphertext: string | null
+          operation_id: string | null
+          password_ciphertext: string
+          service_name: string
+          two_factor_ciphertext: string | null
+          updated_at: string
+          updated_by: string
+          url: string | null
+        }
+        Insert: {
+          archived_at?: string | null
+          client_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          key_version?: number
+          login_username?: string | null
+          notes_ciphertext?: string | null
+          operation_id?: string | null
+          password_ciphertext: string
+          service_name: string
+          two_factor_ciphertext?: string | null
+          updated_at?: string
+          updated_by: string
+          url?: string | null
+        }
+        Update: {
+          archived_at?: string | null
+          client_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          key_version?: number
+          login_username?: string | null
+          notes_ciphertext?: string | null
+          operation_id?: string | null
+          password_ciphertext?: string
+          service_name?: string
+          two_factor_ciphertext?: string | null
+          updated_at?: string
+          updated_by?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_client_credentials_client"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_client_credentials_operation"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "operations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_software_items: {
         Row: {
           client_id: string
@@ -2764,6 +2874,10 @@ export type Database = {
         Args: { p_area_id: string; p_op_id: string }
         Returns: boolean
       }
+      can_access_client_vault: {
+        Args: { p_client_id: string }
+        Returns: boolean
+      }
       can_read_operation: { Args: { op_id: string }; Returns: boolean }
       can_see_operation: { Args: { op_id: string }; Returns: boolean }
       can_see_task: { Args: { t_id: string }; Returns: boolean }
@@ -2839,6 +2953,13 @@ export type Database = {
         | "comissao_indicacao"
         | "ferramentas"
         | "outros"
+      client_credential_audit_action:
+        | "create"
+        | "update"
+        | "archive"
+        | "delete"
+        | "reveal"
+        | "copy"
       client_charge_status:
         | "prevista"
         | "emitida"
@@ -3053,6 +3174,14 @@ export const Constants = {
         "comissao_indicacao",
         "ferramentas",
         "outros",
+      ],
+      client_credential_audit_action: [
+        "create",
+        "update",
+        "archive",
+        "delete",
+        "reveal",
+        "copy",
       ],
       client_charge_status: [
         "prevista",

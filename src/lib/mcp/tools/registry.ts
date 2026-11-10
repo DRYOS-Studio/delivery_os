@@ -1206,6 +1206,100 @@ const BASE_MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
     },
   },
   {
+    name: "list_client_credentials",
+    access: "read",
+    description:
+      "Lista credenciais do cofre (metadados apenas — sem senha).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        client_id: { type: "string" },
+        include_archived: { type: "boolean" },
+      },
+      required: ["client_id"],
+    },
+  },
+  {
+    name: "create_client_credential",
+    access: "write",
+    description:
+      "Cria credencial no cofre (senha cifrada no servidor). Requer VAULT_ENCRYPTION_KEY.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        client_id: { type: "string" },
+        operation_id: { type: ["string", "null"] },
+        service_name: { type: "string" },
+        url: { type: ["string", "null"] },
+        login_username: { type: ["string", "null"] },
+        password: { type: "string" },
+        notes: { type: ["string", "null"] },
+        two_factor_notes: { type: ["string", "null"] },
+      },
+      required: ["client_id", "service_name", "password"],
+    },
+  },
+  {
+    name: "update_client_credential",
+    access: "write",
+    description: "Atualiza metadados ou senha de uma credencial.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        client_id: { type: "string" },
+        credential_id: { type: "string" },
+        operation_id: { type: ["string", "null"] },
+        service_name: { type: "string" },
+        url: { type: ["string", "null"] },
+        login_username: { type: ["string", "null"] },
+        password: { type: "string" },
+        notes: { type: ["string", "null"] },
+        two_factor_notes: { type: ["string", "null"] },
+      },
+      required: ["client_id", "credential_id"],
+    },
+  },
+  {
+    name: "archive_client_credential",
+    access: "write",
+    description: "Arquiva credencial (soft delete).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        client_id: { type: "string" },
+        credential_id: { type: "string" },
+      },
+      required: ["client_id", "credential_id"],
+    },
+  },
+  {
+    name: "reveal_client_credential",
+    access: "write",
+    description:
+      "Revela a senha de UMA credencial e registra auditoria com motivo.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        credential_id: { type: "string" },
+        reason: { type: "string" },
+      },
+      required: ["credential_id", "reason"],
+    },
+  },
+  {
+    name: "list_client_credential_audit_logs",
+    access: "read",
+    description: "Lista eventos de auditoria do cofre do cliente.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        client_id: { type: "string" },
+        limit: { type: "number" },
+      },
+      required: ["client_id"],
+    },
+  },
+  {
     name: "list_client_acquisition_costs",
     access: "admin",
     description:
