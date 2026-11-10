@@ -116,6 +116,20 @@ Escrita (tech/software): admin. Repositórios em Operação/Frente: membro com `
 
 ---
 
+### `client_acquisition_costs` — CAC (custos de aquisição do cliente)
+
+Lançamentos pontuais (anúncios, horas comerciais, comissão, ferramentas). **Não** entram na margem mensal da operação. Admin-only (RLS `is_admin()`).
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `client_id` | uuid FK → clients | CASCADE |
+| `spent_on` | date | data do gasto |
+| `description` | text | até 500 chars |
+| `category` | enum `client_acquisition_cost_category` | ver labels na UI |
+| `amount` | numeric(14,2) | > 0 |
+
+Migration: `20261110400000_client_acquisition_costs.sql`
+
 ### `client_contracts` — contrato comercial (arquivo + metadados)
 
 Metadados financeiros e PDF/arquivo no bucket privado `contracts` (Storage path prefixado com `<client_id>/`). Apenas **admin** via RLS e policies de Storage. `uploaded_by` → `profiles`.

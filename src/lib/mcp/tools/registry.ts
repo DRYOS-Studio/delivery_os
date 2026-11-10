@@ -36,10 +36,26 @@ const BASE_MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
     name: "update_operation",
     access: "admin",
     idempotent: true,
-    description: "Atualiza operação (admin).",
+    description:
+      "Atualiza operação (admin). Alíquota de imposto não é alterada aqui — use update_operation_tax_rate.",
     inputSchema: {
       type: "object",
       properties: { operation_id: { type: "string" }, ...idem },
+      required: ["operation_id"],
+    },
+  },
+  {
+    name: "update_operation_tax_rate",
+    access: "admin",
+    idempotent: true,
+    description:
+      "Define alíquota de imposto (%) sobre o MRR da operação. Único caminho MCP para imposto.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        operation_id: { type: "string" },
+        tax_rate_pct: { type: ["number", "null"] },
+      },
       required: ["operation_id"],
     },
   },
@@ -1186,6 +1202,59 @@ const BASE_MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
         new_paid_amount: { type: "number" },
       },
       required: ["charge_id"],
+    },
+  },
+  {
+    name: "list_client_acquisition_costs",
+    access: "admin",
+    description:
+      "Lista custos de aquisição (CAC) do cliente e total.",
+    inputSchema: {
+      type: "object",
+      properties: { client_id: { type: "string" } },
+      required: ["client_id"],
+    },
+  },
+  {
+    name: "create_client_acquisition_cost",
+    access: "admin",
+    description: "Registra custo pontual de aquisição do cliente (CAC).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        client_id: { type: "string" },
+        spent_on: { type: "string" },
+        description: { type: "string" },
+        category: { type: "string" },
+        amount: { type: "number" },
+      },
+      required: ["client_id", "spent_on", "description", "category", "amount"],
+    },
+  },
+  {
+    name: "update_client_acquisition_cost",
+    access: "admin",
+    description: "Atualiza item de CAC.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        acquisition_cost_id: { type: "string" },
+        spent_on: { type: "string" },
+        description: { type: "string" },
+        category: { type: "string" },
+        amount: { type: "number" },
+      },
+      required: ["acquisition_cost_id"],
+    },
+  },
+  {
+    name: "delete_client_acquisition_cost",
+    access: "admin",
+    description: "Remove item de CAC.",
+    inputSchema: {
+      type: "object",
+      properties: { acquisition_cost_id: { type: "string" } },
+      required: ["acquisition_cost_id"],
     },
   },
   {

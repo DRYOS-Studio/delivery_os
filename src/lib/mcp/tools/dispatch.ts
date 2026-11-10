@@ -131,6 +131,13 @@ import {
   mcpRemoveOperationMember,
   mcpUpdateOperation,
 } from "@/lib/mcp/tools/operations-tools";
+import { mcpUpdateOperationTaxRate } from "@/lib/mcp/tools/operation-tax-rate-tools";
+import {
+  mcpCreateClientAcquisitionCost,
+  mcpDeleteClientAcquisitionCost,
+  mcpListClientAcquisitionCosts,
+  mcpUpdateClientAcquisitionCost,
+} from "@/lib/mcp/tools/client-acquisition-costs-tools";
 import {
   mcpAddOperationComment,
   mcpArchivePerson,
@@ -217,6 +224,26 @@ export async function dispatchMcpTool(input: DispatchInput): Promise<unknown> {
     }
     case "update_operation": {
       const r = await mcpUpdateOperation(ctx, args);
+      return flattenResult(r);
+    }
+    case "update_operation_tax_rate": {
+      const r = await mcpUpdateOperationTaxRate(ctx, args);
+      return flattenResult(r);
+    }
+    case "list_client_acquisition_costs": {
+      const r = await mcpListClientAcquisitionCosts(ctx, args);
+      return flattenResult(r);
+    }
+    case "create_client_acquisition_cost": {
+      const r = await mcpCreateClientAcquisitionCost(ctx, args);
+      return flattenResult(r);
+    }
+    case "update_client_acquisition_cost": {
+      const r = await mcpUpdateClientAcquisitionCost(ctx, args);
+      return flattenResult(r);
+    }
+    case "delete_client_acquisition_cost": {
+      const r = await mcpDeleteClientAcquisitionCost(ctx, args);
       return flattenResult(r);
     }
     case "archive_operation": {

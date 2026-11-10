@@ -55,6 +55,8 @@ import {
   clientSoftwareItemUpdateSchema,
 } from "@/lib/validators/client-software-item";
 import { createInvitationSchema } from "@/lib/validators/client-registration";
+import { clientAcquisitionCostMcpSchema } from "@/lib/validators/client-acquisition-cost";
+import { operationTaxRateSchema } from "@/lib/validators/operation-tax-rate";
 
 const uuid = z.string().uuid();
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -71,7 +73,6 @@ const operationMcpBody = z
     end_date: isoDate.optional(),
     response_hours: z.number().int().min(0).max(720).optional(),
     resolution_hours: z.number().int().min(0).max(720).optional(),
-    tax_rate_pct: z.number().min(0).max(100).nullable().optional(),
     diagnostic_id: uuid.optional(),
     notification_webhook_url: z.string().max(500).optional(),
   })
@@ -220,6 +221,19 @@ export const MCP_TOOL_ZOD_ARGS: Record<string, z.ZodType> = {
   }),
   get_client_registration_submission: z.object({ invitation_id: uuid }),
   approve_client_registration_invitation: z.object({ invitation_id: uuid }),
+  update_operation_tax_rate: operationTaxRateSchema.extend({
+    operation_id: uuid,
+  }),
+  list_client_acquisition_costs: z.object({ client_id: uuid }),
+  create_client_acquisition_cost: clientAcquisitionCostMcpSchema.extend({
+    client_id: uuid,
+  }),
+  update_client_acquisition_cost: clientAcquisitionCostMcpSchema.extend({
+    acquisition_cost_id: uuid,
+  }),
+  delete_client_acquisition_cost: z.object({
+    acquisition_cost_id: uuid,
+  }),
 };
 
 export function applyZodInputSchemas(definitions: McpToolDefinition[]): McpToolDefinition[] {

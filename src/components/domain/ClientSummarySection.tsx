@@ -29,11 +29,18 @@ export function ClientSummarySection({ summary, isAdmin }: Props) {
           variant="sage"
         />
         {isAdmin && (
-          <MetricCard
-            label="MRR total"
-            value={formatMoneyBR(summary.mrrTotal)}
-            hint="Operações ativas"
-          />
+          <>
+            <MetricCard
+              label="MRR total"
+              value={formatMoneyBR(summary.mrrTotal)}
+              hint="Operações ativas"
+            />
+            <MetricCard
+              label="CAC total"
+              value={formatMoneyBR(summary.cacTotal)}
+              hint="Custos de aquisição"
+            />
+          </>
         )}
       </div>
     </section>
