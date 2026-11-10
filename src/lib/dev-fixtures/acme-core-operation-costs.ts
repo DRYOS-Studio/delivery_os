@@ -1,45 +1,29 @@
 import type { OperationCostBreakdown } from "@/lib/db/queries/operation-costs";
 import type { OperationDetail } from "@/lib/db/queries/operations";
 
-/** Espelha supabase/seed/dev_demo.sql (Acme Core) após migration 20261109250000. */
+/** Espelha exemplo Rafael: MRR 3000, imposto 6%, comissão 10% → R$ 282/mês. */
 export const ACME_CORE_OPERATION_ID =
   "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 
 const today = new Date().toISOString().slice(0, 10);
 
 export const acmeCoreCostsBreakdown: OperationCostBreakdown = {
-  fixedCost: 4350,
+  fixedCost: 1682,
   categorySubtotals: {
-    a_classificar: 1200,
-    comissoes: 300,
-    infra: 350,
-    time: 2800,
+    comissoes: 282,
+    infra: 200,
+    time: 1200,
   },
-  adHocMonthly: 4650,
+  adHocMonthly: 1682,
   adHocOnceTotal: 0,
   adHocItems: [
-    {
-      id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-      operationId: ACME_CORE_OPERATION_ID,
-      label: "Custo migrado do campo único",
-      amount: 1200,
-      commissionPercent: null,
-      monthlyAmount: 1200,
-      category: "a_classificar",
-      recurrence: "mensal",
-      startedAt: today,
-      endedAt: null,
-      notes: null,
-      createdAt: today,
-      updatedAt: today,
-    },
     {
       id: "99999999-9999-4999-8999-999999999999",
       operationId: ACME_CORE_OPERATION_ID,
       label: "Comissão parceiro",
       amount: null,
       commissionPercent: 10,
-      monthlyAmount: 300,
+      monthlyAmount: 282,
       category: "comissoes",
       recurrence: "mensal",
       startedAt: today,
@@ -52,9 +36,9 @@ export const acmeCoreCostsBreakdown: OperationCostBreakdown = {
       id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
       operationId: ACME_CORE_OPERATION_ID,
       label: "Ferramentas de observabilidade",
-      amount: 350,
+      amount: 200,
       commissionPercent: null,
-      monthlyAmount: 350,
+      monthlyAmount: 200,
       category: "infra",
       recurrence: "mensal",
       startedAt: today,
@@ -67,9 +51,9 @@ export const acmeCoreCostsBreakdown: OperationCostBreakdown = {
       id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
       operationId: ACME_CORE_OPERATION_ID,
       label: "Squads de entrega",
-      amount: 2800,
+      amount: 1200,
       commissionPercent: null,
-      monthlyAmount: 2800,
+      monthlyAmount: 1200,
       category: "time",
       recurrence: "mensal",
       startedAt: today,
@@ -93,10 +77,10 @@ export const acmeCoreCostsBreakdown: OperationCostBreakdown = {
     },
   ],
   allocationsTotal: 1920,
-  taxRatePct: null,
-  taxMonthlyAmount: 0,
-  totalMonthly: 6570,
-  chargedRevenue: 8500,
+  taxRatePct: 6,
+  taxMonthlyAmount: 180,
+  totalMonthly: 3782,
+  chargedRevenue: 3000,
 };
 
 export const acmeCoreOperationEditFixture: OperationDetail = {
@@ -105,9 +89,9 @@ export const acmeCoreOperationEditFixture: OperationDetail = {
   productLine: "core",
   status: "em_operacao",
   recurrence: "mensal",
-  monthlyRecurringRevenue: 8500,
+  monthlyRecurringRevenue: 3000,
   monthlyFixedCost: 1200,
-  taxRatePct: null,
+  taxRatePct: 6,
   responseHours: null,
   resolutionHours: null,
   diagnosticId: null,
@@ -115,6 +99,10 @@ export const acmeCoreOperationEditFixture: OperationDetail = {
   endDate: null,
   notificationWebhookUrl: null,
   createdAt: today,
-  client: { id: "11111111-1111-4111-8111-111111111111", name: "Acme", slug: "acme" },
+  client: {
+    id: "11111111-1111-4111-8111-111111111111",
+    name: "Acme",
+    slug: "acme",
+  },
   frentes: [],
 };

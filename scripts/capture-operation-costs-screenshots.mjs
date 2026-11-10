@@ -15,6 +15,9 @@ const routes = [
     path: "/dev-screenshots/operation-cost-form",
     file: "operation-cost-commission-form.png",
     ready: "#commission_percent",
+    beforeShot: async (page) => {
+      await page.locator("#commission_percent").fill("10");
+    },
   },
   {
     path: "/dev-screenshots/operation-edit",

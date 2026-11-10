@@ -15,6 +15,7 @@ export default function DevScreenshotCostFormPage(): React.JSX.Element {
         operationId={ACME_CORE_OPERATION_ID}
         isAdmin
         operationMrr={3000}
+        operationTaxRatePct={6}
         initialCategory="comissoes"
       />
     </main>

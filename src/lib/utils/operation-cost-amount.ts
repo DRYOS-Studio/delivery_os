@@ -1,4 +1,5 @@
 import type { OperationCostCategory } from "@/lib/utils/operation-cost-category";
+import { computeTaxMonthlyAmount } from "@/lib/utils/operation-tax";
 
 export type OperationCostAmountFields = {
   category: OperationCostCategory;
@@ -6,23 +7,42 @@ export type OperationCostAmountFields = {
   commissionPercent: number | null;
 };
 
+export type OperationCostFinanceContext = {
+  chargedRevenue?: number | null;
+  taxRatePct?: number | null;
+};
+
 /**
- * Valor mensal efetivo em R$: comissão com % segue o MRR; demais usam amount;
+ * Base da comissão %: valor cobrado (MRR) menos imposto. Sem imposto, base = MRR.
+ */
+export function computeCommissionBaseRevenue(
+  chargedRevenue: number | null | undefined,
+  taxRatePct: number | null | undefined,
+): number {
+  const mrr = chargedRevenue ?? 0;
+  if (mrr <= 0) return 0;
+  const tax = computeTaxMonthlyAmount(chargedRevenue, taxRatePct);
+  return Math.max(0, mrr - tax);
+}
+
+/**
+ * Valor mensal efetivo em R$: comissão % sobre base líquida de imposto;
  * legado em comissões continua em R$ fixo quando percent é null.
  */
 export function computeCommissionMonthlyAmount(
   chargedRevenue: number | null | undefined,
   commissionPercent: number | null | undefined,
+  taxRatePct?: number | null,
 ): number {
-  const revenue = chargedRevenue ?? 0;
+  const base = computeCommissionBaseRevenue(chargedRevenue, taxRatePct);
   const rate = commissionPercent ?? 0;
-  if (revenue <= 0 || rate <= 0) return 0;
-  return (revenue * rate) / 100;
+  if (base <= 0 || rate <= 0) return 0;
+  return (base * rate) / 100;
 }
 
 export function resolveOperationCostMonthlyAmount(
   cost: OperationCostAmountFields,
-  chargedRevenue: number | null | undefined,
+  finance?: OperationCostFinanceContext,
 ): number {
   if (
     cost.category === "comissoes" &&
@@ -30,8 +50,9 @@ export function resolveOperationCostMonthlyAmount(
     cost.commissionPercent !== undefined
   ) {
     return computeCommissionMonthlyAmount(
-      chargedRevenue,
+      finance?.chargedRevenue,
       cost.commissionPercent,
+      finance?.taxRatePct,
     );
   }
   return cost.amount ?? 0;
