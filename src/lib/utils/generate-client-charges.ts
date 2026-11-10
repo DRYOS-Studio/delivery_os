@@ -118,14 +118,16 @@ export function buildPlannedChargesFromContract(
       const { y, m } = addMonths(start.y, start.m, i);
       const competence = firstOfMonth(y, m);
       if (competence < firstOfMonth(start.y, start.m)) continue;
-      if (endDate && competence > endDate) break;
 
       const minDue = i === 0 ? anchor : competence;
+      const due = dueDateInMonth(y, m, paymentDay, minDue);
+      if (endDate && due > endDate) break;
+
       rows.push({
         ...base,
         charge_type: "mensalidade",
         competence,
-        due_date: dueDateInMonth(y, m, paymentDay, minDue),
+        due_date: due,
         amount: monthly,
         status: "prevista",
         paid_at: null,

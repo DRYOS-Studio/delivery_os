@@ -1,4 +1,5 @@
 import {
+  clientContractFieldsToDbPatch,
   clientContractMcpToRow,
   createClientContractMcpSchema,
   updateClientContractMcpSchema,
@@ -84,34 +85,36 @@ export async function mcpUpdateClientContract(
 ): Promise<McpToolResult<{ id: string }>> {
   const denied = await mcpRequireAdmin(ctx);
   if (denied) return denied;
-  const id = typeof args.contract_id === "string" ? args.contract_id.trim() : "";
-  if (!id) return { ok: false, message: "contract_id obrigatório." };
-  const { contract_id: _c, idempotency_key: _ik, client_id: _cl, ...rest } = args;
-  const parsed = updateClientContractMcpSchema.omit({ contract_id: true }).safeParse(rest);
-  if (!parsed.success) {
-    return { ok: false, message: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  try {
+    const parsed = updateClientContractMcpSchema.safeParse(args);
+    if (!parsed.success) {
+      return {
+        ok: false,
+        message: parsed.error.issues[0]?.message ?? "Dados inválidos.",
+      };
+    }
+    const id = parsed.data.contract_id;
+    const { data: existing, error: fetchErr } = await ctx.supabase
+      .from("client_contracts")
+      .select("id")
+      .eq("id", id)
+      .maybeSingle();
+    if (fetchErr) return { ok: false, message: fetchErr.message };
+    if (!existing) {
+      return { ok: false, message: "Contrato não encontrado.", notFound: true };
+    }
+
+    const patch = clientContractFieldsToDbPatch(parsed.data);
+    const { error } = await ctx.supabase
+      .from("client_contracts")
+      .update(patch)
+      .eq("id", id);
+    if (error) return { ok: false, message: error.message };
+    return { ok: true, data: { id } };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Falha ao atualizar contrato.";
+    return { ok: false, message };
   }
-  const d = parsed.data;
-  const row = clientContractMcpToRow("", d, ctx.callerUserId);
-  const { error } = await ctx.supabase
-    .from("client_contracts")
-    .update({
-      label: row.label,
-      monthly_value: row.monthly_value,
-      implementation_fee: row.implementation_fee,
-      currency: row.currency,
-      reajuste_notes: row.reajuste_notes,
-      start_date: row.start_date,
-      first_billing_date: row.first_billing_date,
-      implementation_fee_paid: row.implementation_fee_paid,
-      end_date: row.end_date,
-      payment_day_of_month: row.payment_day_of_month,
-      status: row.status,
-      notes: row.notes,
-    })
-    .eq("id", id);
-  if (error) return { ok: false, message: error.message };
-  return { ok: true, data: { id } };
 }
 
 export async function mcpUploadClientContract(

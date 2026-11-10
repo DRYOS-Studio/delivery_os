@@ -1,5 +1,6 @@
 import { createServer } from "@/lib/db/client";
 import type { Database } from "@/lib/db/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   clientChargeNetDue,
   computeDiscountAmount,
@@ -287,11 +288,18 @@ export async function getGlobalClientCashSummary(
   };
 }
 
+async function resolveSupabase(
+  supabase?: SupabaseClient<Database>,
+): Promise<SupabaseClient<Database>> {
+  return supabase ?? (await createServer());
+}
+
 export async function getClientContractForCharges(
   contractId: string,
+  supabase?: SupabaseClient<Database>,
 ): Promise<ContractForChargeGeneration | null> {
-  const supabase = await createServer();
-  const { data, error } = await supabase
+  const db = await resolveSupabase(supabase);
+  const { data, error } = await db
     .from("client_contracts")
     .select(
       "id, client_id, status, monthly_value, implementation_fee, implementation_fee_paid, first_billing_date, start_date, end_date, payment_day_of_month",
@@ -318,9 +326,10 @@ export async function getClientContractForCharges(
 
 async function pickOperationForClient(
   clientId: string,
+  supabase?: SupabaseClient<Database>,
 ): Promise<string | null> {
-  const supabase = await createServer();
-  const { data, error } = await supabase
+  const db = await resolveSupabase(supabase);
+  const { data, error } = await db
     .from("operations")
     .select("id")
     .eq("client_id", clientId)
@@ -342,10 +351,11 @@ export type GenerateChargesResult = {
 export async function generateClientChargesFromContract(
   contractId: string,
   monthsAhead: number = DEFAULT_CHARGE_MONTHS_AHEAD,
+  supabase?: SupabaseClient<Database>,
 ): Promise<GenerateChargesResult> {
-  const contract = await getClientContractForCharges(contractId);
+  const contract = await getClientContractForCharges(contractId, supabase);
   if (!contract) throw new Error("Contrato não encontrado.");
-  const operationId = await pickOperationForClient(contract.clientId);
+  const operationId = await pickOperationForClient(contract.clientId, supabase);
   const planned = buildPlannedChargesFromContract(
     contract,
     operationId,
@@ -355,13 +365,13 @@ export async function generateClientChargesFromContract(
     return { inserted: 0, skipped: 0, chargeIds: [] };
   }
 
-  const supabase = await createServer();
+  const db = await resolveSupabase(supabase);
   let inserted = 0;
   let skipped = 0;
   const chargeIds: string[] = [];
 
   for (const row of planned) {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("client_charges")
       .insert(row)
       .select("id")

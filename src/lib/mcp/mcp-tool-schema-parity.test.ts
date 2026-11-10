@@ -47,17 +47,17 @@ describe("MCP tools/list schema parity (Zod-derived)", () => {
   it("update_client_contract exposes the same body fields plus contract_id", () => {
     const schema = toolSchema("update_client_contract");
     expect(schema.properties?.status?.enum).toEqual(["rascunho", "vigente", "encerrada"]);
-    expect(schema.required).toEqual(
-      expect.arrayContaining(["contract_id", "label", "status"]),
-    );
+    expect(schema.required).toEqual(["contract_id"]);
   });
 
-  it("update_client_contract parser matches full snapshot update (same as main form handler)", () => {
+  it("update_client_contract aceita patch parcial (metadata + end_date)", () => {
     const partial = updateClientContractMcpSchema.safeParse({
-      contract_id: "11111111-1111-4111-8111-222222222222",
-      label: "só label",
+      contract_id: "8e79c305-1629-4f82-8dbe-6ce9cbde1369",
+      label: "Contrato de infraestrutura Digital e Performance",
+      status: "vigente",
+      end_date: "2027-04-24",
     });
-    expect(partial.success).toBe(false);
+    expect(partial.success).toBe(true);
     const full = updateClientContractMcpSchema.safeParse({
       contract_id: "11111111-1111-4111-8111-222222222222",
       label: "DRYOS OS Basic",

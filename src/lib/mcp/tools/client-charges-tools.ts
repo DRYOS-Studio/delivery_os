@@ -101,6 +101,7 @@ export async function mcpGenerateClientCharges(
     const result = await generateClientChargesFromContract(
       parsed.data.contract_id,
       parsed.data.months_ahead,
+      ctx.supabase,
     );
     return {
       ok: true,
