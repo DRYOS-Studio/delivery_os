@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ClientJourneyPanel } from "@/components/domain/ClientJourneyPanel";
 import { ClientDiagnosticSection } from "@/components/domain/ClientDiagnosticSection";
+import { ClientChargesSection } from "@/components/domain/ClientChargesSection";
 import { ClientContractsSection } from "@/components/domain/ClientContractsSection";
 import { ClientHubTasksSection } from "@/components/domain/ClientHubTasksSection";
 import { ClientIdentitySection } from "@/components/domain/ClientIdentitySection";
@@ -15,10 +16,11 @@ import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import { getProfile } from "@/lib/auth/server";
 import { getClient, getClientSummary } from "@/lib/db/queries/clients";
+import { listClientCharges } from "@/lib/db/queries/client-charges";
 import { listClientContracts } from "@/lib/db/queries/client-contracts";
 import { listOpenTasksForClient } from "@/lib/db/queries/client-hub";
 import { getDiagnosticByClient } from "@/lib/db/queries/diagnostics";
-import { getActiveOperations } from "@/lib/db/queries/operations";
+import { getActiveOperations, getClientOperationsMrrSum } from "@/lib/db/queries/operations";
 import {
   listClientSoftwareItems,
   listClientTechItems,
@@ -62,7 +64,16 @@ export default async function Page({
     listClientSoftwareItems(id),
   ]);
   const isAdmin = profile?.role === "admin";
-  const contracts = isAdmin ? await listClientContracts(id) : [];
+  let contracts: Awaited<ReturnType<typeof listClientContracts>> = [];
+  let charges: Awaited<ReturnType<typeof listClientCharges>> = [];
+  let registeredMrr = 0;
+  if (isAdmin) {
+    [contracts, charges, registeredMrr] = await Promise.all([
+      listClientContracts(id),
+      listClientCharges(id, { limit: 80 }),
+      getClientOperationsMrrSum(id),
+    ]);
+  }
 
   return (
     <>
@@ -102,6 +113,14 @@ export default async function Page({
       <ClientSummarySection summary={summary} isAdmin={isAdmin} />
 
       {isAdmin && <ClientContractsSection clientId={client.id} contracts={contracts} />}
+      {isAdmin && (
+        <ClientChargesSection
+          clientId={client.id}
+          charges={charges}
+          contracts={contracts}
+          registeredMrr={registeredMrr}
+        />
+      )}
       <ClientIdentitySection client={client} />
 
       <ClientToolingSection

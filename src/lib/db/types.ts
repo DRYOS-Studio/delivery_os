@@ -709,6 +709,88 @@ export type Database = {
           },
         ]
       }
+      client_charges: {
+        Row: {
+          amount: number
+          charge_type: Database["public"]["Enums"]["client_charge_type"]
+          client_contract_id: string | null
+          client_id: string
+          competence: string
+          created_at: string
+          due_date: string
+          external_id: string | null
+          external_provider: string | null
+          id: string
+          notes: string | null
+          operation_id: string | null
+          paid_amount: number | null
+          paid_at: string | null
+          payment_method: string | null
+          status: Database["public"]["Enums"]["client_charge_status"]
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          charge_type: Database["public"]["Enums"]["client_charge_type"]
+          client_contract_id?: string | null
+          client_id: string
+          competence: string
+          created_at?: string
+          due_date: string
+          external_id?: string | null
+          external_provider?: string | null
+          id?: string
+          notes?: string | null
+          operation_id?: string | null
+          paid_amount?: number | null
+          paid_at?: string | null
+          payment_method?: string | null
+          status?: Database["public"]["Enums"]["client_charge_status"]
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          charge_type?: Database["public"]["Enums"]["client_charge_type"]
+          client_contract_id?: string | null
+          client_id?: string
+          competence?: string
+          created_at?: string
+          due_date?: string
+          external_id?: string | null
+          external_provider?: string | null
+          id?: string
+          notes?: string | null
+          operation_id?: string | null
+          paid_amount?: number | null
+          paid_at?: string | null
+          payment_method?: string | null
+          status?: Database["public"]["Enums"]["client_charge_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_client_charges_client"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_client_charges_contract"
+            columns: ["client_contract_id"]
+            isOneToOne: false
+            referencedRelation: "client_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_client_charges_operation"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "operations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_software_items: {
         Row: {
           client_id: string
@@ -2539,6 +2621,14 @@ export type Database = {
         | "decision"
         | "operation_risk_blocker"
         | "operation_cost"
+        | "client_charge"
+      client_charge_type: "mensalidade" | "implantacao" | "avulsa"
+      client_charge_status:
+        | "prevista"
+        | "emitida"
+        | "paga"
+        | "atrasada"
+        | "cancelada"
       operation_cost_category:
         | "comissoes"
         | "servicos_terceiros"
@@ -2734,6 +2824,15 @@ export const Constants = {
         "decision",
         "operation_risk_blocker",
         "operation_cost",
+        "client_charge",
+      ],
+      client_charge_type: ["mensalidade", "implantacao", "avulsa"],
+      client_charge_status: [
+        "prevista",
+        "emitida",
+        "paga",
+        "atrasada",
+        "cancelada",
       ],
       operation_cost_category: [
         "comissoes",

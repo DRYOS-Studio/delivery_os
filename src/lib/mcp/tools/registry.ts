@@ -1044,6 +1044,51 @@ const BASE_MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
     },
   },
   {
+    name: "list_client_charges",
+    access: "admin",
+    description: "Lista cobranças do cliente (previstas, pagas, atrasadas).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        client_id: { type: "string" },
+        contract_id: { type: "string" },
+        limit: { type: "number" },
+      },
+      required: ["client_id"],
+    },
+  },
+  {
+    name: "generate_client_charges",
+    access: "admin",
+    idempotent: true,
+    description:
+      "Gera cobranças previstas a partir do contrato vigente (mensalidade + implantação).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        contract_id: { type: "string" },
+        months_ahead: { type: "number", description: "1–36, default 12" },
+      },
+      required: ["contract_id"],
+    },
+  },
+  {
+    name: "mark_client_charge_paid",
+    access: "admin",
+    idempotent: true,
+    description: "Registra pagamento (valor e data); quitado se paid_amount >= amount.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        charge_id: { type: "string" },
+        paid_at: { type: "string", description: "AAAA-MM-DD" },
+        paid_amount: { type: "number" },
+        payment_method: { type: "string" },
+      },
+      required: ["charge_id", "paid_at", "paid_amount"],
+    },
+  },
+  {
     name: "get_person",
     access: "read",
     description: "Detalhe de pessoa.",

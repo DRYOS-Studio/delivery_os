@@ -1,0 +1,50 @@
+import type { ClientChargeRow } from "@/lib/db/queries/client-charges";
+
+const today = new Date().toISOString().slice(0, 10);
+
+export const acmeClientChargesFixture: ClientChargeRow[] = [
+  {
+    id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa01",
+    clientId: "11111111-1111-4111-8111-111111111111",
+    clientContractId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+    operationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    chargeType: "mensalidade",
+    competence: "2026-01-01",
+    dueDate: "2026-01-10",
+    amount: 3000,
+    status: "prevista",
+    effectiveStatus: "atrasada",
+    openAmount: 3000,
+    paidAt: null,
+    paidAmount: null,
+    paymentMethod: null,
+    notes: null,
+    externalProvider: null,
+    externalId: null,
+    createdAt: today,
+    updatedAt: today,
+  },
+  {
+    id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa02",
+    clientId: "11111111-1111-4111-8111-111111111111",
+    clientContractId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+    operationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    chargeType: "mensalidade",
+    competence: "2026-02-01",
+    dueDate: "2026-02-10",
+    amount: 3000,
+    status: "paga",
+    effectiveStatus: "paga",
+    openAmount: 0,
+    paidAt: "2026-02-10",
+    paidAmount: 3000,
+    paymentMethod: "Pix",
+    notes: null,
+    externalProvider: null,
+    externalId: null,
+    createdAt: today,
+    updatedAt: today,
+  },
+];
+
+export const ACME_CLIENT_ID = "11111111-1111-4111-8111-111111111111";

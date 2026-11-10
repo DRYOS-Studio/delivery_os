@@ -444,3 +444,18 @@ export async function listOperationsWithFrentes(): Promise<
     .filter((op) => op.frentes.length > 0);
 }
 
+export async function getClientOperationsMrrSum(clientId: string): Promise<number> {
+  const supabase = await createServer();
+  const { data, error } = await supabase
+    .from("operations")
+    .select("monthly_recurring_revenue")
+    .eq("client_id", clientId)
+    .is("archived_at", null)
+    .in("status", ACTIVE_STATUSES);
+  if (error) throw new Error(`getClientOperationsMrrSum: ${error.message}`);
+  return (data ?? []).reduce((s, row) => {
+    const v = row.monthly_recurring_revenue;
+    return s + (v === null || v === undefined ? 0 : Number(v));
+  }, 0);
+}
+

@@ -50,6 +50,11 @@ import {
   mcpUploadClientContract,
 } from "@/lib/mcp/tools/contracts-tools";
 import {
+  mcpGenerateClientCharges,
+  mcpListClientCharges,
+  mcpMarkClientChargePaid,
+} from "@/lib/mcp/tools/client-charges-tools";
+import {
   mcpCreateDecision,
   mcpCreateMeeting,
   mcpCreatePerson,
@@ -342,6 +347,18 @@ export async function dispatchMcpTool(input: DispatchInput): Promise<unknown> {
     }
     case "get_client_contract_download_url": {
       const r = await mcpGetClientContractDownloadUrl(ctx, args);
+      return flattenResult(r);
+    }
+    case "list_client_charges": {
+      const r = await mcpListClientCharges(ctx, args);
+      return flattenResult(r);
+    }
+    case "generate_client_charges": {
+      const r = await mcpGenerateClientCharges(ctx, args);
+      return flattenResult(r);
+    }
+    case "mark_client_charge_paid": {
+      const r = await mcpMarkClientChargePaid(ctx, args);
       return flattenResult(r);
     }
     case "list_frentes": {
