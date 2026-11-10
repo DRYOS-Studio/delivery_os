@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/Button";
 import { DeleteCostButton } from "@/components/domain/DeleteCostButton";
@@ -16,20 +16,27 @@ import {
   operationCostCategoryLabel,
   type OperationCostCategory,
 } from "@/lib/utils/operation-cost-category";
+import { computeCommissionMonthlyAmount } from "@/lib/utils/operation-cost-amount";
+import { formatMoneyBR } from "@/lib/utils/money";
 
 type Props = (
-  | { mode: "create"; operationId: string }
+  | {
+      mode: "create";
+      operationId: string;
+      initialCategory?: OperationCostCategory;
+    }
   | {
       mode: "edit";
       operationId: string;
       initialData: OperationCostRow;
     }
-) & { isAdmin: boolean };
+) & { isAdmin: boolean; operationMrr: number | null };
 
 type FormShape = {
   category: OperationCostCategory;
   label: string;
   amount: string;
+  commission_percent: string;
   recurrence: "mensal" | "unica";
   started_at: string;
   ended_at: string;
@@ -50,21 +57,33 @@ export function CostForm(props: Props): React.JSX.Element {
   const router = useRouter();
   const isEdit = props.mode === "edit";
   const [generalError, setGeneralError] = useState<string | null>(null);
+  const legacyCommissionR$ =
+    isEdit &&
+    props.initialData.category === "comissoes" &&
+    props.initialData.commissionPercent === null;
 
   const defaultValues: FormShape = isEdit
     ? {
         category: props.initialData.category,
         label: props.initialData.label,
-        amount: String(props.initialData.amount),
+        amount:
+          props.initialData.amount !== null
+            ? String(props.initialData.amount)
+            : "",
+        commission_percent:
+          props.initialData.commissionPercent !== null
+            ? String(props.initialData.commissionPercent)
+            : "",
         recurrence: props.initialData.recurrence,
         started_at: props.initialData.startedAt,
         ended_at: props.initialData.endedAt ?? "",
         notes: props.initialData.notes ?? "",
       }
     : {
-        category: "time",
+        category: props.initialCategory ?? "time",
         label: "",
         amount: "",
+        commission_percent: "",
         recurrence: "mensal",
         started_at: todayISO(),
         ended_at: "",
@@ -74,20 +93,39 @@ export function CostForm(props: Props): React.JSX.Element {
   const {
     register,
     handleSubmit,
+    watch,
     setError,
     formState: { errors, isSubmitting },
   } = useForm<FormShape>({ defaultValues });
+
+  const category = watch("category");
+  const percentInput = watch("commission_percent");
+  const usePercent =
+    category === "comissoes" && !legacyCommissionR$;
+
+  const commissionPreview = useMemo(() => {
+    if (!usePercent || !percentInput.trim()) return null;
+    const pct = Number(percentInput.replace(",", "."));
+    if (!Number.isFinite(pct) || pct <= 0) return null;
+    return computeCommissionMonthlyAmount(props.operationMrr, pct);
+  }, [usePercent, percentInput, props.operationMrr]);
 
   async function onSubmit(values: FormShape) {
     setGeneralError(null);
     const fd = new FormData();
     fd.set("category", values.category);
     fd.set("label", values.label);
-    fd.set("amount", values.amount);
     fd.set("recurrence", values.recurrence);
     fd.set("started_at", values.started_at);
     fd.set("ended_at", values.ended_at);
     fd.set("notes", values.notes);
+    if (usePercent) {
+      fd.set("commission_percent", values.commission_percent);
+      fd.set("amount", "");
+    } else {
+      fd.set("amount", values.amount);
+      fd.set("commission_percent", "");
+    }
 
     const result = isEdit
       ? await updateOperationCostAction(props.initialData.id, fd)
@@ -128,7 +166,7 @@ export function CostForm(props: Props): React.JSX.Element {
         <select
           id="category"
           {...register("category")}
-          disabled={isSubmitting}
+          disabled={isSubmitting || legacyCommissionR$}
           className={inputCn}
         >
           {(
@@ -159,22 +197,56 @@ export function CostForm(props: Props): React.JSX.Element {
       </Field>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Field
-          label="Valor (R$)"
-          htmlFor="amount"
-          required
-          error={errors.amount?.message}
-        >
-          <input
-            id="amount"
-            type="text"
-            inputMode="decimal"
-            {...register("amount")}
-            disabled={isSubmitting}
-            placeholder="1000.00"
-            className={inputCn}
-          />
-        </Field>
+        {usePercent ? (
+          <Field
+            label="Percentual (%)"
+            htmlFor="commission_percent"
+            required
+            error={errors.commission_percent?.message}
+            hint={
+              props.operationMrr && props.operationMrr > 0
+                ? `Sobre o MRR ${formatMoneyBR(props.operationMrr)} (como imposto).`
+                : "Operação sem MRR: o valor calculado fica R$ 0 até definir MRR."
+            }
+          >
+            <input
+              id="commission_percent"
+              type="text"
+              inputMode="decimal"
+              {...register("commission_percent")}
+              disabled={isSubmitting}
+              placeholder="10"
+              className={inputCn}
+            />
+            {commissionPreview !== null && (
+              <p className="font-mono text-xs text-mute mt-1">
+                ≈ {formatMoneyBR(commissionPreview)} / mês
+              </p>
+            )}
+          </Field>
+        ) : (
+          <Field
+            label="Valor (R$)"
+            htmlFor="amount"
+            required
+            error={errors.amount?.message}
+            hint={
+              legacyCommissionR$
+                ? "Comissão legada em R$ fixo. Novos itens usam percentual."
+                : undefined
+            }
+          >
+            <input
+              id="amount"
+              type="text"
+              inputMode="decimal"
+              {...register("amount")}
+              disabled={isSubmitting}
+              placeholder="1000.00"
+              className={inputCn}
+            />
+          </Field>
+        )}
 
         <Field
           label="Recorrência"
@@ -299,3 +371,4 @@ function Field({
     </div>
   );
 }
+

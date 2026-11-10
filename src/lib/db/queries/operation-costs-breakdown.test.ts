@@ -25,6 +25,8 @@ describe("computeBreakdown com imposto", () => {
         label: "Time",
         category: "time" as const,
         amount: 500,
+        commissionPercent: null,
+        monthlyAmount: 500,
         recurrence: "mensal" as const,
         startedAt: "2026-01-01",
         endedAt: null,
@@ -38,6 +40,8 @@ describe("computeBreakdown com imposto", () => {
         label: "Infra",
         category: "infra" as const,
         amount: 300,
+        commissionPercent: null,
+        monthlyAmount: 300,
         recurrence: "mensal" as const,
         startedAt: "2026-01-01",
         endedAt: null,
@@ -57,5 +61,33 @@ describe("computeBreakdown com imposto", () => {
     expect(breakdown.totalMonthly).toBe(980);
     const margin = computeMargin(3000, breakdown.totalMonthly);
     expect(margin.value).toBe(2020);
+  });
+
+  it("comissão em % entra no subtotal e no total (10% de 3000)", () => {
+    const opId = "00000000-0000-4000-8000-000000000001";
+    const costs = [
+      {
+        id: "00000000-0000-4000-8000-000000000020",
+        operationId: opId,
+        label: "Parceiro",
+        category: "comissoes" as const,
+        amount: null,
+        commissionPercent: 10,
+        monthlyAmount: 300,
+        recurrence: "mensal" as const,
+        startedAt: "2026-01-01",
+        endedAt: null,
+        notes: null,
+        createdAt: "",
+        updatedAt: "",
+      },
+    ];
+    const breakdown = computeBreakdown(opId, costs, [], {
+      chargedRevenue: 3000,
+      taxRatePct: 0,
+    });
+    expect(breakdown.categorySubtotals.comissoes).toBe(300);
+    expect(breakdown.adHocMonthly).toBe(300);
+    expect(breakdown.totalMonthly).toBe(300);
   });
 });

@@ -13,11 +13,8 @@ const routes = [
   },
   {
     path: "/dev-screenshots/operation-cost-form",
-    file: "operation-cost-new-form.png",
-    ready: "select",
-    beforeShot: async (page) => {
-      await page.locator("select").first().click();
-    },
+    file: "operation-cost-commission-form.png",
+    ready: "#commission_percent",
   },
   {
     path: "/dev-screenshots/operation-edit",

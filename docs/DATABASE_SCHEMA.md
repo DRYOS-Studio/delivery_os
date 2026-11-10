@@ -382,7 +382,8 @@ Itens de custo com categoria (`operation_cost_category`), recorrência mensal ou
 | `operation_id` | uuid NOT NULL → operations (CASCADE) | |
 | `label` | text NOT NULL | CHECK length >= 2 (descrição do custo) |
 | `category` | enum `operation_cost_category` NOT NULL | comissoes, servicos_terceiros, time, infra, a_classificar |
-| `amount` | numeric(12,2) NOT NULL | CHECK >= 0 |
+| `amount` | numeric(12,2) | R$ fixo; NULL quando `commission_percent` preenchido |
+| `commission_percent` | numeric(6,3) | Só categoria `comissoes`: % sobre MRR (como imposto); legado mantém amount em R$ |
 | `recurrence` | enum `cost_recurrence` | `mensal` (entra na margem) ou `unica` (informativo) |
 | `started_at` | date NOT NULL default current_date | |
 | `ended_at` | date | nullable; CHECK >= started_at |

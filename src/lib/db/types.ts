@@ -1390,8 +1390,9 @@ export type Database = {
       }
       operation_costs: {
         Row: {
-          amount: number
+          amount: number | null
           category: Database["public"]["Enums"]["operation_cost_category"]
+          commission_percent: number | null
           created_at: string
           ended_at: string | null
           id: string
@@ -1403,8 +1404,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          amount: number
+          amount?: number | null
           category?: Database["public"]["Enums"]["operation_cost_category"]
+          commission_percent?: number | null
           created_at?: string
           ended_at?: string | null
           id?: string
@@ -1416,8 +1418,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          amount?: number
+          amount?: number | null
           category?: Database["public"]["Enums"]["operation_cost_category"]
+          commission_percent?: number | null
           created_at?: string
           ended_at?: string | null
           id?: string

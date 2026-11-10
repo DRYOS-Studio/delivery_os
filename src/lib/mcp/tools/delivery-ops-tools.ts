@@ -388,6 +388,8 @@ export async function mcpGetOperationMonthlyCosts(
               category_label: operationCostCategoryLabel(c.category),
               label: c.label,
               amount: c.amount,
+              commission_percent: c.commissionPercent,
+              monthly_amount: c.monthlyAmount,
             })),
           ad_hoc_monthly: breakdown.adHocMonthly,
           ad_hoc_once_total: breakdown.adHocOnceTotal,
@@ -425,18 +427,27 @@ export async function mcpCreateOperationCost(
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   }
   const { operation_id, ...c } = parsed.data;
+  const isPercentCommission =
+    c.category === "comissoes" && c.commission_percent !== undefined;
+  const insertRow: Database["public"]["Tables"]["operation_costs"]["Insert"] = {
+    operation_id,
+    category: c.category,
+    label: c.label,
+    recurrence: c.recurrence,
+    started_at: c.started_at,
+    ended_at: c.ended_at ?? null,
+    notes: c.notes ?? null,
+  };
+  if (isPercentCommission) {
+    insertRow.commission_percent = c.commission_percent ?? null;
+    insertRow.amount = null;
+  } else {
+    insertRow.amount = c.amount ?? 0;
+    insertRow.commission_percent = null;
+  }
   const { data, error } = await ctx.supabase
     .from("operation_costs")
-    .insert({
-      operation_id,
-      category: c.category,
-      label: c.label,
-      amount: c.amount,
-      recurrence: c.recurrence,
-      started_at: c.started_at,
-      ended_at: c.ended_at ?? null,
-      notes: c.notes ?? null,
-    })
+    .insert(insertRow)
     .select("id")
     .single();
   if (error) return { ok: false, message: error.message };
@@ -458,7 +469,13 @@ export async function mcpUpdateOperationCost(
   const patch: Database["public"]["Tables"]["operation_costs"]["Update"] = {};
   if (parsed.data.category !== undefined) patch.category = parsed.data.category;
   if (parsed.data.label !== undefined) patch.label = parsed.data.label;
-  if (parsed.data.amount !== undefined) patch.amount = parsed.data.amount;
+  if (parsed.data.commission_percent !== undefined) {
+    patch.commission_percent = parsed.data.commission_percent;
+    patch.amount = null;
+  } else if (parsed.data.amount !== undefined) {
+    patch.amount = parsed.data.amount;
+    patch.commission_percent = null;
+  }
   if (parsed.data.recurrence !== undefined) patch.recurrence = parsed.data.recurrence;
   if (parsed.data.started_at !== undefined) patch.started_at = parsed.data.started_at;
   if (parsed.data.ended_at !== undefined) patch.ended_at = parsed.data.ended_at;
