@@ -3,6 +3,7 @@ export type ClientHubTabKey =
   | "dados"
   | "contratos"
   | "cobrancas"
+  | "cac"
   | "operacoes"
   | "pessoas"
   | "ferramentas"
@@ -31,6 +32,12 @@ export const CLIENT_HUB_TABS: readonly ClientHubTabDef[] = [
     href: (id) => `/clients/${id}/cobrancas`,
     adminOnly: true,
   },
+  {
+    key: "cac",
+    label: "CAC",
+    href: (id) => `/clients/${id}/cac`,
+    adminOnly: true,
+  },
   { key: "operacoes", label: "Operações", href: (id) => `/clients/${id}/operacoes` },
   { key: "pessoas", label: "Pessoas", href: (id) => `/clients/${id}/pessoas` },
   {
@@ -47,6 +54,7 @@ const LEGACY_TAB_QUERY: Record<string, ClientHubTabKey> = {
   dados: "dados",
   contratos: "contratos",
   cobrancas: "cobrancas",
+  cac: "cac",
   operacoes: "operacoes",
   pessoas: "pessoas",
   ferramentas: "ferramentas",

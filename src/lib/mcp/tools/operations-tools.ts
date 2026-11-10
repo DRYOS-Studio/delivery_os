@@ -23,7 +23,6 @@ function operationInsert(data: z.infer<typeof operationSchema>) {
     status: data.status,
     recurrence: data.recurrence ?? null,
     monthly_recurring_revenue: data.monthly_recurring_revenue ?? null,
-    tax_rate_pct: data.tax_rate_pct ?? null,
     start_date: data.start_date ?? null,
     end_date: data.end_date ?? null,
     response_hours: data.response_hours ?? null,

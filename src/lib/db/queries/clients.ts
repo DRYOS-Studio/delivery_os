@@ -1,4 +1,6 @@
+import { getProfile } from "@/lib/auth/server";
 import { createServer } from "@/lib/db/client";
+import { sumClientAcquisitionCosts } from "@/lib/db/queries/client-acquisition-costs";
 import {
   ACTIVE_STATUSES,
   isActiveStatus,
@@ -117,6 +119,7 @@ export type ClientSummary = {
   archivedOperations: number;
   activeFrentes: number;
   mrrTotal: number;
+  cacTotal: number;
 };
 
 export async function getClientSummary(
@@ -144,6 +147,12 @@ export async function getClientSummary(
     0,
   );
 
+  const profile = await getProfile();
+  const cacTotal =
+    profile?.role === "admin"
+      ? await sumClientAcquisitionCosts(clientId)
+      : 0;
+
   let activeFrentes = 0;
   const activeOpIds = active.map((o) => o.id);
   if (activeOpIds.length > 0) {
@@ -164,6 +173,7 @@ export async function getClientSummary(
     archivedOperations,
     activeFrentes,
     mrrTotal,
+    cacTotal,
   };
 }
 

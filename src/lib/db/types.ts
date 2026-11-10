@@ -800,6 +800,47 @@ export type Database = {
           },
         ]
       }
+      client_acquisition_costs: {
+        Row: {
+          amount: number
+          category: Database["public"]["Enums"]["client_acquisition_cost_category"]
+          client_id: string
+          created_at: string
+          description: string
+          id: string
+          spent_on: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          category: Database["public"]["Enums"]["client_acquisition_cost_category"]
+          client_id: string
+          created_at?: string
+          description: string
+          id?: string
+          spent_on: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: Database["public"]["Enums"]["client_acquisition_cost_category"]
+          client_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          spent_on?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_client_acquisition_costs_client"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_software_items: {
         Row: {
           client_id: string
@@ -2792,6 +2833,12 @@ export type Database = {
         | "client_charge"
       client_charge_type: "mensalidade" | "implantacao" | "avulsa"
       client_charge_discount_kind: "none" | "fixed" | "percent"
+      client_acquisition_cost_category:
+        | "anuncios_midia"
+        | "horas_venda_diagnostico"
+        | "comissao_indicacao"
+        | "ferramentas"
+        | "outros"
       client_charge_status:
         | "prevista"
         | "emitida"
@@ -3000,6 +3047,13 @@ export const Constants = {
       ],
       client_charge_type: ["mensalidade", "implantacao", "avulsa"],
       client_charge_discount_kind: ["none", "fixed", "percent"],
+      client_acquisition_cost_category: [
+        "anuncios_midia",
+        "horas_venda_diagnostico",
+        "comissao_indicacao",
+        "ferramentas",
+        "outros",
+      ],
       client_charge_status: [
         "prevista",
         "emitida",

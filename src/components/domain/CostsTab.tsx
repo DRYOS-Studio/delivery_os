@@ -70,7 +70,7 @@ export function CostsTab({ operationId, breakdown }: Props) {
             Impostos
           </h3>
           <Link
-            href={`/operations/${operationId}/edit`}
+            href={`/operations/${operationId}/costs/tax`}
             className="text-oak hover:underline text-sm font-medium"
           >
             Editar alíquota →
