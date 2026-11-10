@@ -1,6 +1,18 @@
 import { createServer } from "@/lib/db/client";
 import type { Database } from "@/lib/db/types";
 import {
+  clientChargeNetDue,
+  computeDiscountAmount,
+  resolveStoredDiscountAmount,
+  type ClientChargeDiscountKind,
+} from "@/lib/utils/client-charge-amount";
+import {
+  canHardDeleteClientCharge,
+  canUndoClientChargePayment,
+  statusAfterPartialPayment,
+  statusAfterUndoFullPayment,
+} from "@/lib/utils/client-charge-rules";
+import {
   clientChargeOpenAmount,
   effectiveClientChargeStatus,
   type ClientChargeStatus,
@@ -24,6 +36,10 @@ export type ClientChargeRow = {
   competence: string;
   dueDate: string;
   amount: number;
+  discountKind: ClientChargeDiscountKind;
+  discountInput: number | null;
+  discountAmount: number;
+  netDue: number;
   status: ClientChargeStatus;
   effectiveStatus: ClientChargeStatus;
   openAmount: number;
@@ -46,6 +62,9 @@ type RawCharge = {
   competence: string;
   due_date: string;
   amount: number | string;
+  discount_kind?: ClientChargeDiscountKind;
+  discount_input?: number | string | null;
+  discount_amount?: number | string | null;
   status: ClientChargeStatus;
   paid_at: string | null;
   paid_amount: number | string | null;
@@ -59,6 +78,18 @@ type RawCharge = {
 
 function mapCharge(r: RawCharge, asOf?: string): ClientChargeRow {
   const amount = Number(r.amount);
+  const discountKind = (r.discount_kind ?? "none") as ClientChargeDiscountKind;
+  const discountInput =
+    r.discount_input === null || r.discount_input === undefined
+      ? null
+      : Number(r.discount_input);
+  const discountAmount = resolveStoredDiscountAmount(
+    amount,
+    discountKind,
+    discountInput,
+    Number(r.discount_amount ?? 0),
+  );
+  const netDue = clientChargeNetDue(amount, discountAmount);
   const paidAmount =
     r.paid_amount === null || r.paid_amount === undefined
       ? null
@@ -66,7 +97,7 @@ function mapCharge(r: RawCharge, asOf?: string): ClientChargeRow {
   const statusInput = {
     status: r.status,
     dueDate: r.due_date,
-    amount,
+    netDue,
     paidAmount,
   };
   const effectiveStatus = effectiveClientChargeStatus(statusInput, asOf);
@@ -79,6 +110,10 @@ function mapCharge(r: RawCharge, asOf?: string): ClientChargeRow {
     competence: r.competence,
     dueDate: r.due_date,
     amount,
+    discountKind,
+    discountInput,
+    discountAmount,
+    netDue,
     status: r.status,
     effectiveStatus,
     openAmount: clientChargeOpenAmount(statusInput, asOf),
@@ -94,7 +129,19 @@ function mapCharge(r: RawCharge, asOf?: string): ClientChargeRow {
 }
 
 const CHARGE_SELECT =
-  "id, client_id, client_contract_id, operation_id, charge_type, competence, due_date, amount, status, paid_at, paid_amount, payment_method, notes, external_provider, external_id, created_at, updated_at";
+  "id, client_id, client_contract_id, operation_id, charge_type, competence, due_date, amount, discount_kind, discount_input, discount_amount, status, paid_at, paid_amount, payment_method, notes, external_provider, external_id, created_at, updated_at";
+
+export async function getClientCharge(id: string): Promise<ClientChargeRow | null> {
+  const supabase = await createServer();
+  const { data, error } = await supabase
+    .from("client_charges")
+    .select(CHARGE_SELECT)
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(`getClientCharge: ${error.message}`);
+  if (!data) return null;
+  return mapCharge(data as RawCharge);
+}
 
 export async function listClientCharges(
   clientId: string,
@@ -352,9 +399,8 @@ export async function markClientChargePaid(
   if (getErr) throw new Error(`markClientChargePaid: ${getErr.message}`);
   if (!existing) throw new Error("Cobrança não encontrada.");
 
-  const amount = Number(existing.amount);
-  const status: ClientChargeStatus =
-    input.paidAmount >= amount ? "paga" : existing.status;
+  const row = mapCharge(existing as RawCharge);
+  const status = statusAfterPartialPayment(input.paidAmount, row.netDue);
 
   const { data, error } = await supabase
     .from("client_charges")
@@ -368,5 +414,138 @@ export async function markClientChargePaid(
     .select(CHARGE_SELECT)
     .single();
   if (error) throw new Error(`markClientChargePaid.update: ${error.message}`);
+  return mapCharge(data as RawCharge);
+}
+
+export type UpdateClientChargeInput = {
+  amount: number;
+  dueDate: string;
+  notes: string | null;
+  discountKind: ClientChargeDiscountKind;
+  discountInput: number | null;
+};
+
+export async function updateClientCharge(
+  chargeId: string,
+  input: UpdateClientChargeInput,
+): Promise<ClientChargeRow> {
+  const discountAmount = computeDiscountAmount(
+    input.amount,
+    input.discountKind,
+    input.discountInput,
+  );
+  const supabase = await createServer();
+  const { data: existing, error: getErr } = await supabase
+    .from("client_charges")
+    .select(CHARGE_SELECT)
+    .eq("id", chargeId)
+    .maybeSingle();
+  if (getErr) throw new Error(`updateClientCharge: ${getErr.message}`);
+  if (!existing) throw new Error("Cobrança não encontrada.");
+
+  const mapped = mapCharge(existing as RawCharge);
+  const netDue = clientChargeNetDue(input.amount, discountAmount);
+  const paid = mapped.paidAmount ?? 0;
+  const status = statusAfterPartialPayment(paid, netDue);
+
+  const { data, error } = await supabase
+    .from("client_charges")
+    .update({
+      amount: input.amount,
+      due_date: input.dueDate,
+      notes: input.notes,
+      discount_kind: input.discountKind,
+      discount_input: input.discountKind === "none" ? null : input.discountInput,
+      discount_amount: discountAmount,
+      status,
+    })
+    .eq("id", chargeId)
+    .select(CHARGE_SELECT)
+    .single();
+  if (error) throw new Error(`updateClientCharge.update: ${error.message}`);
+  return mapCharge(data as RawCharge);
+}
+
+export async function deleteClientCharge(chargeId: string): Promise<void> {
+  const supabase = await createServer();
+  const { data: existing, error: getErr } = await supabase
+    .from("client_charges")
+    .select(CHARGE_SELECT)
+    .eq("id", chargeId)
+    .maybeSingle();
+  if (getErr) throw new Error(`deleteClientCharge: ${getErr.message}`);
+  if (!existing) throw new Error("Cobrança não encontrada.");
+  const mapped = mapCharge(existing as RawCharge);
+  if (!canHardDeleteClientCharge(mapped)) {
+    throw new Error(
+      "Cobrança com pagamento registrado não pode ser apagada. Use cancelar.",
+    );
+  }
+  const { error } = await supabase.from("client_charges").delete().eq("id", chargeId);
+  if (error) throw new Error(`deleteClientCharge.delete: ${error.message}`);
+}
+
+export async function cancelClientCharge(chargeId: string): Promise<ClientChargeRow> {
+  const supabase = await createServer();
+  const { data, error } = await supabase
+    .from("client_charges")
+    .update({ status: "cancelada" })
+    .eq("id", chargeId)
+    .select(CHARGE_SELECT)
+    .single();
+  if (error) throw new Error(`cancelClientCharge: ${error.message}`);
+  return mapCharge(data as RawCharge);
+}
+
+export type UndoClientChargePaymentInput = {
+  /** Omitir ou null = zera todo o recebimento. */
+  newPaidAmount?: number | null;
+};
+
+export async function undoClientChargePayment(
+  chargeId: string,
+  input: UndoClientChargePaymentInput = {},
+): Promise<ClientChargeRow> {
+  const supabase = await createServer();
+  const { data: existing, error: getErr } = await supabase
+    .from("client_charges")
+    .select(CHARGE_SELECT)
+    .eq("id", chargeId)
+    .maybeSingle();
+  if (getErr) throw new Error(`undoClientChargePayment: ${getErr.message}`);
+  if (!existing) throw new Error("Cobrança não encontrada.");
+
+  const mapped = mapCharge(existing as RawCharge);
+  if (!canUndoClientChargePayment(mapped)) {
+    throw new Error(
+      mapped.externalProvider
+        ? "Recebimento vinculado a gateway não pode ser desfeito aqui."
+        : "Não há recebimento para desfazer.",
+    );
+  }
+
+  const targetPaid =
+    input.newPaidAmount === undefined ? 0 : (input.newPaidAmount ?? 0);
+  const fullUndo = targetPaid <= 0;
+
+  const patch = fullUndo
+    ? {
+        paid_amount: null,
+        paid_at: null,
+        payment_method: null,
+        status: statusAfterUndoFullPayment(mapped.status),
+      }
+    : {
+        paid_amount: targetPaid,
+        status: statusAfterPartialPayment(targetPaid, mapped.netDue),
+      };
+
+  const { data, error } = await supabase
+    .from("client_charges")
+    .update(patch)
+    .eq("id", chargeId)
+    .select(CHARGE_SELECT)
+    .single();
+  if (error) throw new Error(`undoClientChargePayment.update: ${error.message}`);
   return mapCharge(data as RawCharge);
 }

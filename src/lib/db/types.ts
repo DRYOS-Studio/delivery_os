@@ -717,6 +717,9 @@ export type Database = {
           client_id: string
           competence: string
           created_at: string
+          discount_amount: number
+          discount_input: number | null
+          discount_kind: Database["public"]["Enums"]["client_charge_discount_kind"]
           due_date: string
           external_id: string | null
           external_provider: string | null
@@ -736,6 +739,9 @@ export type Database = {
           client_id: string
           competence: string
           created_at?: string
+          discount_amount?: number
+          discount_input?: number | null
+          discount_kind?: Database["public"]["Enums"]["client_charge_discount_kind"]
           due_date: string
           external_id?: string | null
           external_provider?: string | null
@@ -755,6 +761,9 @@ export type Database = {
           client_id?: string
           competence?: string
           created_at?: string
+          discount_amount?: number
+          discount_input?: number | null
+          discount_kind?: Database["public"]["Enums"]["client_charge_discount_kind"]
           due_date?: string
           external_id?: string | null
           external_provider?: string | null
@@ -2782,6 +2791,7 @@ export type Database = {
         | "sla_incident"
         | "client_charge"
       client_charge_type: "mensalidade" | "implantacao" | "avulsa"
+      client_charge_discount_kind: "none" | "fixed" | "percent"
       client_charge_status:
         | "prevista"
         | "emitida"
@@ -2989,6 +2999,7 @@ export const Constants = {
         "client_charge",
       ],
       client_charge_type: ["mensalidade", "implantacao", "avulsa"],
+      client_charge_discount_kind: ["none", "fixed", "percent"],
       client_charge_status: [
         "prevista",
         "emitida",

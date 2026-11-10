@@ -1121,7 +1121,8 @@ const BASE_MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
     name: "mark_client_charge_paid",
     access: "admin",
     idempotent: true,
-    description: "Registra pagamento (valor e data); quitado se paid_amount >= amount.",
+    description:
+      "Registra pagamento (valor e data); quitado se paid_amount >= net_due (líquido após desconto).",
     inputSchema: {
       type: "object",
       properties: {
@@ -1131,6 +1132,60 @@ const BASE_MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
         payment_method: { type: "string" },
       },
       required: ["charge_id", "paid_at", "paid_amount"],
+    },
+  },
+  {
+    name: "update_client_charge",
+    access: "admin",
+    description:
+      "Atualiza cobrança (valor, vencimento, notas, desconto fixo ou percentual).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        charge_id: { type: "string" },
+        amount: { type: "number" },
+        due_date: { type: "string" },
+        notes: { type: ["string", "null"] },
+        discount_kind: { type: "string", enum: ["none", "fixed", "percent"] },
+        discount_input: { type: ["number", "null"] },
+      },
+      required: ["charge_id"],
+    },
+  },
+  {
+    name: "delete_client_charge",
+    access: "admin",
+    description:
+      "Remove cobrança sem pagamento registrado. Falha se já houver recebimento.",
+    inputSchema: {
+      type: "object",
+      properties: { charge_id: { type: "string" } },
+      required: ["charge_id"],
+    },
+  },
+  {
+    name: "cancel_client_charge",
+    access: "admin",
+    description:
+      "Cancela cobrança com pagamento (status cancelada); não remove do histórico.",
+    inputSchema: {
+      type: "object",
+      properties: { charge_id: { type: "string" } },
+      required: ["charge_id"],
+    },
+  },
+  {
+    name: "undo_client_charge_payment",
+    access: "admin",
+    description:
+      "Desfaz recebimento manual (sem gateway). Opcional new_paid_amount para ajuste parcial.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        charge_id: { type: "string" },
+        new_paid_amount: { type: "number" },
+      },
+      required: ["charge_id"],
     },
   },
   {

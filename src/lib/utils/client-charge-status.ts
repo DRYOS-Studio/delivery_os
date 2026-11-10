@@ -6,7 +6,7 @@ export type ClientChargeStatus =
 export type ClientChargeStatusInput = {
   status: ClientChargeStatus;
   dueDate: string;
-  amount: number;
+  netDue: number;
   paidAmount: number | null;
 };
 
@@ -27,12 +27,12 @@ export function effectiveClientChargeStatus(
 ): ClientChargeStatus {
   const paid = input.paidAmount ?? 0;
   if (input.status === "cancelada") return "cancelada";
-  if (paid >= input.amount) return "paga";
-  if (input.status === "paga") return "paga";
+  if (paid >= input.netDue && input.netDue > 0) return "paga";
+  if (input.status === "paga" && paid >= input.netDue) return "paga";
   if (
     OPEN_STATUSES.has(input.status) &&
     input.dueDate < asOfDate &&
-    paid < input.amount
+    paid < input.netDue
   ) {
     return "atrasada";
   }
@@ -46,7 +46,14 @@ export function clientChargeOpenAmount(
   const effective = effectiveClientChargeStatus(input, asOfDate);
   if (effective === "cancelada" || effective === "paga") return 0;
   const paid = input.paidAmount ?? 0;
-  return Math.max(0, input.amount - paid);
+  return Math.max(0, input.netDue - paid);
+}
+
+/** Ex.: parcial quitado ou em atraso com saldo em aberto. */
+export function clientChargeHasPartialPayment(input: ClientChargeStatusInput): boolean {
+  const paid = input.paidAmount ?? 0;
+  if (paid <= 0) return false;
+  return paid < input.netDue;
 }
 
 export function clientChargeStatusLabel(status: ClientChargeStatus): string {
