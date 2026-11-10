@@ -21,9 +21,15 @@ import {
 import {
   buildPlannedChargesFromContract,
   DEFAULT_CHARGE_MONTHS_AHEAD,
+  plannedChargeKey,
   type ContractForChargeGeneration,
   type PlannedClientChargeInsert,
 } from "@/lib/utils/generate-client-charges";
+import { calendarDateLocalToday } from "@/lib/utils/calendar-date";
+import {
+  storedStatusAfterChargeEdit,
+  type ChargeBillingStatus,
+} from "@/lib/utils/client-charge-rules";
 import { ACTIVE_STATUSES } from "@/lib/utils/operation-status";
 
 export type ClientChargeType = Database["public"]["Enums"]["client_charge_type"];
@@ -132,9 +138,12 @@ function mapCharge(r: RawCharge, asOf?: string): ClientChargeRow {
 const CHARGE_SELECT =
   "id, client_id, client_contract_id, operation_id, charge_type, competence, due_date, amount, discount_kind, discount_input, discount_amount, status, paid_at, paid_amount, payment_method, notes, external_provider, external_id, created_at, updated_at";
 
-export async function getClientCharge(id: string): Promise<ClientChargeRow | null> {
-  const supabase = await createServer();
-  const { data, error } = await supabase
+export async function getClientCharge(
+  id: string,
+  supabase?: SupabaseClient<Database>,
+): Promise<ClientChargeRow | null> {
+  const db = await resolveSupabase(supabase);
+  const { data, error } = await db
     .from("client_charges")
     .select(CHARGE_SELECT)
     .eq("id", id)
@@ -147,9 +156,10 @@ export async function getClientCharge(id: string): Promise<ClientChargeRow | nul
 export async function listClientCharges(
   clientId: string,
   opts?: { contractId?: string; limit?: number },
+  supabase?: SupabaseClient<Database>,
 ): Promise<ClientChargeRow[]> {
-  const supabase = await createServer();
-  let q = supabase
+  const db = await resolveSupabase(supabase);
+  let q = db
     .from("client_charges")
     .select(CHARGE_SELECT)
     .eq("client_id", clientId)
@@ -187,7 +197,7 @@ function monthBounds(ref: string): { start: string; end: string } {
 }
 
 export async function getGlobalClientCashSummary(
-  asOfDate: string = new Date().toISOString().slice(0, 10),
+  asOfDate: string = calendarDateLocalToday(),
 ): Promise<ClientCashSummary> {
   const supabase = await createServer();
   const { start, end } = monthBounds(asOfDate.slice(0, 7));
@@ -348,6 +358,68 @@ export type GenerateChargesResult = {
   chargeIds: string[];
 };
 
+const EXISTING_CHARGE_SLOT_SELECT =
+  "id, charge_type, competence, status";
+
+type ExistingChargeSlot = {
+  id: string;
+  charge_type: ClientChargeType;
+  competence: string;
+  status: ClientChargeStatus;
+};
+
+async function loadExistingChargeSlotsByContract(
+  db: SupabaseClient<Database>,
+  contractId: string,
+): Promise<Map<string, ExistingChargeSlot>> {
+  const { data, error } = await db
+    .from("client_charges")
+    .select(EXISTING_CHARGE_SLOT_SELECT)
+    .eq("client_contract_id", contractId);
+  if (error) {
+    throw new Error(
+      `generateClientChargesFromContract.existing: ${error.message}`,
+    );
+  }
+  const map = new Map<string, ExistingChargeSlot>();
+  for (const raw of (data ?? []) as ExistingChargeSlot[]) {
+    const key = `${contractId}:${raw.charge_type}:${raw.competence}`;
+    map.set(key, raw);
+  }
+  return map;
+}
+
+async function removeCancelledChargeSlot(
+  db: SupabaseClient<Database>,
+  existing: ExistingChargeSlot,
+): Promise<void> {
+  const { error } = await db.from("client_charges").delete().eq("id", existing.id);
+  if (error) {
+    throw new Error(
+      `generateClientChargesFromContract.removeCancelled: ${error.message}`,
+    );
+  }
+}
+
+async function resolveUniqueViolation(
+  db: SupabaseClient<Database>,
+  row: PlannedClientChargeInsert,
+): Promise<ExistingChargeSlot | null> {
+  const { data, error } = await db
+    .from("client_charges")
+    .select(EXISTING_CHARGE_SLOT_SELECT)
+    .eq("client_contract_id", row.client_contract_id)
+    .eq("charge_type", row.charge_type)
+    .eq("competence", row.competence)
+    .maybeSingle();
+  if (error) {
+    throw new Error(
+      `generateClientChargesFromContract.conflict: ${error.message}`,
+    );
+  }
+  return data ? (data as ExistingChargeSlot) : null;
+}
+
 export async function generateClientChargesFromContract(
   contractId: string,
   monthsAhead: number = DEFAULT_CHARGE_MONTHS_AHEAD,
@@ -366,11 +438,23 @@ export async function generateClientChargesFromContract(
   }
 
   const db = await resolveSupabase(supabase);
+  const existingByKey = await loadExistingChargeSlotsByContract(db, contractId);
   let inserted = 0;
   let skipped = 0;
   const chargeIds: string[] = [];
 
   for (const row of planned) {
+    const key = plannedChargeKey(row);
+    const existing = existingByKey.get(key);
+    if (existing && existing.status !== "cancelada") {
+      skipped += 1;
+      continue;
+    }
+    if (existing?.status === "cancelada") {
+      await removeCancelledChargeSlot(db, existing);
+      existingByKey.delete(key);
+    }
+
     const { data, error } = await db
       .from("client_charges")
       .insert(row)
@@ -378,14 +462,24 @@ export async function generateClientChargesFromContract(
       .maybeSingle();
     if (error) {
       if (error.code === "23505") {
-        skipped += 1;
-        continue;
+        const conflict = await resolveUniqueViolation(db, row);
+        if (conflict && conflict.status !== "cancelada") {
+          existingByKey.set(key, conflict);
+          skipped += 1;
+          continue;
+        }
       }
       throw new Error(`generateClientChargesFromContract: ${error.message}`);
     }
     if (data?.id) {
       inserted += 1;
       chargeIds.push(data.id);
+      existingByKey.set(key, {
+        id: data.id,
+        charge_type: row.charge_type,
+        competence: row.competence,
+        status: "prevista",
+      });
     }
   }
 
@@ -399,9 +493,10 @@ export async function markClientChargePaid(
     paidAmount: number;
     paymentMethod: string | null;
   },
+  supabase?: SupabaseClient<Database>,
 ): Promise<ClientChargeRow> {
-  const supabase = await createServer();
-  const { data: existing, error: getErr } = await supabase
+  const db = await resolveSupabase(supabase);
+  const { data: existing, error: getErr } = await db
     .from("client_charges")
     .select(CHARGE_SELECT)
     .eq("id", chargeId)
@@ -412,7 +507,7 @@ export async function markClientChargePaid(
   const row = mapCharge(existing as RawCharge);
   const status = statusAfterPartialPayment(input.paidAmount, row.netDue);
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("client_charges")
     .update({
       paid_at: input.paidAt,
@@ -433,19 +528,21 @@ export type UpdateClientChargeInput = {
   notes: string | null;
   discountKind: ClientChargeDiscountKind;
   discountInput: number | null;
+  status?: ChargeBillingStatus;
 };
 
 export async function updateClientCharge(
   chargeId: string,
   input: UpdateClientChargeInput,
+  supabase?: SupabaseClient<Database>,
 ): Promise<ClientChargeRow> {
   const discountAmount = computeDiscountAmount(
     input.amount,
     input.discountKind,
     input.discountInput,
   );
-  const supabase = await createServer();
-  const { data: existing, error: getErr } = await supabase
+  const db = await resolveSupabase(supabase);
+  const { data: existing, error: getErr } = await db
     .from("client_charges")
     .select(CHARGE_SELECT)
     .eq("id", chargeId)
@@ -456,9 +553,22 @@ export async function updateClientCharge(
   const mapped = mapCharge(existing as RawCharge);
   const netDue = clientChargeNetDue(input.amount, discountAmount);
   const paid = mapped.paidAmount ?? 0;
-  const status = statusAfterPartialPayment(paid, netDue);
+  if (
+    input.status !== undefined &&
+    (paid > 0 || mapped.status === "paga" || mapped.status === "cancelada")
+  ) {
+    throw new Error(
+      "Status prevista/emitida só pode ser alterado em cobranças sem pagamento.",
+    );
+  }
+  const status = storedStatusAfterChargeEdit(
+    mapped.status,
+    paid,
+    netDue,
+    input.status,
+  );
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("client_charges")
     .update({
       amount: input.amount,
@@ -476,9 +586,12 @@ export async function updateClientCharge(
   return mapCharge(data as RawCharge);
 }
 
-export async function deleteClientCharge(chargeId: string): Promise<void> {
-  const supabase = await createServer();
-  const { data: existing, error: getErr } = await supabase
+export async function deleteClientCharge(
+  chargeId: string,
+  supabase?: SupabaseClient<Database>,
+): Promise<void> {
+  const db = await resolveSupabase(supabase);
+  const { data: existing, error: getErr } = await db
     .from("client_charges")
     .select(CHARGE_SELECT)
     .eq("id", chargeId)
@@ -491,13 +604,16 @@ export async function deleteClientCharge(chargeId: string): Promise<void> {
       "Cobrança com pagamento registrado não pode ser apagada. Use cancelar.",
     );
   }
-  const { error } = await supabase.from("client_charges").delete().eq("id", chargeId);
+  const { error } = await db.from("client_charges").delete().eq("id", chargeId);
   if (error) throw new Error(`deleteClientCharge.delete: ${error.message}`);
 }
 
-export async function cancelClientCharge(chargeId: string): Promise<ClientChargeRow> {
-  const supabase = await createServer();
-  const { data, error } = await supabase
+export async function cancelClientCharge(
+  chargeId: string,
+  supabase?: SupabaseClient<Database>,
+): Promise<ClientChargeRow> {
+  const db = await resolveSupabase(supabase);
+  const { data, error } = await db
     .from("client_charges")
     .update({ status: "cancelada" })
     .eq("id", chargeId)
@@ -515,9 +631,10 @@ export type UndoClientChargePaymentInput = {
 export async function undoClientChargePayment(
   chargeId: string,
   input: UndoClientChargePaymentInput = {},
+  supabase?: SupabaseClient<Database>,
 ): Promise<ClientChargeRow> {
-  const supabase = await createServer();
-  const { data: existing, error: getErr } = await supabase
+  const db = await resolveSupabase(supabase);
+  const { data: existing, error: getErr } = await db
     .from("client_charges")
     .select(CHARGE_SELECT)
     .eq("id", chargeId)
@@ -550,7 +667,7 @@ export async function undoClientChargePayment(
         status: statusAfterPartialPayment(targetPaid, mapped.netDue),
       };
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("client_charges")
     .update(patch)
     .eq("id", chargeId)

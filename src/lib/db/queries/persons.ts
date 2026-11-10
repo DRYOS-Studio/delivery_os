@@ -1,4 +1,5 @@
 import { createServer } from "@/lib/db/client";
+import { calendarDateLocalToday } from "@/lib/utils/calendar-date";
 import type { Database } from "@/lib/db/types";
 
 export type PersonDetail = Database["public"]["Tables"]["persons"]["Row"];
@@ -134,7 +135,7 @@ export async function countActiveAllocationsByPerson(
   personId: string,
 ): Promise<number> {
   const supabase = await createServer();
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = calendarDateLocalToday();
   const { count, error } = await supabase
     .from("allocations")
     .select("id", { count: "exact", head: true })

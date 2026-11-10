@@ -74,7 +74,11 @@ export async function mcpListClientCharges(
     if (parsed.data.contract_id !== undefined) {
       listOpts.contractId = parsed.data.contract_id;
     }
-    const charges = await listClientCharges(parsed.data.client_id, listOpts);
+    const charges = await listClientCharges(
+      parsed.data.client_id,
+      listOpts,
+      ctx.supabase,
+    );
     return { ok: true, data: { charges: charges.map(serializeCharge) } };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Falha ao listar cobranças.";
@@ -135,11 +139,15 @@ export async function mcpMarkClientChargePaid(
     };
   }
   try {
-    const row = await markClientChargePaid(parsed.data.charge_id, {
-      paidAt: parsed.data.paid_at,
-      paidAmount: parsed.data.paid_amount,
-      paymentMethod: parsed.data.payment_method,
-    });
+    const row = await markClientChargePaid(
+      parsed.data.charge_id,
+      {
+        paidAt: parsed.data.paid_at,
+        paidAmount: parsed.data.paid_amount,
+        paymentMethod: parsed.data.payment_method,
+      },
+      ctx.supabase,
+    );
     return { ok: true, data: { charge: serializeCharge(row) } };
   } catch (e) {
     const message =
@@ -166,14 +174,22 @@ export async function mcpUpdateClientCharge(
     };
   }
   try {
-    const row = await updateClientCharge(parsed.data.charge_id, {
+    const updateInput: Parameters<typeof updateClientCharge>[1] = {
       amount: parsed.data.amount,
       dueDate: parsed.data.due_date,
       notes: parsed.data.notes,
       discountKind: parsed.data.discount_kind as ClientChargeDiscountKind,
       discountInput:
         parsed.data.discount_kind === "none" ? null : parsed.data.discount_input,
-    });
+    };
+    if (parsed.data.status !== undefined) {
+      updateInput.status = parsed.data.status;
+    }
+    const row = await updateClientCharge(
+      parsed.data.charge_id,
+      updateInput,
+      ctx.supabase,
+    );
     return { ok: true, data: { charge: serializeCharge(row) } };
   } catch (e) {
     const message =
@@ -195,7 +211,7 @@ export async function mcpDeleteClientCharge(
     return { ok: false, message: "charge_id inválido." };
   }
   try {
-    await deleteClientCharge(parsed.data.charge_id);
+    await deleteClientCharge(parsed.data.charge_id, ctx.supabase);
     return { ok: true, data: { charge_id: parsed.data.charge_id } };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Falha ao apagar cobrança.";
@@ -214,7 +230,7 @@ export async function mcpCancelClientCharge(
     return { ok: false, message: "charge_id inválido." };
   }
   try {
-    const row = await cancelClientCharge(parsed.data.charge_id);
+    const row = await cancelClientCharge(parsed.data.charge_id, ctx.supabase);
     return { ok: true, data: { charge: serializeCharge(row) } };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Falha ao cancelar cobrança.";
@@ -244,7 +260,11 @@ export async function mcpUndoClientChargePayment(
       parsed.data.new_paid_amount !== undefined
         ? { newPaidAmount: parsed.data.new_paid_amount }
         : {};
-    const row = await undoClientChargePayment(parsed.data.charge_id, input);
+    const row = await undoClientChargePayment(
+      parsed.data.charge_id,
+      input,
+      ctx.supabase,
+    );
     return { ok: true, data: { charge: serializeCharge(row) } };
   } catch (e) {
     const message =

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DeleteDiagnosticButton } from "@/components/domain/DeleteDiagnosticButton";
 import { saveManagementDiagnosticAction } from "@/lib/actions/diagnostics";
+import { calendarDateLocalToday } from "@/lib/utils/calendar-date";
 import {
   DIMS,
   PROFILE_FIELDS,
@@ -51,7 +52,7 @@ export function ManagementDiagnosticWizard({
     data:
       initialDiagnostic?.profileData?.data ||
       initialDiagnostic?.conducted_at ||
-      new Date().toISOString().slice(0, 10),
+      calendarDateLocalToday(),
     consultor:
       initialDiagnostic?.profileData?.consultor ||
       "Rafael Carvalho · dryos studio",
@@ -99,7 +100,7 @@ export function ManagementDiagnosticWizard({
         naAnswers,
         formType: "estruturacao_processos",
         status: asCompleted ? ("completed" as const) : ("draft" as const),
-        conductedAt: profile.data || new Date().toISOString().slice(0, 10),
+        conductedAt: profile.data || calendarDateLocalToday(),
       };
 
       const result = await saveManagementDiagnosticAction(

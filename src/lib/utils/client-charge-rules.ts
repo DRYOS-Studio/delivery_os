@@ -45,3 +45,35 @@ export function statusAfterPartialPayment(
   if (paidAmount >= netDue) return "paga";
   return "emitida";
 }
+
+export type ChargeBillingStatus = "prevista" | "emitida";
+
+export function canSetChargeBillingStatus(status: ClientChargeStatus): boolean {
+  return status === "prevista" || status === "emitida";
+}
+
+/** Status persistido ao editar cobrança (sem forçar emitida quando ainda não houve pagamento). */
+export function storedStatusAfterChargeEdit(
+  previous: ClientChargeStatus,
+  paidAmount: number,
+  netDue: number,
+  requestedStatus?: ChargeBillingStatus,
+): ClientChargeStatus {
+  if (previous === "cancelada" || previous === "paga") {
+    return previous;
+  }
+  if (paidAmount > 0) {
+    return statusAfterPartialPayment(paidAmount, netDue);
+  }
+  if (
+    requestedStatus &&
+    canSetChargeBillingStatus(previous) &&
+    canSetChargeBillingStatus(requestedStatus)
+  ) {
+    return requestedStatus;
+  }
+  if (previous === "prevista" || previous === "emitida") {
+    return previous;
+  }
+  return previous;
+}

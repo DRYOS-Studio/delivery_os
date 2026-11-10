@@ -22,6 +22,7 @@ import {
   chargeHasPaymentRecorded,
 } from "@/lib/utils/client-charge-rules";
 import { summarizeClientCash } from "@/lib/utils/client-cash-summary";
+import { calendarDateLocalToday } from "@/lib/utils/calendar-date";
 import { formatDateBR } from "@/lib/utils/date";
 import { formatMoneyBR } from "@/lib/utils/money";
 
@@ -280,7 +281,7 @@ export function ClientChargesSection({
                             type="date"
                             name="paid_at"
                             required
-                            defaultValue={new Date().toISOString().slice(0, 10)}
+                            defaultValue={calendarDateLocalToday()}
                             className="mt-1 w-full rounded border border-line bg-cream-paper px-2 py-1.5 text-sm block"
                           />
                         </label>

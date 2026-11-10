@@ -9,6 +9,7 @@ import {
 } from "@/lib/actions/client-acquisition-costs";
 import type { ClientAcquisitionCostRow } from "@/lib/db/queries/client-acquisition-costs";
 import { Button } from "@/components/ui/Button";
+import { calendarDateLocalToday } from "@/lib/utils/calendar-date";
 import {
   CLIENT_CAC_CATEGORIES,
   clientCacCategoryLabel,
@@ -76,7 +77,7 @@ export function ClientCacForm(props: Props): React.JSX.Element {
             name="spent_on"
             type="date"
             required
-            defaultValue={item?.spentOn ?? new Date().toISOString().slice(0, 10)}
+            defaultValue={item?.spentOn ?? calendarDateLocalToday()}
             className={inputCn}
             disabled={busy}
           />

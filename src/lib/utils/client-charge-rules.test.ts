@@ -5,6 +5,7 @@ import {
   chargeHasPaymentRecorded,
   statusAfterUndoFullPayment,
   statusAfterPartialPayment,
+  storedStatusAfterChargeEdit,
 } from "@/lib/utils/client-charge-rules";
 
 describe("client charge delete/cancel rules", () => {
@@ -65,5 +66,24 @@ describe("status após desfazer recebimento", () => {
   it("parcial mantém emitida", () => {
     expect(statusAfterPartialPayment(500, 2000)).toBe("emitida");
     expect(statusAfterPartialPayment(2000, 2000)).toBe("paga");
+  });
+});
+
+describe("storedStatusAfterChargeEdit", () => {
+  it("edição sem pagamento preserva prevista", () => {
+    expect(storedStatusAfterChargeEdit("prevista", 0, 1000)).toBe("prevista");
+  });
+
+  it("edição sem pagamento não força emitida", () => {
+    expect(storedStatusAfterChargeEdit("prevista", 0, 500)).toBe("prevista");
+  });
+
+  it("permite alternar prevista ↔ emitida sem pagamento", () => {
+    expect(storedStatusAfterChargeEdit("prevista", 0, 1000, "emitida")).toBe(
+      "emitida",
+    );
+    expect(storedStatusAfterChargeEdit("emitida", 0, 1000, "prevista")).toBe(
+      "prevista",
+    );
   });
 });
