@@ -18,7 +18,7 @@ export type OperationCostRow = {
   /** Valor fixo em R$; null em comissões percentuais novas. */
   amount: number | null;
   commissionPercent: number | null;
-  /** Valor mensal efetivo (R$), derivado de amount ou % × MRR. */
+  /** Valor mensal efetivo (R$), derivado de amount ou % sobre MRR líquido de imposto. */
   monthlyAmount: number;
   category: OperationCostCategory;
   recurrence: CostRecurrence;
@@ -73,7 +73,7 @@ type RawCostRow = {
 
 function mapCost(
   r: RawCostRow,
-  chargedRevenue?: number | null,
+  finance?: { chargedRevenue?: number | null; taxRatePct?: number | null },
 ): OperationCostRow {
   const amount =
     r.amount === null || r.amount === undefined ? null : Number(r.amount);
@@ -101,7 +101,7 @@ function mapCost(
       amount: base.amount,
       commissionPercent: base.commissionPercent,
     },
-    chargedRevenue,
+    finance,
   );
   return { ...base, monthlyAmount };
 }
@@ -114,13 +114,34 @@ export async function listOperationCosts(
   operationId: string,
 ): Promise<OperationCostRow[]> {
   const supabase = await createServer();
-  const { data, error } = await supabase
-    .from("operation_costs")
-    .select("*")
-    .eq("operation_id", operationId)
-    .order("started_at", { ascending: false });
-  if (error) throw new Error(`listOperationCosts: ${error.message}`);
-  return (data ?? []).map((r) => mapCost(r as RawCostRow, null));
+  const [opRes, costsRes] = await Promise.all([
+    supabase
+      .from("operations")
+      .select("monthly_recurring_revenue, tax_rate_pct")
+      .eq("id", operationId)
+      .maybeSingle(),
+    supabase
+      .from("operation_costs")
+      .select("*")
+      .eq("operation_id", operationId)
+      .order("started_at", { ascending: false }),
+  ]);
+  if (opRes.error)
+    throw new Error(`listOperationCosts.operation: ${opRes.error.message}`);
+  if (costsRes.error)
+    throw new Error(`listOperationCosts: ${costsRes.error.message}`);
+  const chargedRevenue =
+    opRes.data?.monthly_recurring_revenue === null ||
+    opRes.data?.monthly_recurring_revenue === undefined
+      ? null
+      : Number(opRes.data.monthly_recurring_revenue);
+  const taxRatePct =
+    opRes.data?.tax_rate_pct === null || opRes.data?.tax_rate_pct === undefined
+      ? null
+      : Number(opRes.data.tax_rate_pct);
+  return (costsRes.data ?? []).map((r) =>
+    mapCost(r as RawCostRow, { chargedRevenue, taxRatePct }),
+  );
 }
 
 export async function getOperationCost(
@@ -130,21 +151,29 @@ export async function getOperationCost(
   const { data, error } = await supabase
     .from("operation_costs")
     .select(
-      "*, operation:operations!fk_operation_costs_operation_id(monthly_recurring_revenue)",
+      "*, operation:operations!fk_operation_costs_operation_id(monthly_recurring_revenue, tax_rate_pct)",
     )
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(`getOperationCost: ${error.message}`);
   if (!data) return null;
   const row = data as RawCostRow & {
-    operation: { monthly_recurring_revenue: number | null } | null;
+    operation: {
+      monthly_recurring_revenue: number | null;
+      tax_rate_pct: number | null;
+    } | null;
   };
   const mrr =
     row.operation?.monthly_recurring_revenue === null ||
     row.operation?.monthly_recurring_revenue === undefined
       ? null
       : Number(row.operation.monthly_recurring_revenue);
-  return mapCost(row, mrr);
+  const taxRatePct =
+    row.operation?.tax_rate_pct === null ||
+    row.operation?.tax_rate_pct === undefined
+      ? null
+      : Number(row.operation.tax_rate_pct);
+  return mapCost(row, { chargedRevenue: mrr, taxRatePct });
 }
 
 type PersonInJoin = {
@@ -192,19 +221,24 @@ export function computeBreakdown(
     finance?.chargedRevenue === null || finance?.chargedRevenue === undefined
       ? null
       : Number(finance.chargedRevenue);
+  const financeContext = {
+    chargedRevenue,
+    taxRatePct:
+      finance?.taxRatePct === null || finance?.taxRatePct === undefined
+        ? null
+        : Number(finance.taxRatePct),
+  };
 
   const enrichedItems = adHocItems.map((c) => ({
     ...c,
-    monthlyAmount:
-      c.monthlyAmount ??
-      resolveOperationCostMonthlyAmount(
-        {
-          category: c.category,
-          amount: c.amount ?? null,
-          commissionPercent: c.commissionPercent ?? null,
-        },
-        chargedRevenue,
-      ),
+    monthlyAmount: resolveOperationCostMonthlyAmount(
+      {
+        category: c.category,
+        amount: c.amount ?? null,
+        commissionPercent: c.commissionPercent ?? null,
+      },
+      financeContext,
+    ),
   }));
 
   const monthlyActive = enrichedItems.filter((c) => c.recurrence === "mensal");
@@ -284,12 +318,9 @@ export function computeBreakdown(
   }
   const allocationsTotal = allocations.reduce((s, x) => s + x.monthlyCost, 0);
 
-  const taxRatePct =
-    finance?.taxRatePct === null || finance?.taxRatePct === undefined
-      ? null
-      : Number(finance.taxRatePct);
+  const taxRatePct = financeContext.taxRatePct;
   const taxMonthlyAmount = computeTaxMonthlyAmount(
-    finance?.chargedRevenue,
+    chargedRevenue,
     taxRatePct,
   );
 
@@ -368,7 +399,7 @@ export async function getOperationMonthlyCosts(
       ? null
       : Number(opRes.data.tax_rate_pct);
   const adHocItems = (costsRes.data ?? []).map((r) =>
-    mapCost(r as RawCostRow, chargedRevenue),
+    mapCost(r as RawCostRow, { chargedRevenue, taxRatePct }),
   );
   const allocRows = (allocRes.data ?? []) as unknown as AllocJoin[];
 
@@ -394,7 +425,7 @@ export async function getActiveOperationsMonthlyCostsTotal(): Promise<number> {
     supabase
       .from("operation_costs")
       .select(
-        "*, operation:operations!fk_operation_costs_operation_id!inner(archived_at, status, monthly_recurring_revenue)",
+        "*, operation:operations!fk_operation_costs_operation_id!inner(archived_at, status, monthly_recurring_revenue, tax_rate_pct)",
       )
       .is("operation.archived_at", null)
       .in("operation.status", ACTIVE_STATUSES)
@@ -431,14 +462,25 @@ export async function getActiveOperationsMonthlyCostsTotal(): Promise<number> {
   const costsByOp = new Map<string, OperationCostRow[]>();
   for (const r of costsRes.data ?? []) {
     const row = r as RawCostRow & {
-      operation: { monthly_recurring_revenue: number | null };
+      operation: {
+        monthly_recurring_revenue: number | null;
+        tax_rate_pct: number | null;
+      };
     };
     const chargedForOp =
       row.operation.monthly_recurring_revenue === null ||
       row.operation.monthly_recurring_revenue === undefined
         ? null
         : Number(row.operation.monthly_recurring_revenue);
-    const cost = mapCost(row, chargedForOp);
+    const taxForOp =
+      row.operation.tax_rate_pct === null ||
+      row.operation.tax_rate_pct === undefined
+        ? null
+        : Number(row.operation.tax_rate_pct);
+    const cost = mapCost(row, {
+      chargedRevenue: chargedForOp,
+      taxRatePct: taxForOp,
+    });
     const list = costsByOp.get(cost.operationId) ?? [];
     list.push(cost);
     costsByOp.set(cost.operationId, list);

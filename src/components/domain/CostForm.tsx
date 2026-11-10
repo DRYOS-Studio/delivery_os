@@ -16,7 +16,10 @@ import {
   operationCostCategoryLabel,
   type OperationCostCategory,
 } from "@/lib/utils/operation-cost-category";
-import { computeCommissionMonthlyAmount } from "@/lib/utils/operation-cost-amount";
+import {
+  computeCommissionBaseRevenue,
+  computeCommissionMonthlyAmount,
+} from "@/lib/utils/operation-cost-amount";
 import { formatMoneyBR } from "@/lib/utils/money";
 
 type Props = (
@@ -30,7 +33,7 @@ type Props = (
       operationId: string;
       initialData: OperationCostRow;
     }
-) & { isAdmin: boolean; operationMrr: number | null };
+) & { isAdmin: boolean; operationMrr: number | null; operationTaxRatePct: number | null };
 
 type FormShape = {
   category: OperationCostCategory;
@@ -107,8 +110,12 @@ export function CostForm(props: Props): React.JSX.Element {
     if (!usePercent || !percentInput.trim()) return null;
     const pct = Number(percentInput.replace(",", "."));
     if (!Number.isFinite(pct) || pct <= 0) return null;
-    return computeCommissionMonthlyAmount(props.operationMrr, pct);
-  }, [usePercent, percentInput, props.operationMrr]);
+    return computeCommissionMonthlyAmount(
+      props.operationMrr,
+      pct,
+      props.operationTaxRatePct,
+    );
+  }, [usePercent, percentInput, props.operationMrr, props.operationTaxRatePct]);
 
   async function onSubmit(values: FormShape) {
     setGeneralError(null);
@@ -205,7 +212,17 @@ export function CostForm(props: Props): React.JSX.Element {
             error={errors.commission_percent?.message}
             hint={
               props.operationMrr && props.operationMrr > 0
-                ? `Sobre o MRR ${formatMoneyBR(props.operationMrr)} (como imposto).`
+                ? (() => {
+                    const base = computeCommissionBaseRevenue(
+                      props.operationMrr,
+                      props.operationTaxRatePct,
+                    );
+                    const taxLabel =
+                      props.operationTaxRatePct != null && props.operationTaxRatePct > 0
+                        ? ` (MRR ${formatMoneyBR(props.operationMrr)} menos imposto → base ${formatMoneyBR(base)})`
+                        : "";
+                    return `Sobre o valor cobrado sem impostos${taxLabel}.`;
+                  })()
                 : "Operação sem MRR: o valor calculado fica R$ 0 até definir MRR."
             }
           >

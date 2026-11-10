@@ -30,6 +30,7 @@ export default async function Page({
         initialData={cost}
         isAdmin={profile.role === "admin"}
         operationMrr={op.monthlyRecurringRevenue}
+        operationTaxRatePct={op.taxRatePct}
       />
     </>
   );
