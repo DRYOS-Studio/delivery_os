@@ -51,10 +51,7 @@ WHERE o.monthly_fixed_cost IS NOT NULL
       AND c.category = 'a_classificar'::public.operation_cost_category
   );
 
--- activity_events: custos da operação
-ALTER TYPE public.activity_subject_type
-  ADD VALUE IF NOT EXISTS 'operation_cost';
-
+-- activity_events: custos da operação (enum operation_cost: ver 20261109245900)
 CREATE OR REPLACE FUNCTION public.can_read_activity_subject(
   p_subject_type public.activity_subject_type,
   p_subject_id uuid
