@@ -17,23 +17,29 @@ import {
   type McpHandlerContext,
   type McpToolResult,
 } from "@/lib/mcp/tools/shared";
+import {
+  checkClientVaultAccess,
+  type ClientVaultAccessResult,
+} from "@/lib/vault/client-vault-access";
 import { z } from "zod";
 
-async function mcpRequireVaultClientAccess(
-  ctx: McpHandlerContext,
-  clientId: string,
-): Promise<McpToolResult | null> {
-  const { data, error } = await ctx.supabase.rpc("can_access_client_vault", {
-    p_client_id: clientId,
-  });
-  if (error || !data) {
+function mcpDenyFromVaultAccess(
+  access: ClientVaultAccessResult,
+): Extract<McpToolResult, { ok: false }> | null {
+  if (access.kind === "allowed") return null;
+  if (access.kind === "forbidden") {
     return {
       ok: false,
       message: "Sem acesso ao cofre deste cliente.",
       forbidden: true,
     };
   }
-  return null;
+  return {
+    ok: false,
+    message: access.code
+      ? `[${access.code}] ${access.message}`
+      : access.message,
+  };
 }
 
 function serializeCredential(c: ClientCredentialListRow) {
@@ -64,9 +70,11 @@ export async function mcpListClientCredentials(
   if (!parsed.success) {
     return { ok: false, message: "client_id inválido." };
   }
-  const denied = await mcpRequireVaultClientAccess(ctx, parsed.data.client_id);
-  if (denied) {
-    return denied as McpToolResult<{ credentials: unknown[] }>;
+  const access = await checkClientVaultAccess(ctx.supabase, parsed.data.client_id);
+  if (access.kind === "forbidden") {
+    return mcpDenyFromVaultAccess(access) as McpToolResult<{
+      credentials: unknown[];
+    }>;
   }
   try {
     const rows = await listClientCredentials(
@@ -79,8 +87,15 @@ export async function mcpListClientCredentials(
       data: { credentials: rows.map(serializeCredential) },
     };
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Falha ao listar credenciais.";
-    return { ok: false, message };
+    const loadMessage =
+      e instanceof Error ? e.message : "Falha ao listar credenciais.";
+    if (access.kind === "rpc_error") {
+      return {
+        ok: false,
+        message: `${access.message} — ${loadMessage}`,
+      };
+    }
+    return { ok: false, message: loadMessage };
   }
 }
 
@@ -95,9 +110,10 @@ export async function mcpCreateClientCredential(
       message: parsed.error.issues[0]?.message ?? "Parâmetros inválidos.",
     };
   }
-  const denied = await mcpRequireVaultClientAccess(ctx, parsed.data.client_id);
-  if (denied) {
-    return denied as McpToolResult<{ credential: unknown }>;
+  const access = await checkClientVaultAccess(ctx.supabase, parsed.data.client_id);
+  const deniedCreate = mcpDenyFromVaultAccess(access);
+  if (deniedCreate && access.kind !== "rpc_error") {
+    return deniedCreate as McpToolResult<{ credential: unknown }>;
   }
   try {
     const row = await createClientCredential(
@@ -120,6 +136,9 @@ export async function mcpCreateClientCredential(
       return { ok: false, message: e.message };
     }
     const message = e instanceof Error ? e.message : "Falha ao criar credencial.";
+    if (access.kind === "rpc_error") {
+      return { ok: false, message: `${access.message} — ${message}` };
+    }
     return { ok: false, message };
   }
 }
@@ -141,9 +160,10 @@ export async function mcpUpdateClientCredential(
   if (!clientId) {
     return { ok: false, message: "client_id é obrigatório na atualização." };
   }
-  const denied = await mcpRequireVaultClientAccess(ctx, clientId);
-  if (denied) {
-    return denied as McpToolResult<{ credential: unknown }>;
+  const access = await checkClientVaultAccess(ctx.supabase, clientId);
+  const deniedUpdate = mcpDenyFromVaultAccess(access);
+  if (deniedUpdate && access.kind !== "rpc_error") {
+    return deniedUpdate as McpToolResult<{ credential: unknown }>;
   }
   try {
     const updateInput: Parameters<typeof updateClientCredential>[1] = {};
@@ -175,6 +195,9 @@ export async function mcpUpdateClientCredential(
       return { ok: false, message: e.message };
     }
     const message = e instanceof Error ? e.message : "Falha ao atualizar credencial.";
+    if (access.kind === "rpc_error") {
+      return { ok: false, message: `${access.message} — ${message}` };
+    }
     return { ok: false, message };
   }
 }
@@ -192,9 +215,10 @@ export async function mcpArchiveClientCredential(
   if (!parsed.success) {
     return { ok: false, message: "Parâmetros inválidos." };
   }
-  const denied = await mcpRequireVaultClientAccess(ctx, parsed.data.client_id);
-  if (denied) {
-    return denied as McpToolResult<{ credential_id: string }>;
+  const access = await checkClientVaultAccess(ctx.supabase, parsed.data.client_id);
+  const deniedArchive = mcpDenyFromVaultAccess(access);
+  if (deniedArchive && access.kind !== "rpc_error") {
+    return deniedArchive as McpToolResult<{ credential_id: string }>;
   }
   try {
     await archiveClientCredential(
@@ -205,6 +229,9 @@ export async function mcpArchiveClientCredential(
     return { ok: true, data: { credential_id: parsed.data.credential_id } };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Falha ao arquivar.";
+    if (access.kind === "rpc_error") {
+      return { ok: false, message: `${access.message} — ${message}` };
+    }
     return { ok: false, message };
   }
 }
@@ -228,8 +255,9 @@ export async function mcpRevealClientCredential(
   if (metaErr || !meta) {
     return { ok: false, message: "Credencial não encontrada.", notFound: true };
   }
-  const deniedReveal = await mcpRequireVaultClientAccess(ctx, meta.client_id);
-  if (deniedReveal) {
+  const access = await checkClientVaultAccess(ctx.supabase, meta.client_id);
+  const deniedReveal = mcpDenyFromVaultAccess(access);
+  if (deniedReveal && access.kind !== "rpc_error") {
     return deniedReveal as McpToolResult<{ password: string }>;
   }
   try {
@@ -249,6 +277,9 @@ export async function mcpRevealClientCredential(
       return { ok: false, message: e.message };
     }
     const message = e instanceof Error ? e.message : "Falha ao revelar senha.";
+    if (access.kind === "rpc_error") {
+      return { ok: false, message: `${access.message} — ${message}` };
+    }
     return { ok: false, message };
   }
 }
@@ -266,9 +297,9 @@ export async function mcpListClientCredentialAuditLogs(
   if (!parsed.success) {
     return { ok: false, message: "client_id inválido." };
   }
-  const denied = await mcpRequireVaultClientAccess(ctx, parsed.data.client_id);
-  if (denied) {
-    return denied as McpToolResult<{ events: unknown[] }>;
+  const access = await checkClientVaultAccess(ctx.supabase, parsed.data.client_id);
+  if (access.kind === "forbidden") {
+    return mcpDenyFromVaultAccess(access) as McpToolResult<{ events: unknown[] }>;
   }
   try {
     const rows = await listClientCredentialAuditLogs(
@@ -292,7 +323,11 @@ export async function mcpListClientCredentialAuditLogs(
       },
     };
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Falha ao listar auditoria.";
+    const message =
+      err instanceof Error ? err.message : "Falha ao listar auditoria.";
+    if (access.kind === "rpc_error") {
+      return { ok: false, message: `${access.message} — ${message}` };
+    }
     return { ok: false, message };
   }
 }

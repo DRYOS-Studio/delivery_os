@@ -1,11 +1,9 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
+import { ClientVaultAccessGate } from "@/components/domain/ClientVaultAccessGate";
 import { ClientVaultSection } from "@/components/domain/ClientVaultSection";
 import { requireUser } from "@/lib/auth/server";
 import { createServer } from "@/lib/db/client";
-import {
-  listClientCredentialAuditLogs,
-  listClientCredentials,
-} from "@/lib/db/queries/client-credentials";
+import { loadClientVaultPage } from "@/lib/vault/load-client-vault-page";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -20,21 +18,27 @@ export default async function ClientVaultPage({
   await requireUser(`/clients/${id}/cofre`);
 
   const supabase = await createServer();
-  const { data: allowed } = await supabase.rpc("can_access_client_vault", {
-    p_client_id: id,
-  });
-  if (!allowed) redirect(`/clients/${id}`);
+  const loaded = await loadClientVaultPage(supabase, id);
 
-  const [credentials, auditLogs] = await Promise.all([
-    listClientCredentials(id),
-    listClientCredentialAuditLogs(id, 80),
-  ]);
+  if (loaded.kind === "blocked") {
+    const gateProps = loaded.loadError
+      ? { clientId: id, access: loaded.access, loadError: loaded.loadError }
+      : { clientId: id, access: loaded.access };
+    return <ClientVaultAccessGate {...gateProps} />;
+  }
 
   return (
-    <ClientVaultSection
-      clientId={id}
-      credentials={credentials}
-      auditLogs={auditLogs}
-    />
+    <>
+      {loaded.accessWarning ? (
+        <p className="text-sm text-mute mb-4 border border-line rounded px-3 py-2 bg-card">
+          Aviso: {loaded.accessWarning}
+        </p>
+      ) : null}
+      <ClientVaultSection
+        clientId={id}
+        credentials={loaded.credentials}
+        auditLogs={loaded.auditLogs}
+      />
+    </>
   );
 }
