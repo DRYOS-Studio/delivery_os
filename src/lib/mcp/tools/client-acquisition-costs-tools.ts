@@ -36,7 +36,10 @@ export async function mcpListClientAcquisitionCosts(
     return { ok: false, message: "client_id inválido." };
   }
   try {
-    const items = await listClientAcquisitionCosts(parsed.data.client_id);
+    const items = await listClientAcquisitionCosts(
+      parsed.data.client_id,
+      ctx.supabase,
+    );
     const total_cac = items.reduce((s, i) => s + i.amount, 0);
     return {
       ok: true,
@@ -82,7 +85,7 @@ export async function mcpCreateClientAcquisitionCost(
     .single();
   if (error) return { ok: false, message: error.message };
   if (!data) return { ok: false, message: "Falha ao criar." };
-  const row = await getClientAcquisitionCost(data.id);
+  const row = await getClientAcquisitionCost(data.id, ctx.supabase);
   if (!row) return { ok: false, message: "Falha ao ler item criado." };
   return { ok: true, data: { item: serialize(row) } };
 }
@@ -115,7 +118,7 @@ export async function mcpUpdateClientAcquisitionCost(
     })
     .eq("id", acquisition_cost_id);
   if (error) return { ok: false, message: error.message };
-  const row = await getClientAcquisitionCost(acquisition_cost_id);
+  const row = await getClientAcquisitionCost(acquisition_cost_id, ctx.supabase);
   if (!row) return { ok: false, message: "Item não encontrado." };
   return { ok: true, data: { item: serialize(row) } };
 }

@@ -25,9 +25,18 @@ const contractRow = {
   filename: "file.pdf",
 };
 
+type MockChargeListRow = Record<string, unknown> & { client_id: string };
+
 function adminMcpSupabase(opts?: {
   onUpdate?: (patch: Record<string, unknown>) => void;
   onChargeInsert?: (row: Record<string, unknown>) => void;
+  contractExistingCharges?: {
+    id: string;
+    charge_type: string;
+    competence: string;
+    status: string;
+  }[];
+  listCharges?: MockChargeListRow[];
 }) {
   const client = {
     from(table: string) {
@@ -77,6 +86,36 @@ function adminMcpSupabase(opts?: {
       }
       if (table === "client_charges") {
         return {
+          select: () => ({
+            eq: (col: string, val: string) => {
+              const existing = opts?.contractExistingCharges ?? [];
+              const listed = opts?.listCharges ?? [];
+              const byContract =
+                col === "client_contract_id"
+                  ? existing.map((r) => ({
+                      ...r,
+                      client_contract_id: CONTRACT_ID,
+                    }))
+                  : [];
+              const byClient =
+                col === "client_id"
+                  ? listed.filter((r) => r.client_id === val)
+                  : [];
+              const rows = byContract.length > 0 ? byContract : byClient;
+              return {
+                order: () => ({
+                  limit: () =>
+                    Promise.resolve({
+                      data: rows,
+                      error: null,
+                    }),
+                }),
+                then: (
+                  resolve: (v: { data: unknown[]; error: null }) => void,
+                ) => resolve({ data: byContract, error: null }),
+              };
+            },
+          }),
           insert: (row: Record<string, unknown>) => ({
             select: () => ({
               maybeSingle: async () => {
@@ -84,6 +123,9 @@ function adminMcpSupabase(opts?: {
                 return { data: { id: "charge-1" }, error: null };
               },
             }),
+          }),
+          delete: () => ({
+            eq: async () => ({ error: null }),
           }),
         };
       }
@@ -156,6 +198,45 @@ describe("MCP contratos e cobranças", () => {
       "2027-02-26",
       "2027-03-26",
     ]);
+  });
+
+  it("list_client_charges usa supabase do MCP", async () => {
+    const supabase = adminMcpSupabase({
+      listCharges: [
+        {
+          id: "ch-1",
+          client_id: CLIENT_ID,
+          client_contract_id: CONTRACT_ID,
+          operation_id: null,
+          charge_type: "mensalidade",
+          competence: "2026-10",
+          due_date: "2026-10-26",
+          amount: 1000,
+          discount_kind: "none",
+          discount_input: null,
+          discount_amount: 0,
+          status: "prevista",
+          paid_at: null,
+          paid_amount: null,
+          payment_method: null,
+          notes: null,
+          external_provider: null,
+          external_id: null,
+          created_at: "2026-01-01T00:00:00Z",
+          updated_at: "2026-01-01T00:00:00Z",
+        },
+      ],
+    });
+    const r = await dispatchMcpTool({
+      toolName: "list_client_charges",
+      args: { client_id: CLIENT_ID },
+      ctx: { supabase, callerUserId: ADMIN },
+      mcpCtx: adminMcp,
+    });
+    expect(r).toMatchObject({ ok: true });
+    if (typeof r !== "object" || r === null || !("data" in r)) return;
+    const data = (r as { data: { charges: unknown[] } }).data;
+    expect(data.charges).toHaveLength(1);
   });
 
   it("buildPlannedChargesFromContract alinha vencimentos ao contrato pré-pago", () => {

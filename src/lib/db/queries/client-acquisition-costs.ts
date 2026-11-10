@@ -1,6 +1,13 @@
 import { createServer } from "@/lib/db/client";
 import type { Database } from "@/lib/db/types";
 import type { ClientAcquisitionCostCategory } from "@/lib/utils/client-cac-category";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+async function resolveSupabase(
+  supabase?: SupabaseClient<Database>,
+): Promise<SupabaseClient<Database>> {
+  return supabase ?? (await createServer());
+}
 
 export type ClientAcquisitionCostRow = {
   id: string;
@@ -42,9 +49,10 @@ const SELECT =
 
 export async function listClientAcquisitionCosts(
   clientId: string,
+  supabase?: SupabaseClient<Database>,
 ): Promise<ClientAcquisitionCostRow[]> {
-  const supabase = await createServer();
-  const { data, error } = await supabase
+  const db = await resolveSupabase(supabase);
+  const { data, error } = await db
     .from("client_acquisition_costs")
     .select(SELECT)
     .eq("client_id", clientId)
@@ -55,9 +63,10 @@ export async function listClientAcquisitionCosts(
 
 export async function getClientAcquisitionCost(
   id: string,
+  supabase?: SupabaseClient<Database>,
 ): Promise<ClientAcquisitionCostRow | null> {
-  const supabase = await createServer();
-  const { data, error } = await supabase
+  const db = await resolveSupabase(supabase);
+  const { data, error } = await db
     .from("client_acquisition_costs")
     .select(SELECT)
     .eq("id", id)
@@ -69,9 +78,10 @@ export async function getClientAcquisitionCost(
 
 export async function sumClientAcquisitionCosts(
   clientId: string,
+  supabase?: SupabaseClient<Database>,
 ): Promise<number> {
-  const supabase = await createServer();
-  const { data, error } = await supabase
+  const db = await resolveSupabase(supabase);
+  const { data, error } = await db
     .from("client_acquisition_costs")
     .select("amount")
     .eq("client_id", clientId);
