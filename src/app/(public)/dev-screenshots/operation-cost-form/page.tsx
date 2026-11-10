@@ -10,7 +10,13 @@ export default function DevScreenshotCostFormPage(): React.JSX.Element {
       <h1 className="font-display text-xl font-semibold text-ink mb-6">
         Novo custo
       </h1>
-      <CostForm mode="create" operationId={ACME_CORE_OPERATION_ID} isAdmin />
+      <CostForm
+        mode="create"
+        operationId={ACME_CORE_OPERATION_ID}
+        isAdmin
+        operationMrr={3000}
+        initialCategory="comissoes"
+      />
     </main>
   );
 }

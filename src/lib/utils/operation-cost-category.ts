@@ -26,11 +26,14 @@ export function operationCostCategoryLabel(
 }
 
 export function categorySubtotals(
-  items: ReadonlyArray<{ category: OperationCostCategory; amount: number }>,
+  items: ReadonlyArray<{
+    category: OperationCostCategory;
+    monthlyAmount: number;
+  }>,
 ): Partial<Record<OperationCostCategory, number>> {
   const out: Partial<Record<OperationCostCategory, number>> = {};
   for (const i of items) {
-    out[i.category] = (out[i.category] ?? 0) + i.amount;
+    out[i.category] = (out[i.category] ?? 0) + i.monthlyAmount;
   }
   return out;
 }

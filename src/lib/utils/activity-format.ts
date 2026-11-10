@@ -273,14 +273,25 @@ function extractCreatedPayload(
 
 function monthlyCostPayloadMeta(
   event: ActivityEventRow,
-): { category: string; amount: number } | null {
+): { category: string; amount?: number; percent?: number } | null {
   const fromNew = extractCreatedPayload(event.newValue);
   const fromOld = extractCreatedPayload(event.oldValue);
   const payload = fromNew ?? fromOld;
   if (!payload) return null;
   const cat = payload["category"];
-  const amountRaw = payload["amount"];
   if (typeof cat !== "string") return null;
+  const label = operationCostCategoryLabel(cat as OperationCostCategory);
+  const percentRaw = payload["commission_percent"];
+  const percent =
+    typeof percentRaw === "number"
+      ? percentRaw
+      : typeof percentRaw === "string"
+        ? Number(percentRaw)
+        : NaN;
+  if (Number.isFinite(percent)) {
+    return { category: label, percent };
+  }
+  const amountRaw = payload["amount"];
   const amount =
     typeof amountRaw === "number"
       ? amountRaw
@@ -288,8 +299,22 @@ function monthlyCostPayloadMeta(
         ? Number(amountRaw)
         : NaN;
   if (!Number.isFinite(amount)) return null;
-  const label = operationCostCategoryLabel(cat as OperationCostCategory);
   return { category: label, amount };
+}
+
+function formatCostValueMeta(meta: {
+  amount?: number;
+  percent?: number;
+}): string {
+  if (meta.percent !== undefined) {
+    return `${meta.percent.toLocaleString("pt-BR", {
+      maximumFractionDigits: 3,
+    })}%`;
+  }
+  if (meta.amount !== undefined) {
+    return formatMoneyBR(meta.amount);
+  }
+  return "—";
 }
 
 function formatOperationCostSentence(
@@ -301,10 +326,29 @@ function formatOperationCostSentence(
   if (!meta) return null;
 
   if (event.action === "created") {
-    return `${actor} adicionou custo ${meta.category} ${formatMoneyBR(meta.amount)}`;
+    return `${actor} adicionou custo ${meta.category} ${formatCostValueMeta(meta)}`;
   }
   if (event.action === "deleted") {
-    return `${actor} removeu custo ${meta.category} ${formatMoneyBR(meta.amount)}`;
+    return `${actor} removeu custo ${meta.category} ${formatCostValueMeta(meta)}`;
+  }
+  if (event.action === "updated" && event.fieldKey === "commission_percent") {
+    const before = resolveEntityName("amount", event.oldValue, {
+      persons: {},
+      frentes: {},
+      operations: {},
+      clients: {},
+      areas: {},
+      profileNames: {},
+    });
+    const after = resolveEntityName("amount", event.newValue, {
+      persons: {},
+      frentes: {},
+      operations: {},
+      clients: {},
+      areas: {},
+      profileNames: {},
+    });
+    return `${actor} alterou comissão ${meta.category}: ${before}% → ${after}%`;
   }
   if (event.action === "updated" && event.fieldKey === "amount") {
     const before = resolveEntityName("amount", event.oldValue, {

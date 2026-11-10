@@ -18,4 +18,13 @@ describe("mcpUpdateOperationCost clearable", () => {
     expect(parsed.notes).toBeUndefined();
     expect(parsed.amount).toBe(300);
   });
+
+  it("aceita commission_percent em update", () => {
+    const parsed = mcpUpdateOperationCostSchema.parse({
+      cost_id: "00000000-0000-4000-8000-000000000001",
+      category: "comissoes",
+      commission_percent: 12.5,
+    });
+    expect(parsed.commission_percent).toBe(12.5);
+  });
 });

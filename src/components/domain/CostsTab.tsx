@@ -11,6 +11,7 @@ import {
 } from "@/lib/utils/operation-cost-category";
 import { formatDateBR } from "@/lib/utils/date";
 import { getInitials } from "@/lib/utils/initials";
+import { isCommissionPercentCost } from "@/lib/utils/operation-cost-amount";
 import { formatMoneyBR } from "@/lib/utils/money";
 
 type Props = {
@@ -155,7 +156,23 @@ export function CostsTab({ operationId, breakdown }: Props) {
                   </div>
                   <div className="flex flex-wrap items-center gap-2 md:contents">
                     <div className="md:col-span-2 font-mono text-sm text-ink">
-                      {formatMoneyBR(c.amount)}
+                      {isCommissionPercentCost({
+                        category: c.category,
+                        amount: c.amount,
+                        commissionPercent: c.commissionPercent,
+                      }) ? (
+                        <span>
+                          {c.commissionPercent?.toLocaleString("pt-BR", {
+                            maximumFractionDigits: 3,
+                          })}
+                          %{" "}
+                          <span className="text-mute">
+                            ({formatMoneyBR(c.monthlyAmount)})
+                          </span>
+                        </span>
+                      ) : (
+                        formatMoneyBR(c.monthlyAmount)
+                      )}
                     </div>
                     <div className="md:col-span-2">
                       <Pill variant={c.recurrence === "mensal" ? "sage" : "oak"}>

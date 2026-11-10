@@ -29,6 +29,7 @@ export default async function Page({
         operationId={id}
         initialData={cost}
         isAdmin={profile.role === "admin"}
+        operationMrr={op.monthlyRecurringRevenue}
       />
     </>
   );

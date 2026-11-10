@@ -16,6 +16,9 @@ function parseFormData(formData: FormData) {
     category: ((formData.get("category") as string | null) ?? "time").trim(),
     label: ((formData.get("label") as string | null) ?? "").trim(),
     amount: ((formData.get("amount") as string | null) ?? "").trim(),
+    commission_percent: (
+      (formData.get("commission_percent") as string | null) ?? ""
+    ).trim(),
     recurrence: ((formData.get("recurrence") as string | null) ?? "mensal").trim(),
     started_at: ((formData.get("started_at") as string | null) ?? "").trim(),
     ended_at: ((formData.get("ended_at") as string | null) ?? "").trim(),
@@ -41,6 +44,34 @@ function validate(
   return ok(parsed.data);
 }
 
+function rowFromValidated(data: OperationCostOutput): {
+  category: OperationCostOutput["category"];
+  label: string;
+  amount: number | null;
+  commission_percent: number | null;
+  recurrence: OperationCostOutput["recurrence"];
+  started_at: string;
+  ended_at: string | null;
+  notes: string | null;
+} {
+  const isPercentCommission =
+    data.category === "comissoes" &&
+    "commission_percent" in data &&
+    data.commission_percent !== undefined;
+  const amount =
+    "amount" in data && data.amount !== undefined ? data.amount : null;
+  return {
+    category: data.category,
+    label: data.label,
+    amount: isPercentCommission ? null : amount,
+    commission_percent: isPercentCommission ? data.commission_percent : null,
+    recurrence: data.recurrence,
+    started_at: data.started_at,
+    ended_at: data.ended_at ?? null,
+    notes: data.notes ?? null,
+  };
+}
+
 async function revalidateForOp(operationId: string) {
   revalidatePath(`/operations/${operationId}`);
   revalidatePath("/admin/dashboard");
@@ -55,28 +86,29 @@ export async function createOperationCostAction(
 
   const v = validate(formData, "create");
   if (!v.ok) return v;
-  const data = v.data;
+  const row = rowFromValidated(v.data);
 
   const supabase = await createServer();
-  const { data: row, error } = await supabase
+  const { data, error } = await supabase
     .from("operation_costs")
     .insert({
       operation_id: operationId,
-      category: data.category,
-      label: data.label,
-      amount: data.amount,
-      recurrence: data.recurrence,
-      started_at: data.started_at,
-      ended_at: data.ended_at ?? null,
-      notes: data.notes ?? null,
+      category: row.category,
+      label: row.label,
+      amount: row.amount,
+      commission_percent: row.commission_percent,
+      recurrence: row.recurrence,
+      started_at: row.started_at,
+      ended_at: row.ended_at,
+      notes: row.notes,
     })
     .select("id")
     .single();
   if (error) return dbErr(error, "createOperationCostAction");
-  if (!row) return err("Falha ao criar custo.", "no_data");
+  if (!data) return err("Falha ao criar custo.", "no_data");
 
   await revalidateForOp(operationId);
-  return ok({ id: row.id, operationId });
+  return ok({ id: data.id, operationId });
 }
 
 export async function updateOperationCostAction(
@@ -91,19 +123,20 @@ export async function updateOperationCostAction(
 
   const v = validate(formData, "edit");
   if (!v.ok) return v;
-  const data = v.data;
+  const row = rowFromValidated(v.data);
 
   const supabase = await createServer();
   const { error } = await supabase
     .from("operation_costs")
     .update({
-      category: data.category,
-      label: data.label,
-      amount: data.amount,
-      recurrence: data.recurrence,
-      started_at: data.started_at,
-      ended_at: data.ended_at ?? null,
-      notes: data.notes ?? null,
+      category: row.category,
+      label: row.label,
+      amount: row.amount,
+      commission_percent: row.commission_percent,
+      recurrence: row.recurrence,
+      started_at: row.started_at,
+      ended_at: row.ended_at,
+      notes: row.notes,
     })
     .eq("id", id);
   if (error) return dbErr(error, "updateOperationCostAction");
