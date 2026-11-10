@@ -1,0 +1,15 @@
+[Unit]
+Description=DRYOS ntfy → DeliveryOS ingest worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/dryos-ntfy-worker
+EnvironmentFile=/etc/dryos/ntfy-worker.env
+ExecStart=/usr/bin/node /opt/dryos-ntfy-worker/index.mjs
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

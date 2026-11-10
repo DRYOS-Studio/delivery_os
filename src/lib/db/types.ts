@@ -2192,45 +2192,203 @@ export type Database = {
         }
         Relationships: []
       }
-      sla_incidents: {
+      ntfy_message_receipts: {
         Row: {
           created_at: string
+          incident_id: string | null
+          ntfy_message_id: string
+          outcome: string
+          payload: Json
+          received_at: string
+          topic: string
+          unmapped_alert_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          incident_id?: string | null
+          ntfy_message_id: string
+          outcome: string
+          payload: Json
+          received_at: string
+          topic: string
+          unmapped_alert_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          incident_id?: string | null
+          ntfy_message_id?: string
+          outcome?: string
+          payload?: Json
+          received_at?: string
+          topic?: string
+          unmapped_alert_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_ntfy_receipts_incident"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "sla_incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ntfy_receipts_unmapped"
+            columns: ["unmapped_alert_id"]
+            isOneToOne: false
+            referencedRelation: "ntfy_unmapped_alerts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ntfy_unmapped_alerts: {
+        Row: {
+          created_at: string
+          id: string
+          message: string | null
+          ntfy_message_id: string
+          payload: Json
+          priority: number | null
+          received_at: string
+          tags: string[] | null
+          title: string | null
+          topic: string
+          triage_status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          ntfy_message_id: string
+          payload: Json
+          priority?: number | null
+          received_at: string
+          tags?: string[] | null
+          title?: string | null
+          topic: string
+          triage_status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          ntfy_message_id?: string
+          payload?: Json
+          priority?: number | null
+          received_at?: string
+          tags?: string[] | null
+          title?: string | null
+          topic?: string
+          triage_status?: string
+        }
+        Relationships: []
+      }
+      operation_ntfy_topics: {
+        Row: {
+          created_at: string
+          default_problem_origin: Database["public"]["Enums"]["sla_problem_origin"]
+          id: string
+          label: string | null
+          operation_id: string
+          priority_severity_map: Json
+          recovery_tags: string[]
+          topic: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_problem_origin?: Database["public"]["Enums"]["sla_problem_origin"]
+          id?: string
+          label?: string | null
+          operation_id: string
+          priority_severity_map?: Json
+          recovery_tags?: string[]
+          topic: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_problem_origin?: Database["public"]["Enums"]["sla_problem_origin"]
+          id?: string
+          label?: string | null
+          operation_id?: string
+          priority_severity_map?: Json
+          recovery_tags?: string[]
+          topic?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_operation_ntfy_topics_operation"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "operations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sla_incidents: {
+        Row: {
+          closed_via: string | null
+          created_at: string
+          dedupe_key: string | null
           description: string | null
           id: string
+          last_occurrence_at: string | null
+          ntfy_last_message_id: string | null
+          ntfy_topic: string | null
+          occurrence_count: number
           opened_at: string
           opened_by: string | null
           operation_id: string
+          problem_origin: Database["public"]["Enums"]["sla_problem_origin"]
           resolved_at: string | null
           responded_at: string | null
           severity: Database["public"]["Enums"]["sla_severity"]
+          source: Database["public"]["Enums"]["sla_incident_source"]
           status: Database["public"]["Enums"]["sla_incident_status"]
           title: string
           updated_at: string
         }
         Insert: {
+          closed_via?: string | null
           created_at?: string
+          dedupe_key?: string | null
           description?: string | null
           id?: string
+          last_occurrence_at?: string | null
+          ntfy_last_message_id?: string | null
+          ntfy_topic?: string | null
+          occurrence_count?: number
           opened_at?: string
           opened_by?: string | null
           operation_id: string
+          problem_origin?: Database["public"]["Enums"]["sla_problem_origin"]
           resolved_at?: string | null
           responded_at?: string | null
           severity?: Database["public"]["Enums"]["sla_severity"]
+          source?: Database["public"]["Enums"]["sla_incident_source"]
           status?: Database["public"]["Enums"]["sla_incident_status"]
           title: string
           updated_at?: string
         }
         Update: {
+          closed_via?: string | null
           created_at?: string
+          dedupe_key?: string | null
           description?: string | null
           id?: string
+          last_occurrence_at?: string | null
+          ntfy_last_message_id?: string | null
+          ntfy_topic?: string | null
+          occurrence_count?: number
           opened_at?: string
           opened_by?: string | null
           operation_id?: string
+          problem_origin?: Database["public"]["Enums"]["sla_problem_origin"]
           resolved_at?: string | null
           responded_at?: string | null
           severity?: Database["public"]["Enums"]["sla_severity"]
+          source?: Database["public"]["Enums"]["sla_incident_source"]
           status?: Database["public"]["Enums"]["sla_incident_status"]
           title?: string
           updated_at?: string
@@ -2621,6 +2779,7 @@ export type Database = {
         | "decision"
         | "operation_risk_blocker"
         | "operation_cost"
+        | "sla_incident"
         | "client_charge"
       client_charge_type: "mensalidade" | "implantacao" | "avulsa"
       client_charge_status:
@@ -2665,7 +2824,9 @@ export type Database = {
       product_recommendation: "core" | "spark" | "studio"
       recurrence: "mensal" | "trimestral" | "anual" | "unica"
       severity_level: "low" | "medium" | "high" | "critical"
+      sla_incident_source: "manual" | "mcp" | "ntfy"
       sla_incident_status: "open" | "responded" | "resolved" | "cancelled"
+      sla_problem_origin: "dryos" | "client" | "vendor" | "unclassified"
       sla_severity: "low" | "medium" | "high"
       task_status: "todo" | "doing" | "blocked" | "done"
       user_role: "admin" | "member"
@@ -2824,6 +2985,7 @@ export const Constants = {
         "decision",
         "operation_risk_blocker",
         "operation_cost",
+        "sla_incident",
         "client_charge",
       ],
       client_charge_type: ["mensalidade", "implantacao", "avulsa"],
@@ -2873,7 +3035,9 @@ export const Constants = {
       product_recommendation: ["core", "spark", "studio"],
       recurrence: ["mensal", "trimestral", "anual", "unica"],
       severity_level: ["low", "medium", "high", "critical"],
+      sla_incident_source: ["manual", "mcp", "ntfy"],
       sla_incident_status: ["open", "responded", "resolved", "cancelled"],
+      sla_problem_origin: ["dryos", "client", "vendor", "unclassified"],
       sla_severity: ["low", "medium", "high"],
       task_status: ["todo", "doing", "blocked", "done"],
       user_role: ["admin", "member"],

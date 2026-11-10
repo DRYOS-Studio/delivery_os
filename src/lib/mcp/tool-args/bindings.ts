@@ -45,6 +45,7 @@ import {
   repositoryLinkCreateSchema,
   repositoryLinkUpdateSchema,
 } from "@/lib/validators/repository-link";
+import { operationNtfyTopicSchema } from "@/lib/validators/operation-ntfy-topic";
 import {
   clientTechItemSchema,
   clientTechItemUpdateSchema,
@@ -185,6 +186,20 @@ export const MCP_TOOL_ZOD_ARGS: Record<string, z.ZodType> = {
   create_repository_link: repositoryLinkCreateSchema,
   update_repository_link: repositoryLinkUpdateSchema,
   delete_repository_link: z.object({ link_id: uuid }),
+  list_operation_ntfy_topics: z.object({
+    operation_id: uuid,
+    limit: z.number().int().positive().max(100).optional(),
+  }),
+  create_operation_ntfy_topic: operationNtfyTopicSchema.and(
+    z.object({ operation_id: uuid }),
+  ),
+  delete_operation_ntfy_topic: z.object({
+    operation_id: uuid,
+    topic_id: uuid,
+  }),
+  list_ntfy_unmapped_alerts: z.object({
+    limit: z.number().int().positive().max(100).optional(),
+  }),
   list_client_tech_items: z.object({ client_id: uuid }),
   create_client_tech_item: clientTechItemSchema.and(z.object({ client_id: uuid })),
   update_client_tech_item: clientTechItemUpdateSchema,

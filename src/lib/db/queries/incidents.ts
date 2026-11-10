@@ -6,6 +6,10 @@ export type IncidentRow = Database["public"]["Tables"]["sla_incidents"]["Row"];
 export type IncidentSeverity = Database["public"]["Enums"]["sla_severity"];
 export type IncidentStatus = Database["public"]["Enums"]["sla_incident_status"];
 
+export type IncidentProblemOrigin =
+  Database["public"]["Enums"]["sla_problem_origin"];
+export type IncidentSource = Database["public"]["Enums"]["sla_incident_source"];
+
 export type IncidentListItem = {
   id: string;
   title: string;
@@ -16,10 +20,15 @@ export type IncidentListItem = {
   respondedAt: string | null;
   resolvedAt: string | null;
   openerEmail: string | null;
+  source: IncidentSource;
+  problemOrigin: IncidentProblemOrigin;
+  occurrenceCount: number;
+  ntfyTopic: string | null;
+  closedVia: string | null;
 };
 
 const INCIDENT_FIELDS =
-  "id, title, description, severity, status, opened_at, responded_at, resolved_at, opened_by";
+  "id, title, description, severity, status, opened_at, responded_at, resolved_at, opened_by, source, problem_origin, occurrence_count, ntfy_topic, closed_via";
 
 async function resolveAuthorEmails(
   ids: ReadonlyArray<string>,
@@ -48,6 +57,11 @@ type RawIncident = {
   responded_at: string | null;
   resolved_at: string | null;
   opened_by: string | null;
+  source: IncidentSource;
+  problem_origin: IncidentProblemOrigin;
+  occurrence_count: number;
+  ntfy_topic: string | null;
+  closed_via: string | null;
 };
 
 function mapWithEmails(
@@ -64,6 +78,11 @@ function mapWithEmails(
     respondedAt: r.responded_at,
     resolvedAt: r.resolved_at,
     openerEmail: r.opened_by ? (emails.get(r.opened_by) ?? null) : null,
+    source: r.source,
+    problemOrigin: r.problem_origin,
+    occurrenceCount: r.occurrence_count,
+    ntfyTopic: r.ntfy_topic,
+    closedVia: r.closed_via,
   }));
 }
 

@@ -825,6 +825,51 @@ const BASE_MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
     },
   },
   {
+    name: "list_operation_ntfy_topics",
+    access: "read",
+    description: "Lista tópicos ntfy mapeados na operação.",
+    inputSchema: {
+      type: "object",
+      properties: { operation_id: { type: "string" }, limit: { type: "number" } },
+      required: ["operation_id"],
+    },
+  },
+  {
+    name: "create_operation_ntfy_topic",
+    access: "write",
+    idempotent: true,
+    description: "Cadastra mapeamento tópico ntfy → operação.",
+    inputSchema: {
+      type: "object",
+      properties: { operation_id: { type: "string" }, topic: { type: "string" }, ...idem },
+      required: ["operation_id", "topic", "default_problem_origin"],
+    },
+  },
+  {
+    name: "delete_operation_ntfy_topic",
+    access: "write",
+    idempotent: true,
+    description: "Remove mapeamento de tópico ntfy.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        operation_id: { type: "string" },
+        topic_id: { type: "string" },
+        ...idem,
+      },
+      required: ["operation_id", "topic_id"],
+    },
+  },
+  {
+    name: "list_ntfy_unmapped_alerts",
+    access: "read",
+    description: "Fila de triagem: alertas ntfy sem tópico mapeado (admin).",
+    inputSchema: {
+      type: "object",
+      properties: { limit: { type: "number" } },
+    },
+  },
+  {
     name: "list_operation_costs",
     access: "read",
     description: "Lista custos ad-hoc da operação (operation_costs).",
