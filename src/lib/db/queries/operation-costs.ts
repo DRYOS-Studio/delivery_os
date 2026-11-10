@@ -5,6 +5,7 @@ import {
 } from "@/lib/utils/operation-cost-category";
 import { resolveOperationCostMonthlyAmount } from "@/lib/utils/operation-cost-amount";
 import { computeTaxMonthlyAmount } from "@/lib/utils/operation-tax";
+import { calendarDateLocalToday } from "@/lib/utils/calendar-date";
 import { ACTIVE_STATUSES } from "@/lib/utils/operation-status";
 import type { Database } from "@/lib/db/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -107,7 +108,7 @@ function mapCost(
 }
 
 function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  return calendarDateLocalToday();
 }
 
 export async function listOperationCosts(

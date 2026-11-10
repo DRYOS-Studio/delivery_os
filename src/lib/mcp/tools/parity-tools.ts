@@ -1,4 +1,5 @@
 import type { Database, Json } from "@/lib/db/types";
+import { calendarDateLocalToday } from "@/lib/utils/calendar-date";
 
 type MeetingUpdate = Database["public"]["Tables"]["meetings"]["Update"];
 import { assignVillainSchema, editOperationVillainSchema } from "@/lib/validators/operation-villain";
@@ -418,7 +419,7 @@ export async function mcpSaveManagementDiagnostic(
   const actionPlan = deriveActionPlan(computedScores.dims);
   const conductedAt =
     data.conductedAt ||
-    (data.profileData.data ? data.profileData.data : new Date().toISOString().slice(0, 10));
+    (data.profileData.data ? data.profileData.data : calendarDateLocalToday());
   const payload = {
     client_id: clientId,
     form_type: data.formType,

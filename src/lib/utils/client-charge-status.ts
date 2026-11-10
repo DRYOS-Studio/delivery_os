@@ -1,4 +1,5 @@
 import type { Database } from "@/lib/db/types";
+import { calendarDateLocalToday } from "@/lib/utils/calendar-date";
 
 export type ClientChargeStatus =
   Database["public"]["Enums"]["client_charge_status"];
@@ -17,7 +18,7 @@ const OPEN_STATUSES: ReadonlySet<ClientChargeStatus> = new Set([
 ]);
 
 function todayYmd(): string {
-  return new Date().toISOString().slice(0, 10);
+  return calendarDateLocalToday();
 }
 
 /** Status efetivo para UI e agregados (atrasada derivada). */

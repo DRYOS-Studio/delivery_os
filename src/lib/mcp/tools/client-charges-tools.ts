@@ -174,16 +174,20 @@ export async function mcpUpdateClientCharge(
     };
   }
   try {
+    const updateInput: Parameters<typeof updateClientCharge>[1] = {
+      amount: parsed.data.amount,
+      dueDate: parsed.data.due_date,
+      notes: parsed.data.notes,
+      discountKind: parsed.data.discount_kind as ClientChargeDiscountKind,
+      discountInput:
+        parsed.data.discount_kind === "none" ? null : parsed.data.discount_input,
+    };
+    if (parsed.data.status !== undefined) {
+      updateInput.status = parsed.data.status;
+    }
     const row = await updateClientCharge(
       parsed.data.charge_id,
-      {
-        amount: parsed.data.amount,
-        dueDate: parsed.data.due_date,
-        notes: parsed.data.notes,
-        discountKind: parsed.data.discount_kind as ClientChargeDiscountKind,
-        discountInput:
-          parsed.data.discount_kind === "none" ? null : parsed.data.discount_input,
-      },
+      updateInput,
       ctx.supabase,
     );
     return { ok: true, data: { charge: serializeCharge(row) } };

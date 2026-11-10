@@ -25,6 +25,11 @@ import {
   type ContractForChargeGeneration,
   type PlannedClientChargeInsert,
 } from "@/lib/utils/generate-client-charges";
+import { calendarDateLocalToday } from "@/lib/utils/calendar-date";
+import {
+  storedStatusAfterChargeEdit,
+  type ChargeBillingStatus,
+} from "@/lib/utils/client-charge-rules";
 import { ACTIVE_STATUSES } from "@/lib/utils/operation-status";
 
 export type ClientChargeType = Database["public"]["Enums"]["client_charge_type"];
@@ -192,7 +197,7 @@ function monthBounds(ref: string): { start: string; end: string } {
 }
 
 export async function getGlobalClientCashSummary(
-  asOfDate: string = new Date().toISOString().slice(0, 10),
+  asOfDate: string = calendarDateLocalToday(),
 ): Promise<ClientCashSummary> {
   const supabase = await createServer();
   const { start, end } = monthBounds(asOfDate.slice(0, 7));
@@ -523,6 +528,7 @@ export type UpdateClientChargeInput = {
   notes: string | null;
   discountKind: ClientChargeDiscountKind;
   discountInput: number | null;
+  status?: ChargeBillingStatus;
 };
 
 export async function updateClientCharge(
@@ -547,7 +553,20 @@ export async function updateClientCharge(
   const mapped = mapCharge(existing as RawCharge);
   const netDue = clientChargeNetDue(input.amount, discountAmount);
   const paid = mapped.paidAmount ?? 0;
-  const status = statusAfterPartialPayment(paid, netDue);
+  if (
+    input.status !== undefined &&
+    (paid > 0 || mapped.status === "paga" || mapped.status === "cancelada")
+  ) {
+    throw new Error(
+      "Status prevista/emitida só pode ser alterado em cobranças sem pagamento.",
+    );
+  }
+  const status = storedStatusAfterChargeEdit(
+    mapped.status,
+    paid,
+    netDue,
+    input.status,
+  );
 
   const { data, error } = await db
     .from("client_charges")

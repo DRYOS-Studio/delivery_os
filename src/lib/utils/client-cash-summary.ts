@@ -1,4 +1,5 @@
 import type { ClientChargeRow } from "@/lib/db/queries/client-charges";
+import { calendarDateLocalToday } from "@/lib/utils/calendar-date";
 
 export type ClientCashMonthSummary = {
   monthStart: string;
@@ -21,7 +22,7 @@ function monthBoundsFromRef(refYmd: string): { start: string; end: string } {
 
 export function summarizeClientCash(
   charges: ClientChargeRow[],
-  asOfDate: string = new Date().toISOString().slice(0, 10),
+  asOfDate: string = calendarDateLocalToday(),
 ): ClientCashMonthSummary {
   const { start, end } = monthBoundsFromRef(asOfDate);
   let toReceiveThisMonth = 0;

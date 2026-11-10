@@ -1,5 +1,12 @@
+import {
+  calendarDateFromValue,
+  formatCalendarDateBR,
+} from "@/lib/utils/calendar-date";
+
 export function formatDateBR(iso: string | null | undefined): string {
   if (!iso) return "—";
+  const cal = calendarDateFromValue(iso);
+  if (cal) return formatCalendarDateBR(cal);
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
   const dd = String(d.getDate()).padStart(2, "0");
@@ -9,6 +16,8 @@ export function formatDateBR(iso: string | null | undefined): string {
 
 export function formatDateShortBR(iso: string | null | undefined): string {
   if (!iso) return "—";
+  const cal = calendarDateFromValue(iso);
+  if (cal) return formatCalendarDateBR(cal).slice(0, 5);
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
   const dd = String(d.getDate()).padStart(2, "0");

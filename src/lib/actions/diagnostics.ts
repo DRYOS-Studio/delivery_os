@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { type ActionResult, dbErr, err, ok } from "@/lib/actions/_types";
 import { requireUserAction } from "@/lib/auth/server";
+import { calendarDateLocalToday } from "@/lib/utils/calendar-date";
 import { createServer } from "@/lib/db/client";
 import { getDiagnosticById } from "@/lib/db/queries/diagnostics";
 import type { Json } from "@/lib/db/types";
@@ -114,7 +115,7 @@ export async function saveManagementDiagnosticAction(
     data.conductedAt ||
     (data.profileData.data
       ? data.profileData.data
-      : new Date().toISOString().slice(0, 10));
+      : calendarDateLocalToday());
 
   const payload = {
     client_id: clientId,

@@ -12,6 +12,7 @@ import {
 } from "@/lib/utils/client-charge-amount";
 import { Button } from "@/components/ui/Button";
 import { formatMoneyBR } from "@/lib/utils/money";
+import { canSetChargeBillingStatus } from "@/lib/utils/client-charge-rules";
 
 const inputCn =
   "w-full rounded border border-line bg-cream-paper px-3 py-2 text-sm";
@@ -30,6 +31,10 @@ export function ClientChargeForm({ clientId, charge }: Props): React.JSX.Element
   const [discountInput, setDiscountInput] = useState(
     charge.discountInput !== null ? String(charge.discountInput) : "",
   );
+
+  const canEditBillingStatus =
+    canSetChargeBillingStatus(charge.status) &&
+    !(charge.paidAmount !== null && charge.paidAmount > 0);
 
   const previewNet = useMemo(() => {
     const gross = Number(amount);
@@ -121,6 +126,20 @@ export function ClientChargeForm({ clientId, charge }: Props): React.JSX.Element
             {formatMoneyBR(previewNet)}
           </span>
         </p>
+        {canEditBillingStatus && (
+          <Field label="Status" htmlFor="status">
+            <select
+              id="status"
+              name="status"
+              className={inputCn}
+              defaultValue={charge.status}
+              disabled={busy}
+            >
+              <option value="prevista">Prevista</option>
+              <option value="emitida">Emitida</option>
+            </select>
+          </Field>
+        )}
         <Field label="Vencimento" htmlFor="due_date" required>
           <input
             id="due_date"

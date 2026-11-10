@@ -1154,7 +1154,7 @@ const BASE_MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
     name: "update_client_charge",
     access: "admin",
     description:
-      "Atualiza cobrança (valor, vencimento, notas, desconto fixo ou percentual).",
+      "Atualiza cobrança (valor, vencimento, notas, desconto fixo ou percentual). Campo status opcional: prevista ou emitida (somente sem pagamento).",
     inputSchema: {
       type: "object",
       properties: {
@@ -1164,6 +1164,7 @@ const BASE_MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
         notes: { type: ["string", "null"] },
         discount_kind: { type: "string", enum: ["none", "fixed", "percent"] },
         discount_input: { type: ["number", "null"] },
+        status: { type: "string", enum: ["prevista", "emitida"] },
       },
       required: ["charge_id"],
     },

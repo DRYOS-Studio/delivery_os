@@ -46,6 +46,7 @@ export const updateClientChargeSchema = z
         const n = typeof v === "number" ? v : Number(String(v).replace(",", "."));
         return Number.isFinite(n) ? n : null;
       }),
+    status: z.enum(["prevista", "emitida"]).optional(),
   })
   .superRefine((val, ctx) => {
     if (val.discount_kind !== "none" && (val.discount_input === null || val.discount_input <= 0)) {

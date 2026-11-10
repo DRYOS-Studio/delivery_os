@@ -1,4 +1,5 @@
 import { createAdmin } from "@/lib/db/client";
+import { calendarDateLocalToday } from "@/lib/utils/calendar-date";
 import {
   listPublicVillains,
   type OperationVillainListItem,
@@ -53,7 +54,7 @@ export type ReportContext = {
 };
 
 function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  return calendarDateLocalToday();
 }
 
 async function fetchOperationTiming(operationId: string): Promise<{

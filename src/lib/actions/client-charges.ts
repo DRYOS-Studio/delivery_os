@@ -91,25 +91,32 @@ export async function updateClientChargeAction(
 ): Promise<ActionResult<{ id: string }>> {
   const admin = await requireAdminAction();
   if (!admin.ok) return admin;
+  const statusRaw = formData.get("status");
   const parsed = updateClientChargeSchema.safeParse({
     amount: formData.get("amount"),
     due_date: formData.get("due_date"),
     notes: formData.get("notes") ?? undefined,
     discount_kind: formData.get("discount_kind"),
     discount_input: formData.get("discount_input") ?? undefined,
+    status:
+      statusRaw === "prevista" || statusRaw === "emitida" ? statusRaw : undefined,
   });
   if (!parsed.success) {
     return err(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
   try {
-    const row = await updateClientCharge(chargeId, {
+    const updateInput: Parameters<typeof updateClientCharge>[1] = {
       amount: parsed.data.amount,
       dueDate: parsed.data.due_date,
       notes: parsed.data.notes,
       discountKind: parsed.data.discount_kind as ClientChargeDiscountKind,
       discountInput:
         parsed.data.discount_kind === "none" ? null : parsed.data.discount_input,
-    });
+    };
+    if (parsed.data.status !== undefined) {
+      updateInput.status = parsed.data.status;
+    }
+    const row = await updateClientCharge(chargeId, updateInput);
     if (row.clientId !== clientId) return err("Cobrança não pertence a este cliente.");
     revalidateChargePaths(clientId);
     return ok({ id: row.id });
