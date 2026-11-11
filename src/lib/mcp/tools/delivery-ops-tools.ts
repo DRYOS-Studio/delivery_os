@@ -9,7 +9,12 @@ import {
   mcpPromoteMeetingNextStepSchema,
   mcpUpdateOperationRiskBlockerSchema,
 } from "@/lib/mcp/tool-args/operation-risk-blocker-update";
-import { getOperationMonthlyCosts } from "@/lib/db/queries/operation-costs";
+import {
+  getOperationMonthlyCosts,
+  voidOperationCost,
+  type OperationCostBreakdown,
+  type OperationCostRow,
+} from "@/lib/db/queries/operation-costs";
 import { allocationSchema } from "@/lib/validators/allocation";
 import { incidentSchema } from "@/lib/validators/incident";
 import {
@@ -343,9 +348,50 @@ export async function mcpListOperationCosts(
       "id, operation_id, label, amount, category, recurrence, started_at, ended_at, notes",
     )
     .eq("operation_id", opId)
+    .is("voided_at", null)
     .order("started_at", { ascending: false });
   if (error) return { ok: false, message: error.message };
   return { ok: true, data: { costs: data ?? [] } };
+}
+
+function mcpMonthlyCostLine(c: OperationCostRow) {
+  return {
+    id: c.id,
+    category: c.category,
+    category_label: operationCostCategoryLabel(c.category),
+    label: c.label,
+    amount: c.amount,
+    commission_percent: c.commissionPercent,
+    recurrence: c.recurrence,
+    started_at: c.startedAt,
+    ended_at: c.endedAt,
+    notes: c.notes,
+    monthly_amount: c.monthlyAmount,
+  };
+}
+
+function mcpBreakdownPayload(breakdown: OperationCostBreakdown) {
+  return {
+    fixed_cost: breakdown.fixedCost,
+    category_subtotals: breakdown.categorySubtotals,
+    monthly_costs: breakdown.adHocItems
+      .filter((c) => c.recurrence === "mensal")
+      .map((c) => ({
+        id: c.id,
+        category: c.category,
+        category_label: operationCostCategoryLabel(c.category),
+        label: c.label,
+        amount: c.amount,
+        commission_percent: c.commissionPercent,
+        monthly_amount: c.monthlyAmount,
+      })),
+    ad_hoc_monthly: breakdown.adHocMonthly,
+    ad_hoc_once_total: breakdown.adHocOnceTotal,
+    allocations_total: breakdown.allocationsTotal,
+    tax_rate_pct: breakdown.taxRatePct,
+    tax_monthly_amount: breakdown.taxMonthlyAmount,
+    total_monthly: breakdown.totalMonthly,
+  };
 }
 
 export async function mcpGetOperationMonthlyCosts(
@@ -355,7 +401,7 @@ export async function mcpGetOperationMonthlyCosts(
   const opId = typeof args.operation_id === "string" ? args.operation_id.trim() : "";
   if (!opId) return { ok: false, message: "operation_id obrigatório." };
   try {
-    const breakdown = await getOperationMonthlyCosts(opId, ctx.supabase);
+    const snapshot = await getOperationMonthlyCosts(opId, ctx.supabase);
     const { data: opRow, error: opErr } = await ctx.supabase
       .from("operations")
       .select("monthly_recurring_revenue")
@@ -374,36 +420,31 @@ export async function mcpGetOperationMonthlyCosts(
       opRow.monthly_recurring_revenue === undefined
         ? null
         : Number(opRow.monthly_recurring_revenue);
-    const margin = computeMargin(mrr, breakdown.totalMonthly);
+    const margin = computeMargin(mrr, snapshot.totalMonthly);
+    const projectedMargin = snapshot.projectedBreakdown
+      ? computeMargin(mrr, snapshot.projectedBreakdown.totalMonthly)
+      : null;
     return {
       ok: true,
       data: {
-        breakdown: {
-          fixed_cost: breakdown.fixedCost,
-          category_subtotals: breakdown.categorySubtotals,
-          monthly_costs: breakdown.adHocItems
-            .filter((c) => c.recurrence === "mensal")
-            .map((c) => ({
-              id: c.id,
-              category: c.category,
-              category_label: operationCostCategoryLabel(c.category),
-              label: c.label,
-              amount: c.amount,
-              commission_percent: c.commissionPercent,
-              monthly_amount: c.monthlyAmount,
-            })),
-          ad_hoc_monthly: breakdown.adHocMonthly,
-          ad_hoc_once_total: breakdown.adHocOnceTotal,
-          allocations_total: breakdown.allocationsTotal,
-          tax_rate_pct: breakdown.taxRatePct,
-          tax_monthly_amount: breakdown.taxMonthlyAmount,
-          total_monthly: breakdown.totalMonthly,
-        },
+        breakdown: mcpBreakdownPayload(snapshot),
         margin: {
           mrr,
           value: margin.value,
           pct: margin.pct,
         },
+        upcoming_costs: snapshot.upcomingCosts.map(mcpMonthlyCostLine),
+        projected_from_date: snapshot.projectedFromDate,
+        projected_breakdown: snapshot.projectedBreakdown
+          ? mcpBreakdownPayload(snapshot.projectedBreakdown)
+          : null,
+        projected_margin: projectedMargin
+          ? {
+              mrr,
+              value: projectedMargin.value,
+              pct: projectedMargin.pct,
+            }
+          : null,
       },
     };
   } catch (e) {
@@ -517,9 +558,39 @@ export async function mcpEndOperationCost(
   if (!/^\d{4}-\d{2}-\d{2}$/.test(endedAt)) {
     return { ok: false, message: "ended_at inválida (YYYY-MM-DD)." };
   }
-  const { error } = await ctx.supabase.from("operation_costs").update({ ended_at: endedAt }).eq("id", id);
+  const { error } = await ctx.supabase
+    .from("operation_costs")
+    .update({ ended_at: endedAt })
+    .eq("id", id)
+    .is("voided_at", null);
   if (error) return { ok: false, message: error.message };
   return { ok: true, data: { id } };
+}
+
+export async function mcpVoidOperationCost(
+  ctx: McpHandlerContext,
+  args: Record<string, unknown>,
+): Promise<McpToolResult<{ id: string }>> {
+  const denied = await mcpRequireAdmin(ctx);
+  if (denied) return denied;
+  const id = typeof args.cost_id === "string" ? args.cost_id.trim() : "";
+  if (!id) return { ok: false, message: "cost_id obrigatório." };
+  const reason =
+    typeof args.void_reason === "string" ? args.void_reason.trim() : "";
+  try {
+    await voidOperationCost(id, reason || null, ctx.supabase);
+    return { ok: true, data: { id } };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Falha ao anular custo.";
+    if (message.includes("not_found_or_already_voided")) {
+      return {
+        ok: false,
+        message: "Custo não encontrado ou já removido.",
+        notFound: true,
+      };
+    }
+    return { ok: false, message };
+  }
 }
 
 export async function mcpListMeetingAgendaItems(

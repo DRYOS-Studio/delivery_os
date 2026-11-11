@@ -1,4 +1,5 @@
 import { createServer } from "@/lib/db/client";
+import { mergeAttendeeCandidates } from "@/lib/db/queries/meetings-attendee-candidates";
 import type { Database } from "@/lib/db/types";
 
 export type MeetingRow = Database["public"]["Tables"]["meetings"]["Row"];
@@ -190,14 +191,35 @@ export async function listAttendeeCandidates(
   clientId: string,
 ): Promise<AttendeeRef[]> {
   const supabase = await createServer();
-  const { data, error } = await supabase
-    .from("persons")
-    .select("id, name, kind, client_id")
-    .or(`kind.eq.internal,and(kind.eq.external,client_id.eq.${clientId})`)
-    .is("archived_at", null)
-    .order("kind", { ascending: true })
-    .order("name", { ascending: true });
-  if (error) throw new Error(`listAttendeeCandidates: ${error.message}`);
-  if (!data) return [];
-  return data.map((p) => ({ id: p.id, name: p.name, kind: p.kind }));
+  // Dois filtros .eq() em vez de .or() com UUID embutido: hífens no UUID
+  // quebram o parser do PostgREST (ex.: client_id.eq.eeb2…-e5be…) → 400/500.
+  const [internalRes, externalRes] = await Promise.all([
+    supabase
+      .from("persons")
+      .select("id, name, kind")
+      .eq("kind", "internal")
+      .is("archived_at", null)
+      .order("name", { ascending: true }),
+    supabase
+      .from("persons")
+      .select("id, name, kind")
+      .eq("kind", "external")
+      .eq("client_id", clientId)
+      .is("archived_at", null)
+      .order("name", { ascending: true }),
+  ]);
+  if (internalRes.error) {
+    throw new Error(`listAttendeeCandidates.internal: ${internalRes.error.message}`);
+  }
+  if (externalRes.error) {
+    throw new Error(
+      `listAttendeeCandidates.external: ${externalRes.error.message}`,
+    );
+  }
+  const mapRow = (p: { id: string; name: string; kind: AttendeeRef["kind"] }) =>
+    ({ id: p.id, name: p.name, kind: p.kind });
+  return mergeAttendeeCandidates(
+    (internalRes.data ?? []).map(mapRow),
+    (externalRes.data ?? []).map(mapRow),
+  );
 }

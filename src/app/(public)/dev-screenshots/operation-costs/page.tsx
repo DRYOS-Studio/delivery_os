@@ -12,7 +12,8 @@ export default function DevScreenshotOperationCostsPage(): React.JSX.Element {
     <main className="min-h-screen bg-cream p-6 md:p-10">
       <CostsTab
         operationId={ACME_CORE_OPERATION_ID}
-        breakdown={acmeCoreCostsBreakdown}
+        snapshot={acmeCoreCostsBreakdown}
+        monthlyRecurringRevenue={3000}
       />
     </main>
   );

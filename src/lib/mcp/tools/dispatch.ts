@@ -94,6 +94,7 @@ import {
   mcpCreateSlaIncident,
   mcpEndAllocation,
   mcpEndOperationCost,
+  mcpVoidOperationCost,
   mcpGetAllocation,
   mcpGetQuickWin,
   mcpListAllocations,
@@ -663,6 +664,9 @@ export async function dispatchMcpTool(input: DispatchInput): Promise<unknown> {
     }
     case "end_operation_cost": {
       return flattenResult(await mcpEndOperationCost(ctx, args));
+    }
+    case "void_operation_cost": {
+      return flattenResult(await mcpVoidOperationCost(ctx, args));
     }
     case "delete_operation_cost": {
       return flattenResult(await mcpDeleteOperationCost(ctx, args));

@@ -158,6 +158,10 @@ export const MCP_TOOL_ZOD_ARGS: Record<string, z.ZodType> = {
   ),
   update_operation_cost: mcpUpdateOperationCostSchema,
   end_operation_cost: z.object({ cost_id: uuid, ended_at: isoDate }),
+  void_operation_cost: z.object({
+    cost_id: uuid,
+    void_reason: z.string().max(500).optional(),
+  }),
   delete_operation_cost: z.object({ cost_id: uuid }),
   get_operation_monthly_costs: z.object({ operation_id: uuid }),
   get_client_financial_summary: z.object({ client_id: uuid }),
