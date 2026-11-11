@@ -164,6 +164,7 @@ export const MCP_TOOL_ZOD_ARGS: Record<string, z.ZodType> = {
   }),
   delete_operation_cost: z.object({ cost_id: uuid }),
   get_operation_monthly_costs: z.object({ operation_id: uuid }),
+  get_client_financial_summary: z.object({ client_id: uuid }),
   create_service_product: serviceProductSchema,
   update_service_product: serviceProductSchema.extend({ product_id: uuid }),
   archive_service_product: z.object({ product_id: uuid }),

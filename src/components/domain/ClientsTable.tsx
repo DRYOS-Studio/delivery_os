@@ -2,7 +2,11 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { MobileListItem } from "@/components/ui/MobileListItem";
 import { Pill } from "@/components/ui/Pill";
+import { ClientFinancialCompact } from "@/components/domain/ClientFinancialOverview";
+import type { ClientFinancialSummary } from "@/lib/db/queries/client-financial-summary";
 import type { ClientListItem } from "@/lib/db/queries/clients";
+import { formatMoneyBR } from "@/lib/utils/money";
+import { formatMarginPct } from "@/lib/utils/margin";
 import {
   clientJourneyLabel,
   clientJourneyVariant,
@@ -13,9 +17,15 @@ type Props = {
   clients: ClientListItem[];
   hasSearch: boolean;
   isAdmin?: boolean;
+  financialByClientId?: Map<string, ClientFinancialSummary>;
 };
 
-export function ClientsTable({ clients, hasSearch, isAdmin = true }: Props) {
+export function ClientsTable({
+  clients,
+  hasSearch,
+  isAdmin = true,
+  financialByClientId,
+}: Props) {
   if (clients.length === 0) {
     return (
       <div className="text-center py-14 border border-line rounded bg-card">
@@ -80,7 +90,13 @@ export function ClientsTable({ clients, hasSearch, isAdmin = true }: Props) {
                 )}
               </>
             }
-            meta={formatDateBR(c.createdAt)}
+            meta={
+              isAdmin && financialByClientId?.get(c.id) ? (
+                <ClientFinancialCompact financial={financialByClientId.get(c.id)!} />
+              ) : (
+                formatDateBR(c.createdAt)
+              )
+            }
           />
         ))}
       </ul>
@@ -94,6 +110,12 @@ export function ClientsTable({ clients, hasSearch, isAdmin = true }: Props) {
             <Th>Slug</Th>
             <Th>Jornada</Th>
             <Th>Operações ativas</Th>
+            {isAdmin && financialByClientId && (
+              <>
+                <Th>MRR</Th>
+                <Th>Margem</Th>
+              </>
+            )}
             <Th>Pessoas externas</Th>
             <Th>Criado em</Th>
             <Th className="text-right">Ações</Th>
@@ -115,6 +137,24 @@ export function ClientsTable({ clients, hasSearch, isAdmin = true }: Props) {
               <Td>
                 <Pill variant="neutral">{c.operationsActive}</Pill>
               </Td>
+              {isAdmin && financialByClientId && (
+                <>
+                  <Td className="font-mono text-xs text-ink">
+                    {formatMoneyBR(financialByClientId.get(c.id)?.mrrTotal ?? 0)}
+                  </Td>
+                  <Td className="font-mono text-xs text-ink">
+                    {financialByClientId.get(c.id)?.margin.pct !== null &&
+                    financialByClientId.get(c.id)?.margin.pct !== undefined
+                      ? formatMarginPct(financialByClientId.get(c.id)!.margin.pct)
+                      : "—"}
+                    {financialByClientId.get(c.id)?.contractMrrMismatch ? (
+                      <span className="text-warning ml-1" title="Contrato ≠ MRR">
+                        ⚠
+                      </span>
+                    ) : null}
+                  </Td>
+                </>
+              )}
               <Td>
                 <Pill variant="neutral">{c.externalPersons}</Pill>
               </Td>

@@ -124,6 +124,50 @@ function earliestStartedAt(dates: string[]): string | null {
   return dates.reduce((min, d) => (d < min ? d : min));
 }
 
+/** Lançamentos anulados (void) ficam fora de listagens e cálculos de margem. */
+export function applyOperationCostNotVoided<T extends { is: (column: string, value: null) => T }>(
+  query: T,
+): T {
+  return query.is("voided_at", null);
+}
+
+/** Custos vigentes hoje para breakdown mensal (espelha filtros PostgREST). */
+export function applyOperationCostVigentForBreakdown<
+  T extends {
+    is: (column: string, value: null) => T;
+    lte: (column: string, value: string) => T;
+    or: (filters: string) => T;
+  },
+>(query: T, today: string): T {
+  return applyOperationCostNotVoided(query)
+    .lte("started_at", today)
+    .or(`ended_at.is.null,ended_at.gte.${today}`);
+}
+
+export function applyOperationCostUpcoming<
+  T extends {
+    is: (column: string, value: null) => T;
+    gt: (column: string, value: string) => T;
+  },
+>(query: T, today: string): T {
+  return applyOperationCostNotVoided(query).gt("started_at", today);
+}
+
+/** Contrato com `applyOperationCostVigentForBreakdown` (uso em testes). */
+export function isOperationCostInMonthlyBreakdown(
+  row: {
+    voided_at: string | null;
+    started_at: string;
+    ended_at: string | null;
+  },
+  today: string,
+): boolean {
+  if (row.voided_at !== null) return false;
+  if (row.started_at > today) return false;
+  if (row.ended_at !== null && row.ended_at < today) return false;
+  return true;
+}
+
 export async function listOperationCosts(
   operationId: string,
 ): Promise<OperationCostRow[]> {
@@ -134,11 +178,10 @@ export async function listOperationCosts(
       .select("monthly_recurring_revenue, tax_rate_pct")
       .eq("id", operationId)
       .maybeSingle(),
-    supabase
-      .from("operation_costs")
-      .select("*")
+    applyOperationCostNotVoided(
+      supabase.from("operation_costs").select("*"),
+    )
       .eq("operation_id", operationId)
-      .is("voided_at", null)
       .order("started_at", { ascending: false }),
   ]);
   if (opRes.error)
@@ -163,13 +206,12 @@ export async function getOperationCost(
   id: string,
 ): Promise<OperationCostRow | null> {
   const supabase = await createServer();
-  const { data, error } = await supabase
-    .from("operation_costs")
-    .select(
+  const { data, error } = await applyOperationCostNotVoided(
+    supabase.from("operation_costs").select(
       "*, operation:operations!fk_operation_costs_operation_id(monthly_recurring_revenue, tax_rate_pct)",
-    )
+    ),
+  )
     .eq("id", id)
-    .is("voided_at", null)
     .maybeSingle();
   if (error) throw new Error(`getOperationCost: ${error.message}`);
   if (!data) return null;
@@ -375,20 +417,17 @@ export async function getOperationMonthlyCosts(
       .select("monthly_recurring_revenue, tax_rate_pct")
       .eq("id", operationId)
       .maybeSingle(),
-    supabase
-      .from("operation_costs")
-      .select("*")
+    applyOperationCostVigentForBreakdown(
+      supabase.from("operation_costs").select("*"),
+      today,
+    )
       .eq("operation_id", operationId)
-      .is("voided_at", null)
-      .lte("started_at", today)
-      .or(`ended_at.is.null,ended_at.gte.${today}`)
       .order("started_at", { ascending: false }),
-    supabase
-      .from("operation_costs")
-      .select("*")
+    applyOperationCostUpcoming(
+      supabase.from("operation_costs").select("*"),
+      today,
+    )
       .eq("operation_id", operationId)
-      .is("voided_at", null)
-      .gt("started_at", today)
       .order("started_at", { ascending: true }),
     supabase
       .from("allocations")
@@ -462,6 +501,107 @@ export async function getOperationMonthlyCosts(
   };
 }
 
+/** Breakdown mensal vigente por operação (mesma lógica que `getOperationMonthlyCosts`). */
+export async function getOperationsMonthlyCostsBatch(
+  operationIds: string[],
+  supabaseClient?: SupabaseClient<Database>,
+): Promise<Map<string, OperationCostBreakdown>> {
+  const uniqueIds = [...new Set(operationIds)];
+  if (uniqueIds.length === 0) return new Map();
+
+  const supabase = supabaseClient ?? (await createServer());
+  const today = todayISO();
+
+  const [opsRes, costsRes, allocRes] = await Promise.all([
+    supabase
+      .from("operations")
+      .select("id, monthly_recurring_revenue, tax_rate_pct")
+      .in("id", uniqueIds),
+    applyOperationCostVigentForBreakdown(
+      supabase.from("operation_costs").select("*"),
+      today,
+    ).in("operation_id", uniqueIds),
+    supabase
+      .from("allocations")
+      .select(
+        `${ALLOC_SELECT_FIELDS},
+        frente:frentes!fk_allocations_frente_id!inner(id, operation_id, archived_at)`,
+      )
+      .is("frente.archived_at", null)
+      .in("frente.operation_id", uniqueIds)
+      .or(`end_date.is.null,end_date.gt.${today}`),
+  ]);
+  if (opsRes.error) {
+    throw new Error(
+      `getOperationsMonthlyCostsBatch.operations: ${opsRes.error.message}`,
+    );
+  }
+  if (costsRes.error) {
+    throw new Error(
+      `getOperationsMonthlyCostsBatch.costs: ${costsRes.error.message}`,
+    );
+  }
+  if (allocRes.error) {
+    throw new Error(
+      `getOperationsMonthlyCostsBatch.allocations: ${allocRes.error.message}`,
+    );
+  }
+
+  const costsByOp = new Map<string, OperationCostRow[]>();
+  for (const r of costsRes.data ?? []) {
+    const raw = r as RawCostRow;
+    const opMeta = (opsRes.data ?? []).find((o) => o.id === raw.operation_id);
+    const chargedForOp =
+      opMeta?.monthly_recurring_revenue === null ||
+      opMeta?.monthly_recurring_revenue === undefined
+        ? null
+        : Number(opMeta.monthly_recurring_revenue);
+    const taxForOp =
+      opMeta?.tax_rate_pct === null || opMeta?.tax_rate_pct === undefined
+        ? null
+        : Number(opMeta.tax_rate_pct);
+    const cost = mapCost(raw, {
+      chargedRevenue: chargedForOp,
+      taxRatePct: taxForOp,
+    });
+    const list = costsByOp.get(cost.operationId) ?? [];
+    list.push(cost);
+    costsByOp.set(cost.operationId, list);
+  }
+
+  const allocsByOp = new Map<string, AllocJoin[]>();
+  for (const raw of (allocRes.data ?? []) as unknown as AllocJoin[]) {
+    const frente = pickOne(raw.frente);
+    if (!frente) continue;
+    const list = allocsByOp.get(frente.operation_id) ?? [];
+    list.push(raw);
+    allocsByOp.set(frente.operation_id, list);
+  }
+
+  const out = new Map<string, OperationCostBreakdown>();
+  for (const op of opsRes.data ?? []) {
+    const chargedRevenue =
+      op.monthly_recurring_revenue === null ||
+      op.monthly_recurring_revenue === undefined
+        ? null
+        : Number(op.monthly_recurring_revenue);
+    const taxRatePct =
+      op.tax_rate_pct === null || op.tax_rate_pct === undefined
+        ? null
+        : Number(op.tax_rate_pct);
+    out.set(
+      op.id,
+      computeBreakdown(
+        op.id,
+        costsByOp.get(op.id) ?? [],
+        allocsByOp.get(op.id) ?? [],
+        { chargedRevenue, taxRatePct },
+      ),
+    );
+  }
+  return out;
+}
+
 export async function getActiveOperationsMonthlyCostsTotal(): Promise<number> {
   const supabase = await createServer();
   const today = todayISO();
@@ -475,17 +615,17 @@ export async function getActiveOperationsMonthlyCostsTotal(): Promise<number> {
       .is("archived_at", null)
       .is("client.archived_at", null)
       .in("status", ACTIVE_STATUSES),
-    supabase
-      .from("operation_costs")
-      .select(
-        "*, operation:operations!fk_operation_costs_operation_id!inner(archived_at, status, monthly_recurring_revenue, tax_rate_pct)",
-      )
+    applyOperationCostVigentForBreakdown(
+      supabase
+        .from("operation_costs")
+        .select(
+          "*, operation:operations!fk_operation_costs_operation_id!inner(archived_at, status, monthly_recurring_revenue, tax_rate_pct)",
+        ),
+      today,
+    )
       .is("operation.archived_at", null)
       .in("operation.status", ACTIVE_STATUSES)
-      .eq("recurrence", "mensal")
-      .is("voided_at", null)
-      .lte("started_at", today)
-      .or(`ended_at.is.null,ended_at.gte.${today}`),
+      .eq("recurrence", "mensal"),
     supabase
       .from("allocations")
       .select(

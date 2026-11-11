@@ -11,6 +11,7 @@ import {
 import {
   mcpCreateClient,
   mcpGetClient,
+  mcpGetClientFinancialSummary,
   mcpListClients,
   mcpRestoreClient,
   mcpUpdateClient,
@@ -277,6 +278,10 @@ export async function dispatchMcpTool(input: DispatchInput): Promise<unknown> {
     }
     case "get_client": {
       const r = await mcpGetClient(ctx, args);
+      return flattenResult(r);
+    }
+    case "get_client_financial_summary": {
+      const r = await mcpGetClientFinancialSummary(ctx, args);
       return flattenResult(r);
     }
     case "create_client": {
