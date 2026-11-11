@@ -3,9 +3,12 @@ import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
-import { DeleteCostButton } from "@/components/domain/DeleteCostButton";
+import { VoidCostButton } from "@/components/domain/VoidCostButton";
 import { RowEditLink } from "@/components/domain/RowEditLink";
-import type { OperationCostBreakdown } from "@/lib/db/queries/operation-costs";
+import type {
+  OperationCostRow,
+  OperationMonthlyCostsSnapshot,
+} from "@/lib/db/queries/operation-costs";
 import {
   operationCostCategoryLabel,
   type OperationCostCategory,
@@ -15,33 +18,125 @@ import { getInitials } from "@/lib/utils/initials";
 import { isCommissionPercentCost } from "@/lib/utils/operation-cost-amount";
 import { formatMoneyBR } from "@/lib/utils/money";
 import { operationCostEditPath } from "@/lib/utils/operation-cost-routes";
+import { computeMargin, type MarginResult } from "@/lib/utils/margin";
 
 type Props = {
   operationId: string;
-  breakdown: OperationCostBreakdown;
+  snapshot: OperationMonthlyCostsSnapshot;
+  monthlyRecurringRevenue: number | null;
 };
 
-export function CostsTab({ operationId, breakdown }: Props) {
+function CostRow({
+  operationId,
+  c,
+  idx,
+  totalRows,
+  upcoming,
+}: {
+  operationId: string;
+  c: OperationCostRow;
+  idx: number;
+  totalRows: number;
+  upcoming: boolean;
+}) {
+  return (
+    <li
+      key={c.id}
+      className={`flex flex-col gap-2 px-4 py-3 md:grid md:grid-cols-12 md:gap-3 md:items-center ${
+        idx !== totalRows - 1 ? "border-b border-line" : ""
+      } ${upcoming ? "bg-cream/20" : ""}`}
+    >
+      <div className="md:col-span-3 font-medium text-ink min-w-0 truncate flex flex-wrap items-center gap-2">
+        {c.label}
+        {upcoming && (
+          <Pill variant="oak">
+            Começa em {formatDateBR(c.startedAt)}
+          </Pill>
+        )}
+      </div>
+      <div className="md:col-span-2">
+        <Pill variant="neutral">
+          {operationCostCategoryLabel(c.category)}
+        </Pill>
+        {upcoming && (
+          <p className="font-mono text-[9px] text-mute mt-1 uppercase tracking-wide">
+            Ainda não vigente
+          </p>
+        )}
+      </div>
+      <div className="flex flex-wrap items-center gap-2 md:contents">
+        <div className="md:col-span-2 font-mono text-sm text-ink">
+          {isCommissionPercentCost({
+            category: c.category,
+            amount: c.amount,
+            commissionPercent: c.commissionPercent,
+          }) ? (
+            <span>
+              {c.commissionPercent?.toLocaleString("pt-BR", {
+                maximumFractionDigits: 3,
+              })}
+              %{" "}
+              <span className="text-mute">
+                ({formatMoneyBR(c.monthlyAmount)})
+              </span>
+            </span>
+          ) : (
+            formatMoneyBR(c.monthlyAmount)
+          )}
+        </div>
+        <div className="md:col-span-2">
+          <Pill variant={c.recurrence === "mensal" ? "sage" : "oak"}>
+            {c.recurrence === "mensal" ? "Mensal" : "Única"}
+          </Pill>
+        </div>
+        <div className="md:col-span-1 font-mono text-[10px] text-mute min-w-0">
+          {formatDateBR(c.startedAt)}
+          {c.endedAt ? ` → ${formatDateBR(c.endedAt)}` : ""}
+        </div>
+      </div>
+      <div className="md:col-span-2 flex flex-wrap items-center justify-end gap-2">
+        <RowEditLink
+          href={operationCostEditPath(operationId, c.id)}
+          data-testid={`operation-cost-edit-${c.id}`}
+        />
+        <VoidCostButton costId={c.id} label={c.label} variant="row" />
+      </div>
+    </li>
+  );
+}
+
+export function CostsTab({
+  operationId,
+  snapshot,
+  monthlyRecurringRevenue,
+}: Props) {
   const {
     adHocMonthly,
     categorySubtotals,
     adHocOnceTotal,
     adHocItems,
+    upcomingCosts,
+    projectedBreakdown,
+    projectedFromDate,
     allocations,
     allocationsTotal,
     taxRatePct,
     taxMonthlyAmount,
     totalMonthly,
-  } = breakdown;
+  } = snapshot;
 
   const monthlyItems = adHocItems.filter((c) => c.recurrence === "mensal");
+  const allListed = [...adHocItems, ...upcomingCosts];
+  const projectedMargin: MarginResult | null = projectedBreakdown
+    ? computeMargin(monthlyRecurringRevenue, projectedBreakdown.totalMonthly)
+    : null;
 
   return (
     <div className="space-y-9">
       <section className="bg-card border border-line rounded p-5">
         <div className="flex items-baseline justify-between mb-2">
           <h2 className="font-display text-lg text-ink font-semibold">
-            Total mensal
+            Total mensal (vigente hoje)
           </h2>
           <p className="font-display text-3xl font-semibold text-ink">
             {formatMoneyBR(totalMonthly)}
@@ -63,6 +158,32 @@ export function CostsTab({ operationId, breakdown }: Props) {
             + Custos únicos no período: {formatMoneyBR(adHocOnceTotal)} (não
             entram no mensal)
           </p>
+        )}
+        {projectedBreakdown && projectedFromDate && (
+          <div className="mt-4 pt-4 border-t border-line space-y-1">
+            <p className="font-mono text-[10px] uppercase tracking-wide text-mute">
+              Projeção a partir de {formatDateBR(projectedFromDate)}
+            </p>
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <span className="font-body text-sm text-ink-soft">
+                Total mensal projetado
+              </span>
+              <span className="font-display text-xl font-semibold text-ink">
+                {formatMoneyBR(projectedBreakdown.totalMonthly)}
+              </span>
+            </div>
+            {projectedMargin && (
+              <p className="font-body text-xs text-mute">
+                Margem projetada:{" "}
+                {projectedMargin.pct !== null
+                  ? `${projectedMargin.pct.toLocaleString("pt-BR", {
+                      maximumFractionDigits: 1,
+                    })}%`
+                  : "—"}{" "}
+                ({formatMoneyBR(projectedMargin.value)})
+              </p>
+            )}
+          </div>
         )}
       </section>
 
@@ -111,7 +232,10 @@ export function CostsTab({ operationId, breakdown }: Props) {
           <h3 className="font-display text-base text-ink font-semibold">
             Custos
           </h3>
-          <Pill variant="neutral">{adHocItems.length}</Pill>
+          <Pill variant="neutral">{allListed.length}</Pill>
+          {upcomingCosts.length > 0 && (
+            <Pill variant="oak">{upcomingCosts.length} futuro(s)</Pill>
+          )}
           <div className="ml-auto">
             <Link href={`/operations/${operationId}/costs/new`}>
               <Button variant="sage" size="sm">
@@ -121,7 +245,7 @@ export function CostsTab({ operationId, breakdown }: Props) {
             </Link>
           </div>
         </div>
-        {adHocItems.length === 0 ? (
+        {allListed.length === 0 ? (
           <div className="bg-card border border-line rounded p-7 text-center">
             <p className="font-body text-sm text-mute mb-4">
               Nenhum custo cadastrado.
@@ -137,62 +261,24 @@ export function CostsTab({ operationId, breakdown }: Props) {
           <div className="bg-card border border-line rounded shadow-sm overflow-hidden">
             <ul>
               {adHocItems.map((c, idx) => (
-                <li
+                <CostRow
                   key={c.id}
-                  className={`flex flex-col gap-2 px-4 py-3 md:grid md:grid-cols-12 md:gap-3 md:items-center ${
-                    idx !== adHocItems.length - 1 ? "border-b border-line" : ""
-                  }`}
-                >
-                  <div className="md:col-span-3 font-medium text-ink min-w-0 truncate">
-                    {c.label}
-                  </div>
-                  <div className="md:col-span-2">
-                    <Pill variant="neutral">
-                      {operationCostCategoryLabel(c.category)}
-                    </Pill>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 md:contents">
-                    <div className="md:col-span-2 font-mono text-sm text-ink">
-                      {isCommissionPercentCost({
-                        category: c.category,
-                        amount: c.amount,
-                        commissionPercent: c.commissionPercent,
-                      }) ? (
-                        <span>
-                          {c.commissionPercent?.toLocaleString("pt-BR", {
-                            maximumFractionDigits: 3,
-                          })}
-                          %{" "}
-                          <span className="text-mute">
-                            ({formatMoneyBR(c.monthlyAmount)})
-                          </span>
-                        </span>
-                      ) : (
-                        formatMoneyBR(c.monthlyAmount)
-                      )}
-                    </div>
-                    <div className="md:col-span-2">
-                      <Pill variant={c.recurrence === "mensal" ? "sage" : "oak"}>
-                        {c.recurrence === "mensal" ? "Mensal" : "Única"}
-                      </Pill>
-                    </div>
-                    <div className="md:col-span-1 font-mono text-[10px] text-mute min-w-0">
-                      {formatDateBR(c.startedAt)}
-                      {c.endedAt ? ` → ${formatDateBR(c.endedAt)}` : ""}
-                    </div>
-                  </div>
-                  <div className="md:col-span-2 flex flex-wrap items-center justify-end gap-2">
-                    <RowEditLink
-                      href={operationCostEditPath(operationId, c.id)}
-                      data-testid={`operation-cost-edit-${c.id}`}
-                    />
-                    <DeleteCostButton
-                      costId={c.id}
-                      label={c.label}
-                      variant="row"
-                    />
-                  </div>
-                </li>
+                  operationId={operationId}
+                  c={c}
+                  idx={idx}
+                  totalRows={allListed.length}
+                  upcoming={false}
+                />
+              ))}
+              {upcomingCosts.map((c, idx) => (
+                <CostRow
+                  key={c.id}
+                  operationId={operationId}
+                  c={c}
+                  idx={adHocItems.length + idx}
+                  totalRows={allListed.length}
+                  upcoming
+                />
               ))}
             </ul>
             {monthlyItems.length > 0 && (

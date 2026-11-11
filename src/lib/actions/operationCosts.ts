@@ -4,7 +4,10 @@ import { revalidatePath } from "next/cache";
 import { type ActionResult, dbErr, err, ok } from "@/lib/actions/_types";
 import { requireAdminAction } from "@/lib/auth/server";
 import { createServer } from "@/lib/db/client";
-import { getOperationCost } from "@/lib/db/queries/operation-costs";
+import {
+  getOperationCost,
+  voidOperationCost,
+} from "@/lib/db/queries/operation-costs";
 import {
   operationCostCreateSchema,
   operationCostSchema,
@@ -143,6 +146,33 @@ export async function updateOperationCostAction(
 
   await revalidateForOp(current.operationId);
   return ok({ id, operationId: current.operationId });
+}
+
+export async function voidOperationCostAction(
+  id: string,
+  formData?: FormData,
+): Promise<ActionResult<{ id: string; operationId: string }>> {
+  const guard = await requireAdminAction();
+  if (!guard.ok) return guard;
+
+  const current = await getOperationCost(id);
+  if (!current) return err("Custo não encontrado.", "not_found");
+
+  const rawReason = formData?.get("void_reason");
+  const reason = typeof rawReason === "string" ? rawReason : "";
+
+  try {
+    const { operationId } = await voidOperationCost(id, reason || null);
+    await revalidateForOp(operationId);
+    return ok({ id, operationId });
+  } catch (e) {
+    const message =
+      e instanceof Error ? e.message : "Falha ao remover lançamento.";
+    if (message.includes("not_found_or_already_voided")) {
+      return err("Lançamento não encontrado ou já removido.", "not_found");
+    }
+    return err(message, "void_failed");
+  }
 }
 
 export async function deleteOperationCostAction(

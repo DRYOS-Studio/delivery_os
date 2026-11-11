@@ -57,6 +57,14 @@ export type OperationCostBreakdown = {
   chargedRevenue: number | null;
 };
 
+/** Breakdown vigente + custos futuros e projeção quando entrarem em vigor. */
+export type OperationMonthlyCostsSnapshot = OperationCostBreakdown & {
+  upcomingCosts: OperationCostRow[];
+  projectedBreakdown: OperationCostBreakdown | null;
+  /** Data (YYYY-MM-DD) a partir da qual a projeção passa a valer (mínimo entre starts futuros). */
+  projectedFromDate: string | null;
+};
+
 type RawCostRow = {
   id: string;
   operation_id: string;
@@ -111,6 +119,11 @@ function todayISO(): string {
   return calendarDateLocalToday();
 }
 
+function earliestStartedAt(dates: string[]): string | null {
+  if (dates.length === 0) return null;
+  return dates.reduce((min, d) => (d < min ? d : min));
+}
+
 export async function listOperationCosts(
   operationId: string,
 ): Promise<OperationCostRow[]> {
@@ -125,6 +138,7 @@ export async function listOperationCosts(
       .from("operation_costs")
       .select("*")
       .eq("operation_id", operationId)
+      .is("voided_at", null)
       .order("started_at", { ascending: false }),
   ]);
   if (opRes.error)
@@ -155,6 +169,7 @@ export async function getOperationCost(
       "*, operation:operations!fk_operation_costs_operation_id(monthly_recurring_revenue, tax_rate_pct)",
     )
     .eq("id", id)
+    .is("voided_at", null)
     .maybeSingle();
   if (error) throw new Error(`getOperationCost: ${error.message}`);
   if (!data) return null;
@@ -350,11 +365,11 @@ const ALLOC_SELECT_FIELDS = `
 export async function getOperationMonthlyCosts(
   operationId: string,
   supabaseClient?: SupabaseClient<Database>,
-): Promise<OperationCostBreakdown> {
+): Promise<OperationMonthlyCostsSnapshot> {
   const supabase = supabaseClient ?? (await createServer());
   const today = todayISO();
 
-  const [opRes, costsRes, allocRes] = await Promise.all([
+  const [opRes, costsRes, upcomingRes, allocRes] = await Promise.all([
     supabase
       .from("operations")
       .select("monthly_recurring_revenue, tax_rate_pct")
@@ -364,9 +379,17 @@ export async function getOperationMonthlyCosts(
       .from("operation_costs")
       .select("*")
       .eq("operation_id", operationId)
+      .is("voided_at", null)
       .lte("started_at", today)
       .or(`ended_at.is.null,ended_at.gte.${today}`)
       .order("started_at", { ascending: false }),
+    supabase
+      .from("operation_costs")
+      .select("*")
+      .eq("operation_id", operationId)
+      .is("voided_at", null)
+      .gt("started_at", today)
+      .order("started_at", { ascending: true }),
     supabase
       .from("allocations")
       .select(
@@ -385,6 +408,10 @@ export async function getOperationMonthlyCosts(
     throw new Error(
       `getOperationMonthlyCosts.costs: ${costsRes.error.message}`,
     );
+  if (upcomingRes.error)
+    throw new Error(
+      `getOperationMonthlyCosts.upcoming: ${upcomingRes.error.message}`,
+    );
   if (allocRes.error)
     throw new Error(
       `getOperationMonthlyCosts.allocations: ${allocRes.error.message}`,
@@ -402,12 +429,37 @@ export async function getOperationMonthlyCosts(
   const adHocItems = (costsRes.data ?? []).map((r) =>
     mapCost(r as RawCostRow, { chargedRevenue, taxRatePct }),
   );
+  const upcomingCosts = (upcomingRes.data ?? []).map((r) =>
+    mapCost(r as RawCostRow, { chargedRevenue, taxRatePct }),
+  );
   const allocRows = (allocRes.data ?? []) as unknown as AllocJoin[];
 
-  return computeBreakdown(operationId, adHocItems, allocRows, {
-    chargedRevenue,
-    taxRatePct,
-  });
+  const finance = { chargedRevenue, taxRatePct };
+  const breakdown = computeBreakdown(
+    operationId,
+    adHocItems,
+    allocRows,
+    finance,
+  );
+  const projectedBreakdown =
+    upcomingCosts.length > 0
+      ? computeBreakdown(
+          operationId,
+          [...adHocItems, ...upcomingCosts],
+          allocRows,
+          finance,
+        )
+      : null;
+  const projectedFromDate = earliestStartedAt(
+    upcomingCosts.map((c) => c.startedAt),
+  );
+
+  return {
+    ...breakdown,
+    upcomingCosts,
+    projectedBreakdown,
+    projectedFromDate,
+  };
 }
 
 export async function getActiveOperationsMonthlyCostsTotal(): Promise<number> {
@@ -431,6 +483,7 @@ export async function getActiveOperationsMonthlyCostsTotal(): Promise<number> {
       .is("operation.archived_at", null)
       .in("operation.status", ACTIVE_STATUSES)
       .eq("recurrence", "mensal")
+      .is("voided_at", null)
       .lte("started_at", today)
       .or(`ended_at.is.null,ended_at.gte.${today}`),
     supabase
@@ -516,4 +569,26 @@ export async function getActiveOperationsMonthlyCostsTotal(): Promise<number> {
     total += breakdown.totalMonthly;
   }
   return total;
+}
+
+export async function voidOperationCost(
+  id: string,
+  reason?: string | null,
+  supabaseClient?: SupabaseClient<Database>,
+): Promise<{ operationId: string }> {
+  const supabase = supabaseClient ?? (await createServer());
+  const trimmedReason = reason?.trim() ? reason.trim().slice(0, 500) : null;
+  const { data, error } = await supabase
+    .from("operation_costs")
+    .update({
+      voided_at: new Date().toISOString(),
+      void_reason: trimmedReason,
+    })
+    .eq("id", id)
+    .is("voided_at", null)
+    .select("operation_id")
+    .maybeSingle();
+  if (error) throw new Error(`voidOperationCost: ${error.message}`);
+  if (!data) throw new Error("voidOperationCost: not_found_or_already_voided");
+  return { operationId: data.operation_id };
 }

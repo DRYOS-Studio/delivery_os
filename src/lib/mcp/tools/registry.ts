@@ -899,7 +899,7 @@ const BASE_MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
     name: "get_operation_monthly_costs",
     access: "read",
     description:
-      "Breakdown mensal de custos (itens categorizados, ad-hoc, alocações, impostos) e margem sobre MRR.",
+      "Breakdown mensal vigente, upcoming_costs (início futuro), projected_breakdown/projected_margin e margem sobre MRR.",
     inputSchema: {
       type: "object",
       properties: { operation_id: { type: "string" } },
@@ -954,6 +954,22 @@ const BASE_MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
         },
         notes: { type: ["string", "null"] },
         ended_at: { type: ["string", "null"] },
+        ...idem,
+      },
+      required: ["cost_id"],
+    },
+  },
+  {
+    name: "void_operation_cost",
+    access: "admin",
+    idempotent: true,
+    description:
+      "Anula um lançamento de custo (erro de cadastro). Exclui de listagens e cálculos; alternativa segura a end_operation_cost para custos com início no futuro.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        cost_id: { type: "string" },
+        void_reason: { type: "string", maxLength: 500 },
         ...idem,
       },
       required: ["cost_id"],

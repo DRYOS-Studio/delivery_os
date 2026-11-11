@@ -1,4 +1,4 @@
-import type { OperationCostBreakdown } from "@/lib/db/queries/operation-costs";
+import type { OperationMonthlyCostsSnapshot } from "@/lib/db/queries/operation-costs";
 import type { OperationDetail } from "@/lib/db/queries/operations";
 
 /** Espelha exemplo Rafael: MRR 3000, imposto 6%, comissão 10% → R$ 282/mês. */
@@ -7,7 +7,7 @@ export const ACME_CORE_OPERATION_ID =
 
 const today = new Date().toISOString().slice(0, 10);
 
-export const acmeCoreCostsBreakdown: OperationCostBreakdown = {
+export const acmeCoreCostsBreakdown: OperationMonthlyCostsSnapshot = {
   fixedCost: 1682,
   categorySubtotals: {
     comissoes: 282,
@@ -81,6 +81,9 @@ export const acmeCoreCostsBreakdown: OperationCostBreakdown = {
   taxMonthlyAmount: 180,
   totalMonthly: 3782,
   chargedRevenue: 3000,
+  upcomingCosts: [],
+  projectedBreakdown: null,
+  projectedFromDate: null,
 };
 
 export const acmeCoreOperationEditFixture: OperationDetail = {
