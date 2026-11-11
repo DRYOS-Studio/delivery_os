@@ -115,3 +115,5 @@ DROP POLICY IF EXISTS client_credential_audit_insert ON public.client_credential
 CREATE POLICY client_credential_audit_insert ON public.client_credential_audit_logs
   FOR INSERT TO authenticated
   WITH CHECK (public.can_access_client_vault(client_id));
+
+NOTIFY pgrst, 'reload schema';

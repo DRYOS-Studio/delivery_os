@@ -15,5 +15,6 @@ describe("client credentials vault migration", () => {
     expect(sql).toContain("client_credentials_scoped_all");
     expect(sql).toContain("client_credential_audit_insert");
     expect(sql).not.toContain("password text");
+    expect(sql).toContain("NOTIFY pgrst, 'reload schema'");
   });
 });
