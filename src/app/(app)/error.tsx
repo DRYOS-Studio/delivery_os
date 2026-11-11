@@ -1,15 +1,19 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
+import { appErrorDetail } from "@/lib/utils/app-error-message";
 
 // Boundary do route group autenticado: pega erro das queries das pages
-// (batches). Nunca renderiza error.message (pode conter detalhe de infra).
+// (batches). Exibe mensagens prefixadas de query (`fn: …`) ou detalhe em dev.
 export default function AppError({
+  error,
   reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const detail = appErrorDetail(error.message, error.digest);
+
   return (
     <div className="flex items-center justify-center py-24 px-6">
       <div className="max-w-md text-center">
@@ -22,6 +26,14 @@ export default function AppError({
         <p className="text-sm text-mute mb-6">
           Não foi possível carregar esta página. Tente de novo em instantes.
         </p>
+        {detail && (
+          <p
+            className="text-left text-xs font-mono text-ink-soft bg-card border border-line rounded px-3 py-2 mb-6 break-words"
+            role="status"
+          >
+            {detail}
+          </p>
+        )}
         <Button onClick={reset}>Tentar de novo</Button>
       </div>
     </div>
