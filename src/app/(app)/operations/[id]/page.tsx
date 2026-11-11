@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { ActivityFeedSection } from "@/components/domain/ActivityFeedSection";
 import { OperationCommentsSection } from "@/components/domain/OperationCommentsSection";
 import { AreaTasksSection } from "@/components/domain/AreaTasksSection";
 import { AttachmentsSection } from "@/components/domain/AttachmentsSection";
+import { CostSavedBanner } from "@/components/domain/CostSavedBanner";
 import { CostsTab } from "@/components/domain/CostsTab";
 import { FinanceCards } from "@/components/domain/FinanceCards";
 import { FrentesListSection } from "@/components/domain/FrentesListSection";
@@ -343,7 +345,7 @@ export default async function Page({
     baseTabs.push({
       key: "custos",
       label: "Custos",
-      count: costsBreakdown.adHocItems.length,
+      count: costsBreakdown.adHocItems.length + costsBreakdown.upcomingCosts.length,
     });
   }
   baseTabs.push({ key: "publico", label: "Acesso público" });
@@ -531,7 +533,16 @@ export default async function Page({
       )}
 
       {tab === "custos" && isAdmin && costsBreakdown && (
-        <CostsTab operationId={op.id} breakdown={costsBreakdown} />
+        <>
+          <Suspense fallback={null}>
+            <CostSavedBanner />
+          </Suspense>
+          <CostsTab
+            operationId={op.id}
+            snapshot={costsBreakdown}
+            monthlyRecurringRevenue={op.monthlyRecurringRevenue}
+          />
+        </>
       )}
 
       {tab === "publico" && (

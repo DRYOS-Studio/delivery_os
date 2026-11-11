@@ -117,4 +117,49 @@ describe("computeBreakdown com imposto", () => {
     });
     expect(breakdown.categorySubtotals.comissoes).toBe(300);
   });
+
+  it("projeção soma custos vigentes e futuros mensais", () => {
+    const opId = "00000000-0000-4000-8000-000000000001";
+    const active = {
+      id: "00000000-0000-4000-8000-000000000030",
+      operationId: opId,
+      label: "Vigente",
+      category: "time" as const,
+      amount: 500,
+      commissionPercent: null,
+      monthlyAmount: 500,
+      recurrence: "mensal" as const,
+      startedAt: "2026-01-01",
+      endedAt: null,
+      notes: null,
+      createdAt: "",
+      updatedAt: "",
+    };
+    const upcoming = {
+      id: "00000000-0000-4000-8000-000000000031",
+      operationId: opId,
+      label: "Futuro",
+      category: "infra" as const,
+      amount: 800,
+      commissionPercent: null,
+      monthlyAmount: 800,
+      recurrence: "mensal" as const,
+      startedAt: "2026-11-15",
+      endedAt: null,
+      notes: null,
+      createdAt: "",
+      updatedAt: "",
+    };
+    const current = computeBreakdown(opId, [active], [], {
+      chargedRevenue: 3000,
+      taxRatePct: 6,
+    });
+    const projected = computeBreakdown(opId, [active, upcoming], [], {
+      chargedRevenue: 3000,
+      taxRatePct: 6,
+    });
+    expect(current.adHocMonthly).toBe(500);
+    expect(projected.adHocMonthly).toBe(1300);
+    expect(projected.totalMonthly).toBeGreaterThan(current.totalMonthly);
+  });
 });

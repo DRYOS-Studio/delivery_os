@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/Button";
-import { DeleteCostButton } from "@/components/domain/DeleteCostButton";
+import { VoidCostButton } from "@/components/domain/VoidCostButton";
 import {
   createOperationCostAction,
   updateOperationCostAction,
@@ -60,6 +60,7 @@ export function CostForm(props: Props): React.JSX.Element {
   const router = useRouter();
   const isEdit = props.mode === "edit";
   const [generalError, setGeneralError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const legacyCommissionR$ =
     isEdit &&
     props.initialData.category === "comissoes" &&
@@ -139,7 +140,9 @@ export function CostForm(props: Props): React.JSX.Element {
       : await createOperationCostAction(props.operationId, fd);
 
     if (result.ok) {
-      router.push(`/operations/${props.operationId}?tab=custos`);
+      setSaveSuccess(true);
+      const dest = `/operations/${props.operationId}?tab=custos&cost_saved=1`;
+      router.push(dest);
       router.refresh();
       return;
     }
@@ -158,6 +161,14 @@ export function CostForm(props: Props): React.JSX.Element {
       onSubmit={handleSubmit(onSubmit)}
       className="space-y-4 max-w-2xl"
     >
+      {saveSuccess && (
+        <div
+          role="status"
+          className="bg-sage/15 border border-sage/40 text-ink text-sm rounded px-3 py-2"
+        >
+          Custo salvo com sucesso. Redirecionando para a lista…
+        </div>
+      )}
       {generalError && (
         <div className="bg-critical-bg border border-critical text-critical text-sm rounded px-3 py-2">
           {generalError}
@@ -341,7 +352,7 @@ export function CostForm(props: Props): React.JSX.Element {
           </Link>
         </div>
         {isEdit && props.isAdmin && (
-          <DeleteCostButton
+          <VoidCostButton
             costId={props.initialData.id}
             label={props.initialData.label}
             redirectTo={cancelHref}

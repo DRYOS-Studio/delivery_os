@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/db/types";
 import { mcpCreateClientContract } from "@/lib/mcp/tools/contracts-tools";
-import { mcpEndOperationCost } from "@/lib/mcp/tools/delivery-ops-tools";
+import {
+  mcpEndOperationCost,
+  mcpVoidOperationCost,
+} from "@/lib/mcp/tools/delivery-ops-tools";
 import { mcpCreateServiceProduct } from "@/lib/mcp/tools/catalog-admin-tools";
 import { mcpArchivePerson } from "@/lib/mcp/tools/parity-tools";
 import { dispatchMcpTool } from "@/lib/mcp/tools/dispatch";
@@ -54,6 +57,13 @@ describe("MCP handler admin guards", () => {
     const r = await mcpEndOperationCost(ctx, {
       cost_id: "00000000-0000-4000-8000-000000000002",
       ended_at: "2026-11-07",
+    });
+    expect(r).toMatchObject({ ok: false, forbidden: true });
+  });
+
+  it("mcpVoidOperationCost denies non-admin", async () => {
+    const r = await mcpVoidOperationCost(ctx, {
+      cost_id: "00000000-0000-4000-8000-000000000002",
     });
     expect(r).toMatchObject({ ok: false, forbidden: true });
   });

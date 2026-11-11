@@ -1644,6 +1644,8 @@ export type Database = {
           recurrence: Database["public"]["Enums"]["cost_recurrence"]
           started_at: string
           updated_at: string
+          void_reason: string | null
+          voided_at: string | null
         }
         Insert: {
           amount?: number | null
@@ -1658,6 +1660,8 @@ export type Database = {
           recurrence?: Database["public"]["Enums"]["cost_recurrence"]
           started_at?: string
           updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
         }
         Update: {
           amount?: number | null
@@ -1672,6 +1676,8 @@ export type Database = {
           recurrence?: Database["public"]["Enums"]["cost_recurrence"]
           started_at?: string
           updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
         }
         Relationships: [
           {
