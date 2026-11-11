@@ -7,6 +7,8 @@ const readOnlyCtx: McpAuthContext = {
   scopes: ["read"],
   profileId: "00000000-0000-4000-8000-000000000099",
   mcpAgent: true,
+  tokenId: "40000000-0000-4000-8000-000000000099",
+  tokenName: null,
 };
 
 describe("MCP dispatch access", () => {

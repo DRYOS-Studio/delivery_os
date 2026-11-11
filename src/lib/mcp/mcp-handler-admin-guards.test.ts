@@ -40,6 +40,8 @@ const readToken: McpAuthContext = {
   scopes: ["read"],
   profileId: MEMBER,
   mcpAgent: true,
+  tokenId: "20000000-0000-4000-8000-000000000001",
+  tokenName: "read-only",
 };
 
 describe("MCP handler admin guards", () => {

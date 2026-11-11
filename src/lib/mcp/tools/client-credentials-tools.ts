@@ -13,6 +13,7 @@ import {
   revealClientCredentialSchema,
   updateClientCredentialMcpSchema,
 } from "@/lib/validators/client-credential";
+import type { McpAuthContext } from "@/lib/mcp/resolve-caller-jwt";
 import {
   type McpHandlerContext,
   type McpToolResult,
@@ -239,6 +240,7 @@ export async function mcpArchiveClientCredential(
 export async function mcpRevealClientCredential(
   ctx: McpHandlerContext,
   args: Record<string, unknown>,
+  mcpCtx?: McpAuthContext,
 ): Promise<McpToolResult<{ password: string }>> {
   const parsed = revealClientCredentialSchema.safeParse(args);
   if (!parsed.success) {
@@ -267,7 +269,8 @@ export async function mcpRevealClientCredential(
       {
         action: "reveal",
         reason: parsed.data.reason,
-        actorMcp: true,
+        actorMcp: Boolean(mcpCtx?.mcpAgent),
+        actorMcpTokenId: mcpCtx?.tokenId ?? null,
       },
       ctx.supabase,
     );
