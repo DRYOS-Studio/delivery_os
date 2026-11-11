@@ -88,11 +88,3 @@ function mapTokenRow(r: {
   };
 }
 
-export function mcpTokenStatus(
-  row: Pick<McpAgentTokenRow, "revokedAt" | "expiresAt">,
-  now = new Date(),
-): "active" | "revoked" | "expired" {
-  if (row.revokedAt) return "revoked";
-  if (row.expiresAt && new Date(row.expiresAt) <= now) return "expired";
-  return "active";
-}

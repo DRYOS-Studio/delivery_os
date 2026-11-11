@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import type { McpAgentTokenAdminRow } from "@/lib/db/queries/mcp-agent-tokens";
-import { mcpTokenStatus } from "@/lib/db/queries/mcp-agent-tokens";
+import { mcpTokenStatus } from "@/lib/mcp/mcp-agent-token-status";
 import {
   buildClaudeMcpAddCommand,
   buildMcpRemoteClaudeDesktopConfig,
