@@ -1,6 +1,11 @@
 import { createServer } from "@/lib/db/client";
+import { listClientChargesForLtvByClients } from "@/lib/db/queries/client-charges";
 import { sumClientAcquisitionCosts } from "@/lib/db/queries/client-acquisition-costs";
 import { getOperationsMonthlyCostsBatch } from "@/lib/db/queries/operation-costs";
+import {
+  computeClientLtvFromCharges,
+  computeLtvCacRatio,
+} from "@/lib/utils/client-charge-ltv";
 import { ACTIVE_STATUSES } from "@/lib/utils/operation-status";
 import {
   contractMrrMismatch,
@@ -22,6 +27,9 @@ export type ClientFinancialSummary = {
   contractMonthlyTotal: number | null;
   contractMrrMismatch: boolean;
   contractMrrDelta: number | null;
+  ltvReceived: number;
+  receivablePending: number;
+  ltvCacRatio: number | null;
 };
 
 type ActiveOpRow = {
@@ -92,6 +100,8 @@ function buildSummaryForClient(
   breakdownCostByOp: Map<string, number>,
   cacTotal: number,
   contracts: ContractRow[],
+  ltvReceived: number,
+  receivablePending: number,
 ): ClientFinancialSummary {
   const mrrTotal = ops.reduce(
     (s, o) => s + (o.monthly_recurring_revenue ?? 0),
@@ -126,6 +136,9 @@ function buildSummaryForClient(
     contractMrrMismatch: mismatch,
     contractMrrDelta:
       contractMonthlyTotal !== null ? contractMonthlyTotal - mrrTotal : null,
+    ltvReceived,
+    receivablePending,
+    ltvCacRatio: computeLtvCacRatio(ltvReceived, cacTotal),
   };
 }
 
@@ -138,9 +151,10 @@ export async function getClientFinancialSummariesForClients(
   const supabase = supabaseClient ?? (await createServer());
   const includeCac = options.includeCac ?? true;
 
-  const [ops, contracts] = await Promise.all([
+  const [ops, contracts, chargesByClient] = await Promise.all([
     loadActiveOpsForClients(uniqueIds, supabase),
     loadContractsForClients(uniqueIds, supabase),
+    listClientChargesForLtvByClients(uniqueIds, supabase),
   ]);
   const opIds = ops.map((o) => o.id);
   const [breakdowns, cacByClient] = await Promise.all([
@@ -163,6 +177,9 @@ export async function getClientFinancialSummariesForClients(
   const out = new Map<string, ClientFinancialSummary>();
   for (const clientId of uniqueIds) {
     const clientOps = opsByClient.get(clientId) ?? [];
+    const ltvTotals = computeClientLtvFromCharges(
+      chargesByClient.get(clientId) ?? [],
+    );
     out.set(
       clientId,
       buildSummaryForClient(
@@ -171,6 +188,8 @@ export async function getClientFinancialSummariesForClients(
         costByOp,
         cacByClient.get(clientId) ?? 0,
         contracts,
+        ltvTotals.ltvReceived,
+        ltvTotals.receivablePending,
       ),
     );
   }
@@ -189,7 +208,7 @@ export async function getClientFinancialSummary(
   );
   const summary = map.get(clientId);
   if (!summary) {
-    return buildSummaryForClient(clientId, [], new Map(), 0, []);
+    return buildSummaryForClient(clientId, [], new Map(), 0, [], 0, 0);
   }
   return summary;
 }

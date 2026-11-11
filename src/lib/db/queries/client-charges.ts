@@ -173,6 +173,34 @@ export async function listClientCharges(
   return ((data ?? []) as RawCharge[]).map((r) => mapCharge(r));
 }
 
+/** Cobranças não canceladas para LTV / a receber (batch por cliente). */
+export async function listClientChargesForLtvByClients(
+  clientIds: string[],
+  supabase?: SupabaseClient<Database>,
+): Promise<Map<string, ClientChargeRow[]>> {
+  const unique = [...new Set(clientIds)];
+  const out = new Map<string, ClientChargeRow[]>();
+  for (const id of unique) out.set(id, []);
+  if (unique.length === 0) return out;
+
+  const db = await resolveSupabase(supabase);
+  const { data, error } = await db
+    .from("client_charges")
+    .select(CHARGE_SELECT)
+    .in("client_id", unique)
+    .neq("status", "cancelada");
+  if (error)
+    throw new Error(`listClientChargesForLtvByClients: ${error.message}`);
+
+  for (const raw of (data ?? []) as RawCharge[]) {
+    const row = mapCharge(raw);
+    const list = out.get(row.clientId) ?? [];
+    list.push(row);
+    out.set(row.clientId, list);
+  }
+  return out;
+}
+
 export type ClientCashSummary = {
   asOfDate: string;
   monthStart: string;
