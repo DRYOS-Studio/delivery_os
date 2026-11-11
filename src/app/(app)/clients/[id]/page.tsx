@@ -1,8 +1,10 @@
 import { notFound, redirect } from "next/navigation";
 import { clientHubPathFromLegacyTab } from "@/lib/utils/client-hub-tabs";
+import { ClientFinancialOverview } from "@/components/domain/ClientFinancialOverview";
 import { ClientJourneyPanel } from "@/components/domain/ClientJourneyPanel";
 import { ClientSummarySection } from "@/components/domain/ClientSummarySection";
 import { getProfile } from "@/lib/auth/server";
+import { getClientFinancialSummary } from "@/lib/db/queries/client-financial-summary";
 import { getClient, getClientSummary } from "@/lib/db/queries/clients";
 import { getActiveOperations } from "@/lib/db/queries/operations";
 
@@ -24,12 +26,15 @@ export default async function ClientVisaoPage({
   if (legacy && legacy !== `/clients/${id}`) redirect(legacy);
   const client = await getClient(id);
   if (!client) notFound();
-  const [operations, summary, profile] = await Promise.all([
+  const profile = await getProfile();
+  const isAdmin = profile?.role === "admin";
+  const [operations, summary, financial] = await Promise.all([
     getActiveOperations({ clientId: id, scope: "visivel" }),
     getClientSummary(id),
-    getProfile(),
+    isAdmin
+      ? getClientFinancialSummary(id, { includeCac: true })
+      : Promise.resolve(null),
   ]);
-  const isAdmin = profile?.role === "admin";
 
   return (
     <div className="space-y-7">
@@ -38,6 +43,9 @@ export default async function ClientVisaoPage({
         operations={operations}
         isAdmin={isAdmin}
       />
+      {isAdmin && financial && (
+        <ClientFinancialOverview clientId={id} financial={financial} />
+      )}
       {client.notes && (
         <div className="bg-sage-bg border-l-2 border-sage-deep px-4 py-3 rounded-sm">
           <p className="font-body text-sm text-ink-soft whitespace-pre-wrap">
@@ -45,7 +53,7 @@ export default async function ClientVisaoPage({
           </p>
         </div>
       )}
-      <ClientSummarySection summary={summary} isAdmin={isAdmin} />
+      <ClientSummarySection summary={summary} />
     </div>
   );
 }

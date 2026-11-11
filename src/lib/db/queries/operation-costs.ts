@@ -410,6 +410,109 @@ export async function getOperationMonthlyCosts(
   });
 }
 
+/** Breakdown mensal vigente por operação (mesma lógica que `getOperationMonthlyCosts`). */
+export async function getOperationsMonthlyCostsBatch(
+  operationIds: string[],
+  supabaseClient?: SupabaseClient<Database>,
+): Promise<Map<string, OperationCostBreakdown>> {
+  const uniqueIds = [...new Set(operationIds)];
+  if (uniqueIds.length === 0) return new Map();
+
+  const supabase = supabaseClient ?? (await createServer());
+  const today = todayISO();
+
+  const [opsRes, costsRes, allocRes] = await Promise.all([
+    supabase
+      .from("operations")
+      .select("id, monthly_recurring_revenue, tax_rate_pct")
+      .in("id", uniqueIds),
+    supabase
+      .from("operation_costs")
+      .select("*")
+      .in("operation_id", uniqueIds)
+      .lte("started_at", today)
+      .or(`ended_at.is.null,ended_at.gte.${today}`),
+    supabase
+      .from("allocations")
+      .select(
+        `${ALLOC_SELECT_FIELDS},
+        frente:frentes!fk_allocations_frente_id!inner(id, operation_id, archived_at)`,
+      )
+      .is("frente.archived_at", null)
+      .in("frente.operation_id", uniqueIds)
+      .or(`end_date.is.null,end_date.gt.${today}`),
+  ]);
+  if (opsRes.error) {
+    throw new Error(
+      `getOperationsMonthlyCostsBatch.operations: ${opsRes.error.message}`,
+    );
+  }
+  if (costsRes.error) {
+    throw new Error(
+      `getOperationsMonthlyCostsBatch.costs: ${costsRes.error.message}`,
+    );
+  }
+  if (allocRes.error) {
+    throw new Error(
+      `getOperationsMonthlyCostsBatch.allocations: ${allocRes.error.message}`,
+    );
+  }
+
+  const costsByOp = new Map<string, OperationCostRow[]>();
+  for (const r of costsRes.data ?? []) {
+    const raw = r as RawCostRow;
+    const opMeta = (opsRes.data ?? []).find((o) => o.id === raw.operation_id);
+    const chargedForOp =
+      opMeta?.monthly_recurring_revenue === null ||
+      opMeta?.monthly_recurring_revenue === undefined
+        ? null
+        : Number(opMeta.monthly_recurring_revenue);
+    const taxForOp =
+      opMeta?.tax_rate_pct === null || opMeta?.tax_rate_pct === undefined
+        ? null
+        : Number(opMeta.tax_rate_pct);
+    const cost = mapCost(raw, {
+      chargedRevenue: chargedForOp,
+      taxRatePct: taxForOp,
+    });
+    const list = costsByOp.get(cost.operationId) ?? [];
+    list.push(cost);
+    costsByOp.set(cost.operationId, list);
+  }
+
+  const allocsByOp = new Map<string, AllocJoin[]>();
+  for (const raw of (allocRes.data ?? []) as unknown as AllocJoin[]) {
+    const frente = pickOne(raw.frente);
+    if (!frente) continue;
+    const list = allocsByOp.get(frente.operation_id) ?? [];
+    list.push(raw);
+    allocsByOp.set(frente.operation_id, list);
+  }
+
+  const out = new Map<string, OperationCostBreakdown>();
+  for (const op of opsRes.data ?? []) {
+    const chargedRevenue =
+      op.monthly_recurring_revenue === null ||
+      op.monthly_recurring_revenue === undefined
+        ? null
+        : Number(op.monthly_recurring_revenue);
+    const taxRatePct =
+      op.tax_rate_pct === null || op.tax_rate_pct === undefined
+        ? null
+        : Number(op.tax_rate_pct);
+    out.set(
+      op.id,
+      computeBreakdown(
+        op.id,
+        costsByOp.get(op.id) ?? [],
+        allocsByOp.get(op.id) ?? [],
+        { chargedRevenue, taxRatePct },
+      ),
+    );
+  }
+  return out;
+}
+
 export async function getActiveOperationsMonthlyCostsTotal(): Promise<number> {
   const supabase = await createServer();
   const today = todayISO();

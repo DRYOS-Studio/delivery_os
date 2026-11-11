@@ -1,3 +1,4 @@
+import { getClientFinancialSummary } from "@/lib/db/queries/client-financial-summary";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/db/types";
 import { clientSchema } from "@/lib/validators/client";
@@ -59,6 +60,44 @@ export async function mcpListClients(
   const { data, error } = await q;
   if (error) return { ok: false, message: error.message };
   return { ok: true, data: { clients: data ?? [] } };
+}
+
+export async function mcpGetClientFinancialSummary(
+  ctx: McpHandlerContext,
+  args: Record<string, unknown>,
+): Promise<McpToolResult<Record<string, unknown>>> {
+  const id = typeof args.client_id === "string" ? args.client_id.trim() : "";
+  if (!id) return { ok: false, message: "client_id obrigatório." };
+  try {
+    const s = await getClientFinancialSummary(
+      id,
+      { includeCac: true },
+      ctx.supabase,
+    );
+    return {
+      ok: true,
+      data: {
+        client_id: s.clientId,
+        active_operations_count: s.activeOperationsCount,
+        mrr_total: s.mrrTotal,
+        monthly_cost_total: s.monthlyCostTotal,
+        margin: {
+          value: s.margin.value,
+          pct: s.margin.pct,
+          level: s.margin.level,
+        },
+        cac_total: s.cacTotal,
+        tenure_start_date: s.tenureStartDate,
+        contract_monthly_total: s.contractMonthlyTotal,
+        contract_mrr_mismatch: s.contractMrrMismatch,
+        contract_mrr_delta: s.contractMrrDelta,
+      },
+    };
+  } catch (e) {
+    const message =
+      e instanceof Error ? e.message : "Falha ao calcular resumo financeiro.";
+    return { ok: false, message };
+  }
 }
 
 export async function mcpGetClient(

@@ -1,13 +1,10 @@
 import { MetricCard } from "@/components/ui/MetricCard";
 import type { ClientSummary } from "@/lib/db/queries/clients";
-import { formatMoneyBR } from "@/lib/utils/money";
-
 type Props = {
   summary: ClientSummary;
-  isAdmin: boolean;
 };
 
-export function ClientSummarySection({ summary, isAdmin }: Props) {
+export function ClientSummarySection({ summary }: Props) {
   return (
     <section className="mb-7">
       <h2 className="font-display text-lg font-semibold text-ink mb-4">
@@ -28,20 +25,6 @@ export function ClientSummarySection({ summary, isAdmin }: Props) {
           value={summary.activeFrentes}
           variant="sage"
         />
-        {isAdmin && (
-          <>
-            <MetricCard
-              label="MRR total"
-              value={formatMoneyBR(summary.mrrTotal)}
-              hint="Operações ativas"
-            />
-            <MetricCard
-              label="CAC total"
-              value={formatMoneyBR(summary.cacTotal)}
-              hint="Custos de aquisição"
-            />
-          </>
-        )}
       </div>
     </section>
   );

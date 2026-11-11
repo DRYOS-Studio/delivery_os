@@ -9,6 +9,7 @@ import { RestoreButton } from "@/components/domain/RestoreButton";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { getProfile } from "@/lib/auth/server";
+import { getClientFinancialSummariesForClients } from "@/lib/db/queries/client-financial-summary";
 import {
   countActiveClients,
   listClients,
@@ -37,6 +38,13 @@ export default async function Page({
   const isAdmin = profile?.role === "admin";
   // Separado em JS, não no banco: a query traz os dois (padrão de catalog/products).
   const active = clients.filter((c) => c.archivedAt === null);
+  const financialByClientId =
+    isAdmin && active.length > 0
+      ? await getClientFinancialSummariesForClients(
+          active.map((c) => c.id),
+          { includeCac: true },
+        )
+      : undefined;
   const archived = clients.filter((c) => c.archivedAt !== null);
 
   const subtitle = `${total} ${total === 1 ? "Cliente ativo" : "Clientes ativos"}`;
@@ -73,6 +81,7 @@ export default async function Page({
         clients={active}
         hasSearch={!!q || !!journeyStatus}
         isAdmin={isAdmin}
+        {...(financialByClientId ? { financialByClientId } : {})}
       />
 
       {isAdmin && archived.length > 0 && (
