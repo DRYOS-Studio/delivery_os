@@ -1,5 +1,4 @@
 import { createServer } from "@/lib/db/client";
-import { isPostgrestMissingColumnError } from "@/lib/db/postgrest-schema";
 import { mergeAttendeeCandidates } from "@/lib/db/queries/meetings-attendee-candidates";
 import type { Database } from "@/lib/db/types";
 
@@ -87,7 +86,14 @@ export async function countMeetingsByOperation(
   return count ?? 0;
 }
 
-const MEETING_DETAIL_SELECT_FULL = `
+export async function getMeeting(
+  id: string,
+): Promise<MeetingWithAttendees | null> {
+  const supabase = await createServer();
+  const { data, error } = await supabase
+    .from("meetings")
+    .select(
+      `
       *,
       meeting_attendees!fk_meeting_attendees_meeting_id (
         person:persons!fk_meeting_attendees_person_id (id, name, kind)
@@ -100,38 +106,13 @@ const MEETING_DETAIL_SELECT_FULL = `
         task:tasks!fk_meeting_agenda_next_steps_task ( id, frente_id ),
         assignee:persons!fk_meeting_agenda_next_steps_assignee ( id, name, kind )
       )
-      `;
+      `,
+    )
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(`getMeeting: ${error.message}`);
+  if (!data) return null;
 
-const MEETING_DETAIL_SELECT_LEGACY = `
-      *,
-      meeting_attendees!fk_meeting_attendees_meeting_id (
-        person:persons!fk_meeting_attendees_person_id (id, name, kind)
-      ),
-      meeting_agenda_items!fk_meeting_agenda_items_meeting (
-        id, meeting_id, sort_order, title, notes, source, granola_line, created_at, updated_at
-      ),
-      meeting_agenda_next_steps!fk_meeting_agenda_next_steps_meeting (
-        id, meeting_id, sort_order, description, due_date, task_id, assignee_person_id, created_at, updated_at,
-        task:tasks!fk_meeting_agenda_next_steps_task ( id, frente_id ),
-        assignee:persons!fk_meeting_agenda_next_steps_assignee ( id, name, kind )
-      )
-      `;
-
-type MeetingDetailRow = {
-  meeting_attendees: Array<{ person: { id: string; name: string; kind: AttendeeRef["kind"] } | null }> | null;
-  meeting_agenda_items: AgendaItemRow[] | null;
-  meeting_agenda_next_steps: Array<
-    NextStepRow & {
-      frente_id?: string | null;
-      task: { id: string; frente_id: string | null } | null;
-      assignee: AttendeeRef | AttendeeRef[] | null;
-    }
-  > | null;
-} & MeetingRow;
-
-function mapMeetingDetailRow(
-  data: MeetingDetailRow,
-): MeetingWithAttendees {
   const {
     meeting_attendees,
     meeting_agenda_items,
@@ -150,15 +131,12 @@ function mapMeetingDetailRow(
     const assigneeOne = Array.isArray(assignee) ? (assignee[0] ?? null) : assignee;
     return {
       ...rest,
-      frente_id: rest.frente_id ?? null,
       task: task ?? null,
       assignee: assigneeOne,
     };
   });
   return {
     ...meeting,
-    auto_create_tasks_from_next_steps:
-      meeting.auto_create_tasks_from_next_steps ?? true,
     attendees: (meeting_attendees ?? [])
       .map((row) => row.person)
       .filter((p): p is NonNullable<typeof p> => p !== null)
@@ -166,31 +144,6 @@ function mapMeetingDetailRow(
     agenda_items: agendaItems,
     next_steps: nextSteps,
   };
-}
-
-export async function getMeeting(
-  id: string,
-): Promise<MeetingWithAttendees | null> {
-  const supabase = await createServer();
-  let result = await supabase
-    .from("meetings")
-    .select(MEETING_DETAIL_SELECT_FULL)
-    .eq("id", id)
-    .maybeSingle();
-  if (
-    result.error &&
-    isPostgrestMissingColumnError(result.error)
-  ) {
-    result = await supabase
-      .from("meetings")
-      .select(MEETING_DETAIL_SELECT_LEGACY)
-      .eq("id", id)
-      .maybeSingle();
-  }
-  if (result.error) throw new Error(`getMeeting: ${result.error.message}`);
-  if (!result.data) return null;
-
-  return mapMeetingDetailRow(result.data as MeetingDetailRow);
 }
 
 export async function listAgendaItemsByMeeting(

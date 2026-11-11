@@ -1,4 +1,3 @@
-import { isPostgrestMissingColumnError } from "@/lib/db/postgrest-schema";
 import type { Database } from "@/lib/db/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -218,48 +217,25 @@ export async function syncAutoTasksForMeeting(
     .select("id, operation_id, auto_create_tasks_from_next_steps")
     .eq("id", meetingId)
     .maybeSingle();
-  if (mErr) {
-    if (isPostgrestMissingColumnError(mErr)) {
-      return { createdTaskIds: [], warnings: [] };
-    }
-    throw new Error(mErr.message);
-  }
+  if (mErr) throw new Error(mErr.message);
   if (!meeting) throw new Error("Reunião não encontrada.");
   if (meeting.auto_create_tasks_from_next_steps === false) {
     return { createdTaskIds: [], warnings: [] };
   }
 
-  const stepsWithFrente = await supabase
+  const { data: steps, error: sErr } = await supabase
     .from("meeting_agenda_next_steps")
     .select(
       "id, description, due_date, task_id, assignee_person_id, frente_id",
     )
     .eq("meeting_id", meetingId)
     .order("sort_order", { ascending: true });
-  let stepsError = stepsWithFrente.error;
-  let steps: Array<{
-    id: string;
-    description: string;
-    due_date: string | null;
-    task_id: string | null;
-    assignee_person_id: string | null;
-    frente_id?: string | null;
-  }> | null = stepsWithFrente.data;
-  if (stepsError && isPostgrestMissingColumnError(stepsError)) {
-    const legacy = await supabase
-      .from("meeting_agenda_next_steps")
-      .select("id, description, due_date, task_id, assignee_person_id")
-      .eq("meeting_id", meetingId)
-      .order("sort_order", { ascending: true });
-    stepsError = legacy.error;
-    steps = legacy.data;
-  }
-  if (stepsError) throw new Error(stepsError.message);
+  if (sErr) throw new Error(sErr.message);
 
   const createdTaskIds: string[] = [];
   const warnings: MeetingNextStepAutoWarning[] = [];
 
-  for (const step of steps ?? []) {
+  for (const step of (steps ?? []) as NextStepRow[]) {
     if (step.task_id) continue;
     const result = await promoteMeetingNextStepToTask(supabase, {
       nextStepId: step.id,
@@ -268,7 +244,7 @@ export async function syncAutoTasksForMeeting(
       description: step.description,
       dueDate: step.due_date,
       assigneePersonId: step.assignee_person_id,
-      explicitFrenteId: step.frente_id ?? null,
+      explicitFrenteId: step.frente_id,
       existingTaskId: null,
     });
     if (result.ok) {

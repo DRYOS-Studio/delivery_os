@@ -1,4 +1,5 @@
 import { createServer } from "@/lib/db/client";
+import { normalizeEmbedOne } from "@/lib/db/normalize-embed";
 import { ACTIVE_STATUSES } from "@/lib/utils/operation-status";
 import type { Database } from "@/lib/db/types";
 import { isOpenStatus, type TaskStatus } from "@/lib/db/queries/tasks";
@@ -311,11 +312,26 @@ export async function getOperation(
     : q.is("archived_at", null)
   ).maybeSingle();
   if (error) throw new Error(`getOperation: ${error.message}`);
-  if (!data || !data.client) return null;
+  if (!data) return null;
+
+  type ClientEmbed = {
+    id: string;
+    name: string;
+    slug: string;
+    archived_at: string | null;
+  };
+  const clientEmbed = normalizeEmbedOne(
+    data.client as ClientEmbed | ClientEmbed[] | null,
+  );
+  if (!clientEmbed) return null;
 
   const frentes: FrenteListItem[] = (data.frentes ?? [])
     .filter((f) => f.archived_at === null)
-    .sort((a, b) => a.created_at.localeCompare(b.created_at))
+    .sort((a, b) =>
+      (a.created_at ?? "").localeCompare(b.created_at ?? "", undefined, {
+        numeric: true,
+      }),
+    )
     .map((f) => {
       const tasksList =
         (
@@ -341,7 +357,10 @@ export async function getOperation(
         actionableStatus: f.actionable_status,
         actionableStatusSince: f.actionable_status_since,
         responsiblePersonId: f.responsible_person_id,
-        responsibleName: f.responsible?.name ?? null,
+        responsibleName:
+          normalizeEmbedOne(
+            f.responsible as { name: string } | { name: string }[] | null,
+          )?.name ?? null,
         openTasksCount,
       };
     });
@@ -363,9 +382,9 @@ export async function getOperation(
     notificationWebhookUrl: data.notification_webhook_url,
     createdAt: data.created_at,
     client: {
-      id: data.client.id,
-      name: data.client.name,
-      slug: data.client.slug,
+      id: clientEmbed.id,
+      name: clientEmbed.name,
+      slug: clientEmbed.slug,
     },
     frentes,
   };
