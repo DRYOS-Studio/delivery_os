@@ -6,12 +6,17 @@ import { requireAdminAction } from "@/lib/auth/server";
 import { createServer } from "@/lib/db/client";
 import { z } from "zod";
 
-const createSchema = z.object({
-  profileId: z.string().uuid(),
-  name: z.string().trim().min(1).max(120),
-  scopes: z.array(z.enum(["read", "write"])).min(1).max(2),
-  expiresInDays: z.coerce.number().int().min(1).max(365),
-});
+const createSchema = z
+  .object({
+    profileId: z.string().uuid(),
+    name: z.string().trim().min(1).max(120),
+    scopes: z.array(z.enum(["read", "write"])).min(1).max(2),
+    noExpiry: z.boolean().default(false),
+    expiresInDays: z.coerce.number().int().min(1).max(3650).optional(),
+  })
+  .refine((d) => d.noExpiry || d.expiresInDays !== undefined, {
+    message: "Informe validade em dias ou marque sem validade.",
+  });
 
 export type CreateMcpAgentTokenResult = {
   token: string;
@@ -24,11 +29,15 @@ export async function createMcpAgentTokenAction(
   const guard = await requireAdminAction();
   if (!guard.ok) return guard;
 
+  const noExpiry = formData.get("no_expiry") === "1";
   const raw = {
     profileId: String(formData.get("profile_id") ?? "").trim(),
     name: String(formData.get("name") ?? "").trim(),
     scopes: formData.getAll("scopes").map((v) => String(v).trim()).filter(Boolean),
-    expiresInDays: Number(formData.get("expires_in_days") ?? "90"),
+    noExpiry,
+    expiresInDays: noExpiry
+      ? undefined
+      : Number(formData.get("expires_in_days") ?? "365"),
   };
   const parsed = createSchema.safeParse({
     ...raw,
@@ -41,15 +50,19 @@ export async function createMcpAgentTokenAction(
     return err(parsed.error.issues[0]?.message ?? "Dados inválidos.", "validation_failed");
   }
 
-  const exp = new Date();
-  exp.setUTCDate(exp.getUTCDate() + parsed.data.expiresInDays);
+  let expiresAt: string | null = null;
+  if (!parsed.data.noExpiry && parsed.data.expiresInDays) {
+    const exp = new Date();
+    exp.setUTCDate(exp.getUTCDate() + parsed.data.expiresInDays);
+    expiresAt = exp.toISOString();
+  }
 
   const supabase = await createServer();
   const { data, error } = await supabase.rpc("create_mcp_agent_token", {
     p_profile_id: parsed.data.profileId,
     p_name: parsed.data.name,
     p_scopes: parsed.data.scopes,
-    p_expires_at: exp.toISOString(),
+    p_expires_at: expiresAt,
   });
   if (error) return dbErr(error, "createMcpAgentToken");
   const row = data as {

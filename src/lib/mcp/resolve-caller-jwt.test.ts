@@ -37,6 +37,8 @@ describe("resolveMcpCallerJwt", () => {
       data: {
         ok: true,
         profile_id: "00000000-0000-4000-8000-000000000001",
+        token_id: "10000000-0000-4000-8000-000000000001",
+        token_name: "Test",
         scopes: ["read", "write"],
       },
       error: null,
@@ -50,6 +52,8 @@ describe("resolveMcpCallerJwt", () => {
         mcpAgent: true,
         profileId: "00000000-0000-4000-8000-000000000001",
         scopes: ["read", "write"],
+        tokenId: "10000000-0000-4000-8000-000000000001",
+        tokenName: "Test",
       },
     });
 
@@ -64,6 +68,7 @@ describe("resolveMcpCallerJwt", () => {
       data: {
         ok: true,
         profile_id: "00000000-0000-4000-8000-000000000002",
+        token_id: "10000000-0000-4000-8000-000000000002",
         scopes: [],
       },
       error: null,
@@ -106,6 +111,7 @@ describe("resolveMcpCallerJwt", () => {
       data: {
         ok: true,
         profile_id: "00000000-0000-4000-8000-000000000001",
+        token_id: "10000000-0000-4000-8000-000000000001",
         scopes: ["read"],
       },
       error: null,

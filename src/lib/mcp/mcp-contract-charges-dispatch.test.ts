@@ -145,6 +145,8 @@ const adminMcp: McpAuthContext = {
   scopes: ["read", "write"],
   profileId: ADMIN,
   mcpAgent: true,
+  tokenId: "30000000-0000-4000-8000-000000000001",
+  tokenName: "admin",
 };
 
 describe("MCP contratos e cobranças", () => {

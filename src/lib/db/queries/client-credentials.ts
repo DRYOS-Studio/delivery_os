@@ -159,6 +159,7 @@ export async function insertClientCredentialAuditLog(
     action: ClientCredentialAuditAction;
     actorUserId: string;
     actorMcp?: boolean;
+    actorMcpTokenId?: string | null;
     reason?: string | null;
   },
 ): Promise<void> {
@@ -168,6 +169,7 @@ export async function insertClientCredentialAuditLog(
     action: entry.action,
     actor_user_id: entry.actorUserId,
     actor_mcp: entry.actorMcp ?? false,
+    actor_mcp_token_id: entry.actorMcpTokenId ?? null,
     reason: entry.reason ?? null,
   });
   if (error) {
@@ -356,6 +358,7 @@ export async function revealClientCredentialSecrets(
     action: "reveal" | "copy";
     reason?: string | null;
     actorMcp?: boolean;
+    actorMcpTokenId?: string | null;
   },
   supabase?: SupabaseClient<Database>,
 ): Promise<ClientCredentialSecrets & { clientId: string }> {
@@ -392,6 +395,7 @@ export async function revealClientCredentialSecrets(
     action: opts.action,
     actorUserId,
     actorMcp: opts.actorMcp ?? false,
+    actorMcpTokenId: opts.actorMcpTokenId ?? null,
     reason: opts.reason ?? null,
   });
 

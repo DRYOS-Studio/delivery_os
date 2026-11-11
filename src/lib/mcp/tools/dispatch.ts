@@ -445,7 +445,7 @@ export async function dispatchMcpTool(input: DispatchInput): Promise<unknown> {
       return flattenResult(r);
     }
     case "reveal_client_credential": {
-      const r = await mcpRevealClientCredential(ctx, args);
+      const r = await mcpRevealClientCredential(ctx, args, mcpCtx);
       return flattenResult(r);
     }
     case "list_client_credential_audit_logs": {

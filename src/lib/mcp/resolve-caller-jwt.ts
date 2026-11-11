@@ -6,6 +6,8 @@ export type McpAuthContext = {
   mcpAgent: true;
   profileId: string;
   scopes: ("read" | "write")[];
+  tokenId: string;
+  tokenName: string | null;
 };
 
 function parseScopes(raw: unknown): ("read" | "write")[] {
@@ -37,8 +39,15 @@ export async function resolveMcpCallerJwt(
     if (error) {
       return { ok: false, code: "verify_failed" };
     }
-    const row = data as { ok?: boolean; profile_id?: string; scopes?: unknown; code?: string };
-    if (!row?.ok || !row.profile_id) {
+    const row = data as {
+      ok?: boolean;
+      profile_id?: string;
+      token_id?: string;
+      token_name?: string;
+      scopes?: unknown;
+      code?: string;
+    };
+    if (!row?.ok || !row.profile_id || !row.token_id) {
       return { ok: false, code: typeof row?.code === "string" ? row.code : "invalid_or_expired" };
     }
     const scopes = parseScopes(row.scopes);
@@ -56,6 +65,8 @@ export async function resolveMcpCallerJwt(
         mcpAgent: true,
         profileId: row.profile_id,
         scopes,
+        tokenId: row.token_id,
+        tokenName: row.token_name ?? null,
       },
     };
   }

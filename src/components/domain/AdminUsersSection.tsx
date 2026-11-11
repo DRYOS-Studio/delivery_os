@@ -1,5 +1,4 @@
 import { InviteUserForm } from "@/components/domain/InviteUserForm";
-import { McpAgentTokensSection } from "@/components/domain/McpAgentTokensSection";
 import { ProfileDisplayNameControl } from "@/components/domain/ProfileDisplayNameControl";
 import { ProfilePersonLinkControl } from "@/components/domain/ProfilePersonLinkControl";
 import { SetUserRoleButton } from "@/components/domain/SetUserRoleButton";
@@ -10,7 +9,6 @@ import type {
   OperationPickItem,
   PersonPickItem,
 } from "@/lib/db/queries/admin-directory";
-import type { McpAgentTokenRow } from "@/lib/db/queries/mcp-agent-tokens";
 import type { ProfileListItem } from "@/lib/db/queries/profiles";
 import { formatDateBR } from "@/lib/utils/date";
 import { initialsFromEmail } from "@/lib/utils/initials";
@@ -20,13 +18,11 @@ export function AdminUsersSection({
   currentUserId,
   operations,
   persons,
-  mcpTokensByProfile,
 }: {
   profiles: ProfileListItem[];
   currentUserId: string;
   operations: OperationPickItem[];
   persons: PersonPickItem[];
-  mcpTokensByProfile: Record<string, McpAgentTokenRow[]>;
 }): React.JSX.Element {
   const adminCount = profiles.filter((p) => p.role === "admin").length;
   const memberCount = profiles.length - adminCount;
@@ -103,11 +99,6 @@ export function AdminUsersSection({
                   />
                 </div>
               </div>
-              <McpAgentTokensSection
-                profileId={p.id}
-                profileEmail={p.email}
-                initialTokens={mcpTokensByProfile[p.id] ?? []}
-              />
             </li>
           ))}
         </ul>

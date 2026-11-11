@@ -845,6 +845,7 @@ export type Database = {
         Row: {
           action: Database["public"]["Enums"]["client_credential_audit_action"]
           actor_mcp: boolean
+          actor_mcp_token_id: string | null
           actor_user_id: string | null
           client_id: string
           created_at: string
@@ -855,6 +856,7 @@ export type Database = {
         Insert: {
           action: Database["public"]["Enums"]["client_credential_audit_action"]
           actor_mcp?: boolean
+          actor_mcp_token_id?: string | null
           actor_user_id?: string | null
           client_id: string
           created_at?: string
@@ -865,6 +867,7 @@ export type Database = {
         Update: {
           action?: Database["public"]["Enums"]["client_credential_audit_action"]
           actor_mcp?: boolean
+          actor_mcp_token_id?: string | null
           actor_user_id?: string | null
           client_id?: string
           created_at?: string
@@ -2073,7 +2076,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
-          expires_at: string
+          expires_at: string | null
           id: string
           last_used_at: string | null
           name: string
@@ -2082,11 +2085,13 @@ export type Database = {
           scopes: Database["public"]["Enums"]["mcp_agent_token_scope"][]
           token_fingerprint: string
           token_hash: string
+          token_prefix: string | null
         }
         Insert: {
           created_at?: string
           created_by?: string | null
-          expires_at: string
+          expires_at?: string | null
+          token_prefix?: string | null
           id?: string
           last_used_at?: string | null
           name: string
@@ -2099,7 +2104,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
-          expires_at?: string
+          expires_at?: string | null
           id?: string
           last_used_at?: string | null
           name?: string
@@ -2108,6 +2113,7 @@ export type Database = {
           scopes?: Database["public"]["Enums"]["mcp_agent_token_scope"][]
           token_fingerprint?: string
           token_hash?: string
+          token_prefix?: string | null
         }
         Relationships: [
           {
@@ -2896,7 +2902,7 @@ export type Database = {
       }
       create_mcp_agent_token: {
         Args: {
-          p_expires_at: string
+          p_expires_at: string | null
           p_name: string
           p_profile_id: string
           p_scopes: Database["public"]["Enums"]["mcp_agent_token_scope"][]
