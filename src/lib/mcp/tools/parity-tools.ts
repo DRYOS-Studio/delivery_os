@@ -1,8 +1,9 @@
 import type { Database, Json } from "@/lib/db/types";
+import { syncAutoTasksForMeeting } from "@/lib/meetings/meeting-next-step-tasks";
 import { calendarDateLocalToday } from "@/lib/utils/calendar-date";
+import { assignVillainSchema, editOperationVillainSchema } from "@/lib/validators/operation-villain";
 
 type MeetingUpdate = Database["public"]["Tables"]["meetings"]["Update"];
-import { assignVillainSchema, editOperationVillainSchema } from "@/lib/validators/operation-villain";
 import { diagnosticSchema } from "@/lib/validators/diagnostic";
 import { mcpDecisionUpdateSchema } from "@/lib/mcp/tool-args/decision-update";
 import { decisionSchema } from "@/lib/validators/decision";
@@ -127,14 +128,26 @@ export async function mcpGetMeeting(
 export async function mcpUpdateMeeting(
   ctx: McpHandlerContext,
   args: Record<string, unknown>,
-): Promise<McpToolResult<{ id: string }>> {
+): Promise<
+  McpToolResult<{
+    id: string;
+    tasks_created?: number;
+    warnings?: unknown[];
+  }>
+> {
   const { idempotency_key: _ik, ...rest } = args;
   void _ik;
   const parsed = mcpMeetingUpdateBodySchema.safeParse(rest);
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   }
-  const { meeting_id, attendee_ids, ...fields } = parsed.data;
+  const {
+    meeting_id,
+    attendee_ids,
+    next_steps: nextSteps,
+    auto_create_tasks_from_next_steps: autoTasks,
+    ...fields
+  } = parsed.data;
   const patch: MeetingUpdate = {};
   if (fields.title !== undefined) patch.title = fields.title;
   if (fields.scheduled_at !== undefined) patch.scheduled_at = fields.scheduled_at;
@@ -159,6 +172,9 @@ export async function mcpUpdateMeeting(
     const v = fields.granola_source_ref;
     patch.granola_source_ref = v === null ? null : v.trim() || null;
   }
+  if (autoTasks !== undefined) {
+    patch.auto_create_tasks_from_next_steps = autoTasks;
+  }
   if (fields.granola_captured_at !== undefined) {
     patch.granola_captured_at = fields.granola_captured_at;
   } else if (
@@ -168,7 +184,11 @@ export async function mcpUpdateMeeting(
   ) {
     patch.granola_captured_at = new Date().toISOString();
   }
-  if (Object.keys(patch).length === 0 && attendee_ids === undefined) {
+  if (
+    Object.keys(patch).length === 0 &&
+    attendee_ids === undefined &&
+    nextSteps === undefined
+  ) {
     return { ok: false, message: "Nada para atualizar." };
   }
   if (Object.keys(patch).length > 0) {
@@ -184,7 +204,49 @@ export async function mcpUpdateMeeting(
       if (insErr) return { ok: false, message: insErr.message };
     }
   }
-  return { ok: true, data: { id: meeting_id } };
+  if (nextSteps !== undefined) {
+    const { data: existing, error: exErr } = await ctx.supabase
+      .from("meeting_agenda_next_steps")
+      .select("id, task_id")
+      .eq("meeting_id", meeting_id);
+    if (exErr) return { ok: false, message: exErr.message };
+    const removable = (existing ?? []).filter((r) => !r.task_id);
+    if (removable.length > 0) {
+      const { error: delErr } = await ctx.supabase
+        .from("meeting_agenda_next_steps")
+        .delete()
+        .in(
+          "id",
+          removable.map((r) => r.id),
+        );
+      if (delErr) return { ok: false, message: delErr.message };
+    }
+    if (nextSteps.length > 0) {
+      const { error: insErr } = await ctx.supabase
+        .from("meeting_agenda_next_steps")
+        .insert(
+          nextSteps.map((row, idx) => ({
+            meeting_id,
+            sort_order: row.sort_order ?? idx,
+            description: row.description,
+            due_date: row.due_date ?? null,
+            assignee_person_id: row.assignee_person_id ?? null,
+            frente_id: row.frente_id ?? null,
+            task_id: null,
+          })),
+        );
+      if (insErr) return { ok: false, message: insErr.message };
+    }
+  }
+  const sync = await syncAutoTasksForMeeting(ctx.supabase, meeting_id);
+  return {
+    ok: true,
+    data: {
+      id: meeting_id,
+      tasks_created: sync.createdTaskIds.length,
+      warnings: sync.warnings,
+    },
+  };
 }
 
 export async function mcpGetDecision(

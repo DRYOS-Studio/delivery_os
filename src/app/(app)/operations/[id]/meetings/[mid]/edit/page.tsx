@@ -52,6 +52,7 @@ export default async function Page({
         initialData={meeting}
         attendeeCandidates={attendeeCandidates}
         isAdmin={isAdmin}
+        frentes={frentes}
       />
       <MeetingNextStepPromote
         operationId={op.id}

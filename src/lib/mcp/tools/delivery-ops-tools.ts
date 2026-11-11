@@ -1,4 +1,8 @@
 import type { Database } from "@/lib/db/types";
+import {
+  promoteMeetingNextStepToTask,
+  syncAutoTasksForMeeting,
+} from "@/lib/meetings/meeting-next-step-tasks";
 import { applyClearable } from "@/lib/mcp/tool-args/clearable";
 import {
   mcpAddMeetingNextStepSchema,
@@ -660,7 +664,7 @@ export async function mcpListMeetingNextSteps(
   const { data, error } = await ctx.supabase
     .from("meeting_agenda_next_steps")
     .select(
-      "id, meeting_id, description, due_date, sort_order, task_id, assignee_person_id",
+      "id, meeting_id, description, due_date, sort_order, task_id, assignee_person_id, frente_id",
     )
     .eq("meeting_id", meetingId)
     .order("sort_order", { ascending: true });
@@ -671,7 +675,13 @@ export async function mcpListMeetingNextSteps(
 export async function mcpAddMeetingNextStep(
   ctx: McpHandlerContext,
   args: Record<string, unknown>,
-): Promise<McpToolResult<{ id: string }>> {
+): Promise<
+  McpToolResult<{
+    id: string;
+    tasks_created?: number;
+    warnings?: unknown[];
+  }>
+> {
   const parsed = nextStepArgs.safeParse(args);
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Dados inválidos." };
@@ -684,19 +694,34 @@ export async function mcpAddMeetingNextStep(
       due_date: parsed.data.due_date ?? null,
       sort_order: parsed.data.sort_order ?? 0,
       assignee_person_id: parsed.data.assignee_person_id ?? null,
+      frente_id: parsed.data.frente_id ?? null,
       task_id: parsed.data.task_id ?? null,
     })
     .select("id")
     .single();
   if (error) return { ok: false, message: error.message };
   if (!data) return { ok: false, message: "Falha ao criar." };
-  return { ok: true, data: { id: data.id } };
+  const sync = await syncAutoTasksForMeeting(ctx.supabase, parsed.data.meeting_id);
+  return {
+    ok: true,
+    data: {
+      id: data.id,
+      tasks_created: sync.createdTaskIds.length,
+      warnings: sync.warnings,
+    },
+  };
 }
 
 export async function mcpUpdateMeetingNextStep(
   ctx: McpHandlerContext,
   args: Record<string, unknown>,
-): Promise<McpToolResult<{ id: string }>> {
+): Promise<
+  McpToolResult<{
+    id: string;
+    tasks_created?: number;
+    warnings?: unknown[];
+  }>
+> {
   const parsed = mcpUpdateMeetingNextStepSchema.safeParse(args);
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Dados inválidos." };
@@ -708,11 +733,29 @@ export async function mcpUpdateMeetingNextStep(
   if (rest.sort_order !== undefined) patch.sort_order = rest.sort_order;
   applyClearable(patch, "due_date", rest.due_date);
   applyClearable(patch, "assignee_person_id", rest.assignee_person_id);
+  applyClearable(patch, "frente_id", rest.frente_id);
   applyClearable(patch, "task_id", rest.task_id);
   if (Object.keys(patch).length === 0) return { ok: false, message: "Nada para atualizar." };
+  const { data: stepRow, error: loadErr } = await ctx.supabase
+    .from("meeting_agenda_next_steps")
+    .select("meeting_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (loadErr) return { ok: false, message: loadErr.message };
   const { error } = await ctx.supabase.from("meeting_agenda_next_steps").update(patch).eq("id", id);
   if (error) return { ok: false, message: error.message };
-  return { ok: true, data: { id } };
+  const sync =
+    stepRow?.meeting_id != null
+      ? await syncAutoTasksForMeeting(ctx.supabase, stepRow.meeting_id)
+      : { createdTaskIds: [], warnings: [] };
+  return {
+    ok: true,
+    data: {
+      id,
+      tasks_created: sync.createdTaskIds.length,
+      warnings: sync.warnings,
+    },
+  };
 }
 
 export async function mcpListOperationVillains(
@@ -821,7 +864,13 @@ export async function mcpUpdateOperationRiskBlocker(
 export async function mcpPromoteMeetingNextStepToTask(
   ctx: McpHandlerContext,
   args: Record<string, unknown>,
-): Promise<McpToolResult<{ task_id: string; next_step_id: string }>> {
+): Promise<
+  McpToolResult<{
+    task_id: string;
+    next_step_id: string;
+    assignee_skipped_external?: boolean;
+  }>
+> {
   const parsed = mcpPromoteMeetingNextStepSchema.safeParse(args);
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Dados inválidos." };
@@ -830,7 +879,7 @@ export async function mcpPromoteMeetingNextStepToTask(
   const { data: step, error: stepErr } = await ctx.supabase
     .from("meeting_agenda_next_steps")
     .select(
-      "id, description, due_date, task_id, assignee_person_id, meeting:meetings!fk_meeting_agenda_next_steps_meeting ( id, operation_id )",
+      "id, description, due_date, task_id, assignee_person_id, frente_id, meeting_id, meeting:meetings!fk_meeting_agenda_next_steps_meeting ( id, operation_id )",
     )
     .eq("id", nextStepId)
     .maybeSingle();
@@ -841,48 +890,33 @@ export async function mcpPromoteMeetingNextStepToTask(
   if (!meeting?.operation_id) {
     return { ok: false, message: "Reunião inválida." };
   }
-  const { data: frente, error: fErr } = await ctx.supabase
-    .from("frentes")
-    .select("id, operation_id, archived_at")
-    .eq("id", frenteId)
-    .maybeSingle();
-  if (fErr) return { ok: false, message: fErr.message };
-  if (!frente || frente.archived_at) {
-    return { ok: false, message: "Frente não encontrada ou arquivada." };
-  }
-  if (frente.operation_id !== meeting.operation_id) {
-    return { ok: false, message: "Frente não pertence à operação." };
-  }
-  const description = step.description;
-  const { data: taskRow, error: insErr } = await ctx.supabase
-    .from("tasks")
-    .insert({
-      frente_id: frenteId,
-      operation_id: meeting.operation_id,
-      title: description.slice(0, 200),
-      description: description.length > 200 ? description : null,
-      status: "todo",
-      due_date: step.due_date,
-      source_meeting_id: meeting.id,
-    })
-    .select("id")
-    .single();
-  if (insErr) return { ok: false, message: insErr.message };
-  if (!taskRow) return { ok: false, message: "Falha ao criar tarefa." };
-  if (step.assignee_person_id) {
-    const { error: aErr } = await ctx.supabase.from("task_assignees").insert({
-      task_id: taskRow.id,
-      person_id: step.assignee_person_id,
+  try {
+    const result = await promoteMeetingNextStepToTask(ctx.supabase, {
+      nextStepId,
+      meetingId: meeting.id,
+      operationId: meeting.operation_id,
+      description: step.description,
+      dueDate: step.due_date,
+      assigneePersonId: step.assignee_person_id,
+      explicitFrenteId: frenteId ?? step.frente_id,
+      existingTaskId: step.task_id,
     });
-    if (aErr) return { ok: false, message: aErr.message };
+    if (!result.ok) {
+      if (result.reason === "no_frente" || result.reason === "ambiguous_frente") {
+        return { ok: false, message: "Frente inválida ou ambígua para a operação." };
+      }
+      return { ok: false, message: "Não foi possível promover o passo." };
+    }
+    return {
+      ok: true,
+      data: {
+        task_id: result.taskId,
+        next_step_id: nextStepId,
+        assignee_skipped_external: result.assigneeSkippedExternal,
+      },
+    };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Falha ao criar tarefa.";
+    return { ok: false, message };
   }
-  const { error: linkErr } = await ctx.supabase
-    .from("meeting_agenda_next_steps")
-    .update({ task_id: taskRow.id })
-    .eq("id", nextStepId);
-  if (linkErr) return { ok: false, message: linkErr.message };
-  return {
-    ok: true,
-    data: { task_id: taskRow.id, next_step_id: nextStepId },
-  };
 }

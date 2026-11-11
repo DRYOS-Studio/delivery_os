@@ -28,6 +28,7 @@ import {
 } from "@/lib/mcp/tool-args/operation-risk-blocker-update";
 import {
   mcpAddMeetingNextStepSchema,
+  mcpMeetingCreateExtrasSchema,
   mcpMeetingUpdateBodySchema,
   mcpUpdateMeetingNextStepSchema,
 } from "@/lib/mcp/tool-args/meeting-update";
@@ -131,7 +132,9 @@ export const MCP_TOOL_ZOD_ARGS: Record<string, z.ZodType> = {
   create_person: personSchema,
   update_person: z.intersection(personSchema, z.object({ person_id: uuid })),
   archive_person: z.object({ person_id: uuid }),
-  create_meeting: meetingSchema.and(z.object({ operation_id: uuid })),
+  create_meeting: meetingSchema
+    .and(z.object({ operation_id: uuid }))
+    .and(mcpMeetingCreateExtrasSchema),
   update_meeting: mcpMeetingUpdateBodySchema,
   add_meeting_next_step: mcpAddMeetingNextStepSchema,
   update_meeting_next_step: mcpUpdateMeetingNextStepSchema,

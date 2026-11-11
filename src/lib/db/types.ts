@@ -1361,6 +1361,7 @@ export type Database = {
           created_at: string
           description: string
           due_date: string | null
+          frente_id: string | null
           id: string
           meeting_id: string
           sort_order: number
@@ -1372,6 +1373,7 @@ export type Database = {
           created_at?: string
           description: string
           due_date?: string | null
+          frente_id?: string | null
           id?: string
           meeting_id: string
           sort_order?: number
@@ -1383,6 +1385,7 @@ export type Database = {
           created_at?: string
           description?: string
           due_date?: string | null
+          frente_id?: string | null
           id?: string
           meeting_id?: string
           sort_order?: number
@@ -1395,6 +1398,13 @@ export type Database = {
             columns: ["assignee_person_id"]
             isOneToOne: false
             referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_meeting_agenda_next_steps_frente"
+            columns: ["frente_id"]
+            isOneToOne: false
+            referencedRelation: "frentes"
             referencedColumns: ["id"]
           },
           {
@@ -1448,6 +1458,7 @@ export type Database = {
       }
       meetings: {
         Row: {
+          auto_create_tasks_from_next_steps: boolean
           created_at: string
           ended_at: string | null
           granola_captured_at: string | null
@@ -1463,6 +1474,7 @@ export type Database = {
           visibility: Database["public"]["Enums"]["meeting_visibility"]
         }
         Insert: {
+          auto_create_tasks_from_next_steps?: boolean
           created_at?: string
           ended_at?: string | null
           granola_captured_at?: string | null
@@ -1478,6 +1490,7 @@ export type Database = {
           visibility?: Database["public"]["Enums"]["meeting_visibility"]
         }
         Update: {
+          auto_create_tasks_from_next_steps?: boolean
           created_at?: string
           ended_at?: string | null
           granola_captured_at?: string | null

@@ -5,6 +5,7 @@ import { type ActionResult, dbErr, err, ok } from "@/lib/actions/_types";
 import { requireAdminAction, requireUserAction } from "@/lib/auth/server";
 import { createServer } from "@/lib/db/client";
 import { getMeeting } from "@/lib/db/queries/meetings";
+import { syncAutoTasksForMeeting } from "@/lib/meetings/meeting-next-step-tasks";
 import {
   formDataToMeetingFormInput,
   meetingFormSchema,
@@ -62,7 +63,13 @@ async function deleteAttendees(meetingId: string): Promise<ActionResult<true>> {
 export async function createMeetingAction(
   operationId: string,
   formData: FormData,
-): Promise<ActionResult<{ id: string; operationId: string }>> {
+): Promise<
+  ActionResult<{
+    id: string;
+    operationId: string;
+    nextStepTaskWarnings?: string[];
+  }>
+> {
   const userResult = await requireUserAction();
   if (!userResult.ok) return userResult;
 
@@ -91,6 +98,8 @@ export async function createMeetingAction(
       granola_suggestion_text: data.granola_suggestion_text?.trim() || null,
       granola_source_ref: data.granola_source_ref?.trim() || null,
       granola_captured_at: granolaCapturedAt,
+      auto_create_tasks_from_next_steps:
+        data.auto_create_tasks_from_next_steps,
     })
     .select("id")
     .single();
@@ -124,20 +133,43 @@ export async function createMeetingAction(
           description: row.description.trim(),
           due_date: row.due_date ?? null,
           assignee_person_id: row.assignee_person_id ?? null,
+          frente_id: row.frente_id ?? null,
           task_id: null,
         })),
       );
     if (nsErr) return dbErr(nsErr, "createMeetingAction.next_steps");
   }
 
+  let nextStepTaskWarnings: string[] | undefined;
+  try {
+    const sync = await syncAutoTasksForMeeting(supabase, meeting.id);
+    if (sync.warnings.length > 0) {
+      nextStepTaskWarnings = sync.warnings.map((w) => w.message);
+    }
+  } catch {
+    nextStepTaskWarnings = [
+      "Reunião salva, mas a criação automática de tarefas falhou — promova manualmente.",
+    ];
+  }
+
   revalidatePath(`/operations/${operationId}`);
-  return ok({ id: meeting.id, operationId });
+  return ok({
+    id: meeting.id,
+    operationId,
+    ...(nextStepTaskWarnings ? { nextStepTaskWarnings } : {}),
+  });
 }
 
 export async function updateMeetingAction(
   meetingId: string,
   formData: FormData,
-): Promise<ActionResult<{ id: string; operationId: string }>> {
+): Promise<
+  ActionResult<{
+    id: string;
+    operationId: string;
+    nextStepTaskWarnings?: string[];
+  }>
+> {
   const userResult = await requireUserAction();
   if (!userResult.ok) return userResult;
 
@@ -167,6 +199,8 @@ export async function updateMeetingAction(
       granola_suggestion_text: data.granola_suggestion_text?.trim() || null,
       granola_source_ref: data.granola_source_ref?.trim() || null,
       granola_captured_at: granolaCapturedAt,
+      auto_create_tasks_from_next_steps:
+        data.auto_create_tasks_from_next_steps,
     })
     .eq("id", meetingId);
   if (upErr) return dbErr(upErr, "updateMeetingAction");
@@ -290,6 +324,7 @@ export async function updateMeetingAction(
           description: desc,
           due_date: due,
           assignee_person_id: row.assignee_person_id ?? null,
+          frente_id: row.frente_id ?? null,
         })
         .eq("id", row.id)
         .eq("meeting_id", meetingId);
@@ -314,10 +349,23 @@ export async function updateMeetingAction(
           description: desc,
           due_date: due,
           assignee_person_id: row.assignee_person_id ?? null,
+          frente_id: row.frente_id ?? null,
           task_id: null,
         });
       if (insNsErr) return dbErr(insNsErr, "updateMeetingAction.insert_next_step");
     }
+  }
+
+  let nextStepTaskWarnings: string[] | undefined;
+  try {
+    const sync = await syncAutoTasksForMeeting(supabase, meetingId);
+    if (sync.warnings.length > 0) {
+      nextStepTaskWarnings = sync.warnings.map((w) => w.message);
+    }
+  } catch {
+    nextStepTaskWarnings = [
+      "Reunião salva, mas a criação automática de tarefas falhou — promova manualmente.",
+    ];
   }
 
   // delete+insert attendees (simples; sem diff)
@@ -327,7 +375,11 @@ export async function updateMeetingAction(
   if (!ins.ok) return ins;
 
   revalidatePath(`/operations/${current.operation_id}`);
-  return ok({ id: meetingId, operationId: current.operation_id });
+  return ok({
+    id: meetingId,
+    operationId: current.operation_id,
+    ...(nextStepTaskWarnings ? { nextStepTaskWarnings } : {}),
+  });
 }
 
 export async function deleteMeetingAction(

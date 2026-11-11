@@ -102,7 +102,7 @@ export async function getMeeting(
         id, meeting_id, sort_order, title, notes, source, granola_line, created_at, updated_at
       ),
       meeting_agenda_next_steps!fk_meeting_agenda_next_steps_meeting (
-        id, meeting_id, sort_order, description, due_date, task_id, assignee_person_id, created_at, updated_at,
+        id, meeting_id, sort_order, description, due_date, task_id, assignee_person_id, frente_id, created_at, updated_at,
         task:tasks!fk_meeting_agenda_next_steps_task ( id, frente_id ),
         assignee:persons!fk_meeting_agenda_next_steps_assignee ( id, name, kind )
       )
