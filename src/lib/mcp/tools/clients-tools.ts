@@ -91,6 +91,9 @@ export async function mcpGetClientFinancialSummary(
         contract_monthly_total: s.contractMonthlyTotal,
         contract_mrr_mismatch: s.contractMrrMismatch,
         contract_mrr_delta: s.contractMrrDelta,
+        ltv_received: s.ltvReceived,
+        receivable_pending: s.receivablePending,
+        ltv_cac_ratio: s.ltvCacRatio,
       },
     };
   } catch (e) {

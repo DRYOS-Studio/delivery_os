@@ -130,7 +130,7 @@ const BASE_MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
     name: "get_client_financial_summary",
     access: "read",
     description:
-      "Resumo financeiro consolidado do cliente: MRR (ops ativas), custo mensal total, margem, CAC, tempo de casa e alerta contrato×MRR.",
+      "Resumo financeiro consolidado do cliente: MRR, custo, margem, CAC, tempo de casa, contrato×MRR, ltv_received (cobranças pagas), receivable_pending (em aberto) e ltv_cac_ratio quando houver CAC.",
     inputSchema: {
       type: "object",
       properties: { client_id: { type: "string" } },

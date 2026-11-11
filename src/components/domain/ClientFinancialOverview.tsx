@@ -35,7 +35,7 @@ export function ClientFinancialOverview({
           {financial.activeOperationsCount === 1
             ? "operação ativa"
             : "operações ativas"}{" "}
-          · custos via mesma regra da aba Custos
+          · custos via mesma regra da aba Custos · LTV = cobranças pagas
         </p>
       </div>
 
@@ -114,6 +114,46 @@ export function ClientFinancialOverview({
           }
         />
       </div>
+
+      <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        <MetricCard
+          label="LTV recebido"
+          value={formatMoneyBR(financial.ltvReceived)}
+          variant="sage"
+          hint="Soma de pagamentos em cobranças (mensalidade, implantação, avulsas)"
+        />
+        <MetricCard
+          label="LTV / CAC"
+          value={
+            financial.ltvCacRatio !== null
+              ? `${financial.ltvCacRatio.toLocaleString("pt-BR", {
+                  maximumFractionDigits: 2,
+                })}×`
+              : "—"
+          }
+          hint={
+            financial.cacTotal > 0
+              ? `CAC ${formatMoneyBR(financial.cacTotal)}`
+              : "Sem CAC cadastrado"
+          }
+        />
+        <MetricCard
+          label="A receber (em aberto)"
+          value={formatMoneyBR(financial.receivablePending)}
+          hint="Previstas/emitidas/atrasadas — não entra no LTV"
+        />
+        <div className="flex flex-col gap-1 p-4 md:p-5 bg-surface border border-line rounded-sm min-w-0 justify-center">
+          <p className="font-mono text-[10px] uppercase tracking-wide text-mute">
+            Detalhe
+          </p>
+          <Link
+            href={`/clients/${clientId}/cobrancas`}
+            className="text-oak hover:underline text-sm font-medium"
+          >
+            Ver cobranças →
+          </Link>
+        </div>
+      </div>
     </section>
   );
 }
@@ -128,6 +168,8 @@ export function ClientFinancialCompact({
       <span>MRR {formatMoneyBR(financial.mrrTotal)}</span>
       <span aria-hidden>·</span>
       <span>Custo {formatMoneyBR(financial.monthlyCostTotal)}</span>
+      <span aria-hidden>·</span>
+      <span>LTV {formatMoneyBR(financial.ltvReceived)}</span>
       <span aria-hidden>·</span>
       <Pill variant={marginVariant(financial.margin.level)}>
         Margem {formatMarginPct(financial.margin.pct)}

@@ -113,6 +113,7 @@ export function ClientsTable({
             {isAdmin && financialByClientId && (
               <>
                 <Th>MRR</Th>
+                <Th>LTV</Th>
                 <Th>Margem</Th>
               </>
             )}
@@ -141,6 +142,11 @@ export function ClientsTable({
                 <>
                   <Td className="font-mono text-xs text-ink">
                     {formatMoneyBR(financialByClientId.get(c.id)?.mrrTotal ?? 0)}
+                  </Td>
+                  <Td className="font-mono text-xs text-ink">
+                    {formatMoneyBR(
+                      financialByClientId.get(c.id)?.ltvReceived ?? 0,
+                    )}
                   </Td>
                   <Td className="font-mono text-xs text-ink">
                     {financialByClientId.get(c.id)?.margin.pct !== null &&
