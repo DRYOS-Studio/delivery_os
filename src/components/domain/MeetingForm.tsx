@@ -72,7 +72,7 @@ export function MeetingForm(props: Props): React.JSX.Element {
   const isAdmin = props.isAdmin ?? false;
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [infoNotice, setInfoNotice] = useState<string | null>(null);
-  const frentes = props.frentes;
+  const frentes = props.frentes ?? [];
   const [isDeleting, setIsDeleting] = useState(false);
   const [granolaPaste, setGranolaPaste] = useState("");
 

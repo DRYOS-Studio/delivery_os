@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { type ActionResult, dbErr, err, ok } from "@/lib/actions/_types";
 import { requireAdminAction, requireUserAction } from "@/lib/auth/server";
 import { createServer } from "@/lib/db/client";
+import { isPostgrestMissingColumnError } from "@/lib/db/postgrest-schema";
 import { getMeeting } from "@/lib/db/queries/meetings";
 import { syncAutoTasksForMeeting } from "@/lib/meetings/meeting-next-step-tasks";
 import {
@@ -85,24 +86,38 @@ export async function createMeetingAction(
       ? new Date().toISOString()
       : null;
 
-  const { data: meeting, error } = await supabase
+  const meetingCore = {
+    operation_id: operationId,
+    title: data.title,
+    scheduled_at: data.scheduled_at,
+    ended_at: data.ended_at ?? null,
+    notes: data.notes ?? null,
+    visibility: data.visibility,
+    kind: data.kind ?? "general",
+    granola_suggestion_text: data.granola_suggestion_text?.trim() || null,
+    granola_source_ref: data.granola_source_ref?.trim() || null,
+    granola_captured_at: granolaCapturedAt,
+  };
+  let meetingInsert = await supabase
     .from("meetings")
     .insert({
-      operation_id: operationId,
-      title: data.title,
-      scheduled_at: data.scheduled_at,
-      ended_at: data.ended_at ?? null,
-      notes: data.notes ?? null,
-      visibility: data.visibility,
-      kind: data.kind ?? "general",
-      granola_suggestion_text: data.granola_suggestion_text?.trim() || null,
-      granola_source_ref: data.granola_source_ref?.trim() || null,
-      granola_captured_at: granolaCapturedAt,
+      ...meetingCore,
       auto_create_tasks_from_next_steps:
         data.auto_create_tasks_from_next_steps,
     })
     .select("id")
     .single();
+  if (
+    meetingInsert.error &&
+    isPostgrestMissingColumnError(meetingInsert.error)
+  ) {
+    meetingInsert = await supabase
+      .from("meetings")
+      .insert(meetingCore)
+      .select("id")
+      .single();
+  }
+  const { data: meeting, error } = meetingInsert;
   if (error) return dbErr(error, "createMeetingAction");
   if (!meeting) return err("Falha ao criar reunião.", "no_data");
 
@@ -124,20 +139,26 @@ export async function createMeetingAction(
   }
 
   if (data.next_steps.length > 0) {
-    const { error: nsErr } = await supabase
-      .from("meeting_agenda_next_steps")
-      .insert(
-        data.next_steps.map((row, idx) => ({
-          meeting_id: meeting.id,
-          sort_order: idx,
-          description: row.description.trim(),
-          due_date: row.due_date ?? null,
-          assignee_person_id: row.assignee_person_id ?? null,
-          frente_id: row.frente_id ?? null,
-          task_id: null,
-        })),
-      );
-    if (nsErr) return dbErr(nsErr, "createMeetingAction.next_steps");
+    const nextRows = data.next_steps.map((row, idx) => ({
+      meeting_id: meeting.id,
+      sort_order: idx,
+      description: row.description.trim(),
+      due_date: row.due_date ?? null,
+      assignee_person_id: row.assignee_person_id ?? null,
+      task_id: null,
+    }));
+    let nsResult = await supabase.from("meeting_agenda_next_steps").insert(
+      nextRows.map((row, idx) => ({
+        ...row,
+        frente_id: data.next_steps[idx]?.frente_id ?? null,
+      })),
+    );
+    if (nsResult.error && isPostgrestMissingColumnError(nsResult.error)) {
+      nsResult = await supabase
+        .from("meeting_agenda_next_steps")
+        .insert(nextRows);
+    }
+    if (nsResult.error) return dbErr(nsResult.error, "createMeetingAction.next_steps");
   }
 
   let nextStepTaskWarnings: string[] | undefined;
@@ -187,23 +208,32 @@ export async function updateMeetingAction(
     ? new Date().toISOString()
     : (current.granola_captured_at ?? null);
 
-  const { error: upErr } = await supabase
+  const meetingUpdateCore = {
+    title: data.title,
+    scheduled_at: data.scheduled_at,
+    ended_at: data.ended_at ?? null,
+    notes: data.notes ?? null,
+    visibility: data.visibility,
+    kind: data.kind ?? "general",
+    granola_suggestion_text: data.granola_suggestion_text?.trim() || null,
+    granola_source_ref: data.granola_source_ref?.trim() || null,
+    granola_captured_at: granolaCapturedAt,
+  };
+  let upMeeting = await supabase
     .from("meetings")
     .update({
-      title: data.title,
-      scheduled_at: data.scheduled_at,
-      ended_at: data.ended_at ?? null,
-      notes: data.notes ?? null,
-      visibility: data.visibility,
-      kind: data.kind ?? "general",
-      granola_suggestion_text: data.granola_suggestion_text?.trim() || null,
-      granola_source_ref: data.granola_source_ref?.trim() || null,
-      granola_captured_at: granolaCapturedAt,
+      ...meetingUpdateCore,
       auto_create_tasks_from_next_steps:
         data.auto_create_tasks_from_next_steps,
     })
     .eq("id", meetingId);
-  if (upErr) return dbErr(upErr, "updateMeetingAction");
+  if (upMeeting.error && isPostgrestMissingColumnError(upMeeting.error)) {
+    upMeeting = await supabase
+      .from("meetings")
+      .update(meetingUpdateCore)
+      .eq("id", meetingId);
+  }
+  if (upMeeting.error) return dbErr(upMeeting.error, "updateMeetingAction");
 
   const { data: existingNext, error: exErr } = await supabase
     .from("meeting_agenda_next_steps")
@@ -317,18 +347,28 @@ export async function updateMeetingAction(
     const due = row.due_date ?? null;
     if (row.id && existingById.has(row.id)) {
       const taskId = existingById.get(row.id);
-      const { error: upNsErr } = await supabase
+      const nextUpdateCore = {
+        sort_order: idx,
+        description: desc,
+        due_date: due,
+        assignee_person_id: row.assignee_person_id ?? null,
+      };
+      let upNs = await supabase
         .from("meeting_agenda_next_steps")
         .update({
-          sort_order: idx,
-          description: desc,
-          due_date: due,
-          assignee_person_id: row.assignee_person_id ?? null,
+          ...nextUpdateCore,
           frente_id: row.frente_id ?? null,
         })
         .eq("id", row.id)
         .eq("meeting_id", meetingId);
-      if (upNsErr) return dbErr(upNsErr, "updateMeetingAction.update_next_step");
+      if (upNs.error && isPostgrestMissingColumnError(upNs.error)) {
+        upNs = await supabase
+          .from("meeting_agenda_next_steps")
+          .update(nextUpdateCore)
+          .eq("id", row.id)
+          .eq("meeting_id", meetingId);
+      }
+      if (upNs.error) return dbErr(upNs.error, "updateMeetingAction.update_next_step");
       if (taskId) {
         const { error: taskUpErr } = await supabase
           .from("tasks")
@@ -341,18 +381,24 @@ export async function updateMeetingAction(
         if (taskUpErr) return dbErr(taskUpErr, "updateMeetingAction.sync_task");
       }
     } else {
-      const { error: insNsErr } = await supabase
-        .from("meeting_agenda_next_steps")
-        .insert({
-          meeting_id: meetingId,
-          sort_order: idx,
-          description: desc,
-          due_date: due,
-          assignee_person_id: row.assignee_person_id ?? null,
-          frente_id: row.frente_id ?? null,
-          task_id: null,
-        });
-      if (insNsErr) return dbErr(insNsErr, "updateMeetingAction.insert_next_step");
+      const nextInsertCore = {
+        meeting_id: meetingId,
+        sort_order: idx,
+        description: desc,
+        due_date: due,
+        assignee_person_id: row.assignee_person_id ?? null,
+        task_id: null,
+      };
+      let insNs = await supabase.from("meeting_agenda_next_steps").insert({
+        ...nextInsertCore,
+        frente_id: row.frente_id ?? null,
+      });
+      if (insNs.error && isPostgrestMissingColumnError(insNs.error)) {
+        insNs = await supabase
+          .from("meeting_agenda_next_steps")
+          .insert(nextInsertCore);
+      }
+      if (insNs.error) return dbErr(insNs.error, "updateMeetingAction.insert_next_step");
     }
   }
 

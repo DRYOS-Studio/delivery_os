@@ -1,9 +1,7 @@
 import { redirect } from "next/navigation";
 import { MeetingForm } from "@/components/domain/MeetingForm";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { listActiveFrentesByOperation } from "@/lib/db/queries/frentes";
-import { listAttendeeCandidates } from "@/lib/db/queries/meetings";
-import { getOperation } from "@/lib/db/queries/operations";
+import { loadNewMeetingPageData } from "@/lib/meetings/load-new-meeting-page";
 import { isActiveStatus } from "@/lib/utils/operation-status";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -26,16 +24,12 @@ export default async function Page({
       : undefined;
   if (!UUID_RE.test(id)) redirect("/operations");
 
-  const op = await getOperation(id);
-  if (!op) redirect("/operations");
+  const loaded = await loadNewMeetingPageData(id);
+  if (!loaded) redirect("/operations");
+  const { operation: op, attendeeCandidates, frentes } = loaded;
   // Barra qualquer status terminal, não só o legado `arquivada`: contrato
   // encerrado não recebe registro novo.
   if (!isActiveStatus(op.status)) redirect(`/operations/${id}`);
-
-  const [attendeeCandidates, frentes] = await Promise.all([
-    listAttendeeCandidates(op.client.id),
-    listActiveFrentesByOperation(id),
-  ]);
 
   return (
     <>
