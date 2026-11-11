@@ -166,12 +166,29 @@ export async function mcpListOperationMembers(
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]?.message ?? "operation_id inválido." };
   }
-  const { data, error } = await ctx.supabase
+  const { data: rows, error } = await ctx.supabase
     .from("operation_members")
-    .select("profile_id, created_at, profile:profiles!fk_operation_members_profile_id ( id, role )")
+    .select("profile_id, created_at")
     .eq("operation_id", parsed.data.operation_id);
   if (error) return { ok: false, message: error.message };
-  return { ok: true, data: { members: data ?? [] } };
+  const profileIds = [...new Set((rows ?? []).map((r) => r.profile_id))];
+  const profileById = new Map<string, { id: string; role: string }>();
+  if (profileIds.length > 0) {
+    const { data: profiles, error: pErr } = await ctx.supabase
+      .from("profiles")
+      .select("id, role")
+      .in("id", profileIds);
+    if (pErr) return { ok: false, message: pErr.message };
+    for (const p of profiles ?? []) {
+      profileById.set(p.id, { id: p.id, role: p.role });
+    }
+  }
+  const members = (rows ?? []).map((r) => ({
+    profile_id: r.profile_id,
+    created_at: r.created_at,
+    profile: profileById.get(r.profile_id) ?? null,
+  }));
+  return { ok: true, data: { members } };
 }
 
 export async function mcpAddOperationMember(

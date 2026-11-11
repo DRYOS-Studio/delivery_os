@@ -27,7 +27,38 @@ describe("mcpUpdateMeetingNextStep handler", () => {
       eq: () => ({ error: null }),
     }));
     const supabase = {
-      from: () => ({ update }),
+      from(table: string) {
+        if (table === "meeting_agenda_next_steps") {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({
+                  data: { meeting_id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" },
+                  error: null,
+                }),
+              }),
+            }),
+            update,
+          };
+        }
+        if (table === "meetings") {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({
+                  data: {
+                    id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+                    operation_id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+                    auto_create_tasks_from_next_steps: false,
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        return { select: () => ({ eq: () => ({ order: async () => ({ data: [], error: null }) }) }) };
+      },
     } as unknown as SupabaseClient<Database>;
     const ctx: McpHandlerContext = {
       supabase,
@@ -38,7 +69,10 @@ describe("mcpUpdateMeetingNextStep handler", () => {
       due_date: null,
       assignee_person_id: null,
     });
-    expect(result).toEqual({ ok: true, data: { id: STEP_ID } });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.id).toBe(STEP_ID);
+    }
     expect(update).toHaveBeenCalledWith({
       due_date: null,
       assignee_person_id: null,

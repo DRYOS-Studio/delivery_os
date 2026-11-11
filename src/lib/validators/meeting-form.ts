@@ -23,6 +23,7 @@ const agendaItemLineSchema = z.object({
 const nextStepLineSchema = z.object({
   id: optionalUuidEmpty,
   assignee_person_id: optionalUuidEmpty,
+  frente_id: optionalUuidEmpty,
   description: z
     .string()
     .trim()
@@ -64,6 +65,9 @@ export const meetingFormSchema = z
     ),
     agenda_items: z.array(agendaItemLineSchema).default([]),
     next_steps: z.array(nextStepLineSchema).default([]),
+    auto_create_tasks_from_next_steps: z
+      .preprocess((v) => v === true || v === "1" || v === "on", z.boolean())
+      .default(true),
   })
   .refine(
     (d) => !d.ended_at || !d.scheduled_at || d.ended_at >= d.scheduled_at,
@@ -81,6 +85,7 @@ const agendaItemLineClientSchema = z.object({
 const nextStepLineClientSchema = z.object({
   id: optionalUuidEmpty,
   assignee_person_id: optionalUuidEmpty,
+  frente_id: optionalUuidEmpty,
   description: z.string().max(2000, "Máximo 2000 caracteres."),
   due_date: z.preprocess(
     (v) => (v === "" || v === null || v === undefined ? undefined : v),
@@ -98,6 +103,7 @@ export const meetingFormClientSchema = meetingFormSchema.omit({
 }).extend({
   agenda_items: z.array(agendaItemLineClientSchema).default([]),
   next_steps: z.array(nextStepLineClientSchema).default([]),
+  auto_create_tasks_from_next_steps: z.boolean().default(true),
 });
 
 export type MeetingFormClientOutput = z.output<typeof meetingFormClientSchema>;
@@ -143,31 +149,42 @@ export function formDataToMeetingFormInput(formData: FormData) {
   const nextAssignees = formData
     .getAll("next_step_assignee_ids")
     .map((v) => String(v).trim());
+  const nextFrentes = formData.getAll("next_step_frente_ids").map((v) =>
+    String(v).trim(),
+  );
   const m = Math.max(
     nextIds.length,
     nextDescriptions.length,
     nextDueDates.length,
     nextAssignees.length,
+    nextFrentes.length,
   );
   const next_steps: {
     id?: string;
     description: string;
     due_date?: string;
     assignee_person_id?: string;
+    frente_id?: string;
   }[] = [];
   for (let i = 0; i < m; i++) {
     const id = (nextIds[i] ?? "").trim();
     const description = (nextDescriptions[i] ?? "").trim();
     const due = (nextDueDates[i] ?? "").trim();
     const assignee = (nextAssignees[i] ?? "").trim();
-    if (!description && !due && !id && !assignee) continue;
+    const frente = (nextFrentes[i] ?? "").trim();
+    if (!description && !due && !id && !assignee && !frente) continue;
     next_steps.push({
       ...(id ? { id } : {}),
       description: description || "—",
       ...(due ? { due_date: due } : {}),
       ...(assignee ? { assignee_person_id: assignee } : {}),
+      ...(frente ? { frente_id: frente } : {}),
     });
   }
+
+  const autoRaw = (
+    (formData.get("auto_create_tasks_from_next_steps") as string | null) ?? ""
+  ).trim();
 
   const endedRaw = ((formData.get("ended_at") as string | null) ?? "").trim();
 
@@ -190,6 +207,8 @@ export function formDataToMeetingFormInput(formData: FormData) {
     ).trim(),
     agenda_items,
     next_steps,
+    auto_create_tasks_from_next_steps:
+      autoRaw === "1" || autoRaw === "on" || autoRaw === "true",
   };
 }
 
@@ -210,6 +229,10 @@ export function appendMeetingOutputToFormData(
   fd.set("granola_suggestion_text", data.granola_suggestion_text ?? "");
   fd.set("granola_source_ref", data.granola_source_ref ?? "");
   fd.set("granola_has_paste", opts.granolaHasPaste ? "1" : "");
+  fd.set(
+    "auto_create_tasks_from_next_steps",
+    data.auto_create_tasks_from_next_steps ? "1" : "0",
+  );
 
   for (const row of data.agenda_items) {
     if (row.id) fd.append("agenda_item_ids", row.id);
@@ -223,6 +246,7 @@ export function appendMeetingOutputToFormData(
     fd.append("next_step_descriptions", row.description);
     fd.append("next_step_due_dates", row.due_date ?? "");
     fd.append("next_step_assignee_ids", row.assignee_person_id ?? "");
+    fd.append("next_step_frente_ids", row.frente_id ?? "");
   }
 }
 
@@ -257,6 +281,7 @@ export function buildMeetingFormPayload(
       r.description.trim().length > 0 ||
       Boolean(r.due_date) ||
       Boolean(r.assignee_person_id) ||
+      Boolean(r.frente_id) ||
       Boolean(r.id),
   );
   const suggestionText =
@@ -271,6 +296,7 @@ export function buildMeetingFormPayload(
       description: r.description.trim() || "—",
       due_date: r.due_date,
       assignee_person_id: r.assignee_person_id,
+      frente_id: r.frente_id,
     })),
     granola_suggestion_text: suggestionText,
   };

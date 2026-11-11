@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { MeetingForm } from "@/components/domain/MeetingForm";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { listActiveFrentesByOperation } from "@/lib/db/queries/frentes";
 import { listAttendeeCandidates } from "@/lib/db/queries/meetings";
 import { getOperation } from "@/lib/db/queries/operations";
 import { isActiveStatus } from "@/lib/utils/operation-status";
@@ -31,7 +32,10 @@ export default async function Page({
   // encerrado não recebe registro novo.
   if (!isActiveStatus(op.status)) redirect(`/operations/${id}`);
 
-  const attendeeCandidates = await listAttendeeCandidates(op.client.id);
+  const [attendeeCandidates, frentes] = await Promise.all([
+    listAttendeeCandidates(op.client.id),
+    listActiveFrentesByOperation(id),
+  ]);
 
   return (
     <>
@@ -44,6 +48,7 @@ export default async function Page({
         operationId={op.id}
         clientName={op.client.name}
         attendeeCandidates={attendeeCandidates}
+        frentes={frentes}
         {...(defaultKind === "onboarding" ? { defaultKind } : {})}
         {...(safeReturnTo ? { returnTo: safeReturnTo } : {})}
       />

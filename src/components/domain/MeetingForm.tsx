@@ -42,7 +42,10 @@ type Props = (
       initialData: MeetingWithAttendees;
       attendeeCandidates: AttendeeRef[];
     }
-) & { isAdmin?: boolean };
+) & {
+  isAdmin?: boolean;
+  frentes: { id: string; name: string }[];
+};
 
 function mapErrorToFields(
   code: string | undefined,
@@ -68,6 +71,8 @@ export function MeetingForm(props: Props): React.JSX.Element {
   const isEdit = props.mode === "edit";
   const isAdmin = props.isAdmin ?? false;
   const [generalError, setGeneralError] = useState<string | null>(null);
+  const [infoNotice, setInfoNotice] = useState<string | null>(null);
+  const frentes = props.frentes;
   const [isDeleting, setIsDeleting] = useState(false);
   const [granolaPaste, setGranolaPaste] = useState("");
 
@@ -100,8 +105,11 @@ export function MeetingForm(props: Props): React.JSX.Element {
                 description: s.description,
                 due_date: s.due_date ?? "",
                 assignee_person_id: s.assignee_person_id ?? "",
+                frente_id: s.frente_id ?? "",
               }))
-            : [{ description: "", due_date: "" }],
+            : [{ description: "", due_date: "", assignee_person_id: "", frente_id: "" }],
+        auto_create_tasks_from_next_steps:
+          props.initialData.auto_create_tasks_from_next_steps ?? true,
       }
     : {
         title:
@@ -120,7 +128,10 @@ export function MeetingForm(props: Props): React.JSX.Element {
         granola_suggestion_text: "",
         granola_source_ref: "",
         agenda_items: [{ title: "", notes: "" }],
-        next_steps: [{ description: "", due_date: "", assignee_person_id: "" }],
+        next_steps: [
+          { description: "", due_date: "", assignee_person_id: "", frente_id: "" },
+        ],
+        auto_create_tasks_from_next_steps: true,
       };
 
   const {
@@ -154,6 +165,7 @@ export function MeetingForm(props: Props): React.JSX.Element {
 
   async function onSubmit(data: MeetingFormClientOutput) {
     setGeneralError(null);
+    setInfoNotice(null);
     const scheduledIso = dateTimeLocalToISO(data.scheduled_at);
     const endedIso = data.ended_at?.trim()
       ? dateTimeLocalToISO(data.ended_at)
@@ -176,6 +188,11 @@ export function MeetingForm(props: Props): React.JSX.Element {
       : await createMeetingAction(props.operationId, fd);
 
     if (result.ok) {
+      if (result.data.nextStepTaskWarnings?.length) {
+        setInfoNotice(result.data.nextStepTaskWarnings.join(" "));
+        router.refresh();
+        return;
+      }
       if (
         !isEdit &&
         props.mode === "create" &&
@@ -196,6 +213,7 @@ export function MeetingForm(props: Props): React.JSX.Element {
     if (!window.confirm("Remover esta reunião? Decisões associadas perderão o link.")) return;
     setIsDeleting(true);
     setGeneralError(null);
+    setInfoNotice(null);
     const result = await deleteMeetingAction(props.initialData.id);
     if (result.ok) {
       router.push(`/operations/${result.data.operationId}`);
@@ -214,6 +232,11 @@ export function MeetingForm(props: Props): React.JSX.Element {
       {generalError && (
         <div className="bg-critical-bg border border-critical text-critical text-sm rounded px-3 py-2">
           {generalError}
+        </div>
+      )}
+      {infoNotice && (
+        <div className="bg-warning-bg border border-warning/40 text-ink-soft text-sm rounded px-3 py-2">
+          {infoNotice}
         </div>
       )}
 
@@ -351,14 +374,30 @@ export function MeetingForm(props: Props): React.JSX.Element {
       </section>
 
       <section className="space-y-3 border border-line rounded-lg p-4 bg-card/40">
-        <h3 className="font-mono text-[10px] text-mute uppercase tracking-wide">
-          Próximos passos
-        </h3>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="font-mono text-[10px] text-mute uppercase tracking-wide">
+            Próximos passos
+          </h3>
+          <label className="flex items-center gap-2 text-sm text-ink-soft cursor-pointer">
+            <input
+              type="checkbox"
+              className="rounded border-line"
+              {...register("auto_create_tasks_from_next_steps")}
+              disabled={busy}
+            />
+            Criar tarefas automaticamente ao salvar
+          </label>
+        </div>
+        <p className="text-xs text-mute">
+          Com frente definida (ou frente única na operação), cada passo vira tarefa e
+          recebe <span className="font-mono">task_id</span>. Responsável externo vira
+          nota na descrição (RLS de assignee).
+        </p>
         <div className="space-y-3">
           {nextFields.map((field, index) => (
             <div
               key={field.id}
-              className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_auto_auto_auto] md:items-start"
+              className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_auto_auto_auto_auto] md:items-start"
             >
               <input type="hidden" {...register(`next_steps.${index}.id`)} />
               <Field
@@ -387,6 +426,23 @@ export function MeetingForm(props: Props): React.JSX.Element {
                   disabled={busy}
                   className={inputCn}
                 />
+              </Field>
+              <Field label="Frente" htmlFor={`next_frente_${index}`} hint="Opcional">
+                <select
+                  id={`next_frente_${index}`}
+                  {...register(`next_steps.${index}.frente_id`)}
+                  disabled={busy}
+                  className={inputCn}
+                >
+                  <option value="">
+                    {frentes.length === 1 ? frentes[0]!.name : "—"}
+                  </option>
+                  {frentes.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name}
+                    </option>
+                  ))}
+                </select>
               </Field>
               <Field label="Responsável" htmlFor={`next_assignee_${index}`} hint="Opcional">
                 <select
@@ -423,7 +479,12 @@ export function MeetingForm(props: Props): React.JSX.Element {
           variant="ghost"
           disabled={busy}
           onClick={() =>
-            appendNext({ description: "", due_date: "", assignee_person_id: "" })
+            appendNext({
+              description: "",
+              due_date: "",
+              assignee_person_id: "",
+              frente_id: "",
+            })
           }
           className="gap-1.5"
         >

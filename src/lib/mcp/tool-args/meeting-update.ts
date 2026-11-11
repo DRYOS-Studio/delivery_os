@@ -16,6 +16,7 @@ export const mcpAddMeetingNextStepSchema = z.object({
     .optional(),
   sort_order: z.number().int().min(0).optional(),
   assignee_person_id: mcpClearableUuid(),
+  frente_id: mcpClearableUuid(),
   task_id: mcpClearableUuid(),
   idempotency_key: z.string().min(8).max(200).optional(),
 });
@@ -26,8 +27,22 @@ export const mcpUpdateMeetingNextStepSchema = z.object({
   due_date: mcpClearableDate(),
   sort_order: z.number().int().min(0).optional(),
   assignee_person_id: mcpClearableUuid(),
+  frente_id: mcpClearableUuid(),
   task_id: mcpClearableUuid(),
   idempotency_key: z.string().min(8).max(200).optional(),
+});
+
+export const mcpMeetingNextStepInlineSchema = z.object({
+  description: z.string().trim().min(1).max(2000),
+  due_date: mcpClearableDate(),
+  assignee_person_id: mcpClearableUuid(),
+  frente_id: mcpClearableUuid(),
+  sort_order: z.number().int().min(0).optional(),
+});
+
+export const mcpMeetingCreateExtrasSchema = z.object({
+  next_steps: z.array(mcpMeetingNextStepInlineSchema).optional(),
+  auto_create_tasks_from_next_steps: z.boolean().optional(),
 });
 
 export const mcpMeetingUpdateBodySchema = z.object({
@@ -42,5 +57,7 @@ export const mcpMeetingUpdateBodySchema = z.object({
   granola_suggestion_text: z.union([z.string().max(50_000), z.null()]).optional(),
   granola_source_ref: z.union([z.string().max(500), z.null()]).optional(),
   granola_captured_at: z.union([z.string().datetime(), z.null()]).optional(),
+  auto_create_tasks_from_next_steps: z.boolean().optional(),
+  next_steps: z.array(mcpMeetingNextStepInlineSchema).optional(),
   idempotency_key: z.string().min(8).max(200).optional(),
 });

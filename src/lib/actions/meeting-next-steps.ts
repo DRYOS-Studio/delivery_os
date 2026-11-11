@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import { type ActionResult, dbErr, err, ok } from "@/lib/actions/_types";
 import { requireUserAction } from "@/lib/auth/server";
 import { createServer } from "@/lib/db/client";
-import { getFrente } from "@/lib/db/queries/frentes";
 import { getMeetingNextStep } from "@/lib/db/queries/meetings";
+import { promoteMeetingNextStepToTask } from "@/lib/meetings/meeting-next-step-tasks";
 
 function parseFormData(formData: FormData) {
   return {
@@ -34,61 +34,36 @@ export async function createTaskFromMeetingNextStepAction(
     return err("Este passo já virou tarefa.", "state_conflict");
   }
 
-  const frente = await getFrente(frenteId);
-  if (!frente) return err("Frente não encontrada.", "not_found");
-  if (frente.archived_at) {
-    return err("Frente arquivada.", "state_conflict");
-  }
-  if (frente.operation_id !== step.operation_id) {
-    return err("A Frente não pertence a esta Operação.", "invalid_frente");
-  }
-
   const supabase = await createServer();
-  const { data: taskRow, error: insErr } = await supabase
-    .from("tasks")
-    .insert({
-      frente_id: frenteId,
-      operation_id: step.operation_id,
-      title: step.description.slice(0, 200),
-      description:
-        step.description.length > 200 ? step.description : null,
-      status: "todo",
-      parent_task_id: null,
-      start_date: null,
-      due_date: step.due_date,
-      tags: null,
-      quick_win_id: null,
-      sla_incident_id: null,
-      source_meeting_id: step.meeting_id,
-    })
-    .select("id")
-    .single();
-  if (insErr) return dbErr(insErr, "createTaskFromMeetingNextStepAction.task");
-  if (!taskRow) return err("Falha ao criar tarefa.", "no_data");
-
-  if (step.assignee_person_id) {
-    const { error: assigneeErr } = await supabase.from("task_assignees").insert({
-      task_id: taskRow.id,
-      person_id: step.assignee_person_id,
+  try {
+    const result = await promoteMeetingNextStepToTask(supabase, {
+      nextStepId,
+      meetingId: step.meeting_id,
+      operationId: step.operation_id,
+      description: step.description,
+      dueDate: step.due_date,
+      assigneePersonId: step.assignee_person_id,
+      explicitFrenteId: frenteId,
+      existingTaskId: step.task_id,
     });
-    if (assigneeErr) {
-      return dbErr(assigneeErr, "createTaskFromMeetingNextStepAction.assignee");
+    if (!result.ok) {
+      if (result.reason === "ambiguous_frente" || result.reason === "no_frente") {
+        return err("Frente inválida para esta operação.", "invalid_frente");
+      }
+      return err("Não foi possível criar a tarefa.", "state_conflict");
     }
+    revalidatePath(`/operations/${step.operation_id}`);
+    revalidatePath(
+      `/operations/${step.operation_id}/meetings/${step.meeting_id}/edit`,
+    );
+    revalidatePath(`/operations/${step.operation_id}/frentes/${result.frenteId}`);
+    return ok({
+      taskId: result.taskId,
+      operationId: step.operation_id,
+      frenteId: result.frenteId,
+    });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Falha ao criar tarefa.";
+    return dbErr({ message }, "createTaskFromMeetingNextStepAction");
   }
-
-  const { error: upErr } = await supabase
-    .from("meeting_agenda_next_steps")
-    .update({ task_id: taskRow.id })
-    .eq("id", nextStepId);
-  if (upErr)
-    return dbErr(upErr, "createTaskFromMeetingNextStepAction.link");
-
-  revalidatePath(`/operations/${step.operation_id}`);
-  revalidatePath(`/operations/${step.operation_id}/meetings/${step.meeting_id}/edit`);
-  revalidatePath(`/operations/${step.operation_id}/frentes/${frenteId}`);
-  return ok({
-    taskId: taskRow.id,
-    operationId: step.operation_id,
-    frenteId,
-  });
 }

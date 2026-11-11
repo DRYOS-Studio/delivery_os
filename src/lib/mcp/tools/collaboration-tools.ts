@@ -1,5 +1,7 @@
+import { syncAutoTasksForMeeting } from "@/lib/meetings/meeting-next-step-tasks";
 import { briefingSchema } from "@/lib/validators/briefing";
 import { decisionSchema } from "@/lib/validators/decision";
+import { mcpMeetingCreateExtrasSchema } from "@/lib/mcp/tool-args/meeting-update";
 import { meetingSchema } from "@/lib/validators/meeting";
 import { personSchema } from "@/lib/validators/person";
 import {
@@ -73,7 +75,9 @@ export async function mcpCreatePerson(
   return { ok: true, data: { id: data.id } };
 }
 
-const meetingCreate = meetingSchema.and(z.object({ operation_id: z.string().uuid() }));
+const meetingCreate = meetingSchema
+  .and(z.object({ operation_id: z.string().uuid() }))
+  .and(mcpMeetingCreateExtrasSchema);
 
 export async function mcpListMeetings(
   ctx: McpHandlerContext,
@@ -96,12 +100,24 @@ export async function mcpListMeetings(
 export async function mcpCreateMeeting(
   ctx: McpHandlerContext,
   args: Record<string, unknown>,
-): Promise<McpToolResult<{ id: string }>> {
+): Promise<
+  McpToolResult<{
+    id: string;
+    tasks_created?: number;
+    warnings?: unknown[];
+  }>
+> {
   const parsed = meetingCreate.safeParse(args);
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   }
-  const { operation_id, attendee_ids, ...m } = parsed.data;
+  const {
+    operation_id,
+    attendee_ids,
+    next_steps: nextSteps,
+    auto_create_tasks_from_next_steps: autoTasks,
+    ...m
+  } = parsed.data;
   const { data, error } = await ctx.supabase
     .from("meetings")
     .insert({
@@ -112,6 +128,7 @@ export async function mcpCreateMeeting(
       notes: m.notes ?? null,
       visibility: m.visibility,
       kind: m.kind ?? "general",
+      auto_create_tasks_from_next_steps: autoTasks ?? true,
     })
     .select("id")
     .single();
@@ -125,7 +142,31 @@ export async function mcpCreateMeeting(
       })),
     );
   }
-  return { ok: true, data: { id: data.id } };
+  if (nextSteps && nextSteps.length > 0) {
+    const { error: nsErr } = await ctx.supabase
+      .from("meeting_agenda_next_steps")
+      .insert(
+        nextSteps.map((row, idx) => ({
+          meeting_id: data.id,
+          sort_order: row.sort_order ?? idx,
+          description: row.description,
+          due_date: row.due_date ?? null,
+          assignee_person_id: row.assignee_person_id ?? null,
+          frente_id: row.frente_id ?? null,
+          task_id: null,
+        })),
+      );
+    if (nsErr) return { ok: false, message: nsErr.message };
+  }
+  const sync = await syncAutoTasksForMeeting(ctx.supabase, data.id);
+  return {
+    ok: true,
+    data: {
+      id: data.id,
+      tasks_created: sync.createdTaskIds.length,
+      warnings: sync.warnings,
+    },
+  };
 }
 
 const decisionCreate = decisionSchema.and(z.object({ operation_id: z.string().uuid() }));
