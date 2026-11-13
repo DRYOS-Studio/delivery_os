@@ -44,16 +44,36 @@ async function loadActiveOpsForClients(
   supabase: SupabaseClient<Database>,
 ): Promise<ActiveOpRow[]> {
   if (clientIds.length === 0) return [];
-  const { data, error } = await supabase
+  const { data: ops, error } = await supabase
     .from("operations")
-    .select("id, client_id, monthly_recurring_revenue, start_date")
+    .select("id, client_id, start_date")
     .in("client_id", clientIds)
     .is("archived_at", null)
     .in("status", ACTIVE_STATUSES);
   if (error) {
     throw new Error(`loadActiveOpsForClients: ${error.message}`);
   }
-  return data ?? [];
+  const rows = ops ?? [];
+  if (rows.length === 0) return [];
+  const opIds = rows.map((o) => o.id);
+  const { data: fins, error: finErr } = await supabase
+    .from("operation_financials")
+    .select("operation_id, monthly_recurring_revenue")
+    .in("operation_id", opIds);
+  if (finErr) {
+    throw new Error(`loadActiveOpsForClients.financials: ${finErr.message}`);
+  }
+  const mrrByOp = new Map(
+    (fins ?? []).map(
+      (f) => [f.operation_id, f.monthly_recurring_revenue] as const,
+    ),
+  );
+  return rows.map((o) => ({
+    id: o.id,
+    client_id: o.client_id,
+    start_date: o.start_date,
+    monthly_recurring_revenue: mrrByOp.get(o.id) ?? null,
+  }));
 }
 
 async function sumCacByClients(

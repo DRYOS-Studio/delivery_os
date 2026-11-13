@@ -29,10 +29,13 @@ export async function updateOperationTaxRateAction(
   }
 
   const supabase = await createServer();
-  const { error } = await supabase
-    .from("operations")
-    .update({ tax_rate_pct: parsed.data.tax_rate_pct })
-    .eq("id", operationId);
+  const { error } = await supabase.from("operation_financials").upsert(
+      {
+        operation_id: operationId,
+        tax_rate_pct: parsed.data.tax_rate_pct,
+      },
+      { onConflict: "operation_id" },
+    );
   if (error) return dbErr(error, "updateOperationTaxRateAction");
 
   revalidatePath(`/operations/${operationId}`);

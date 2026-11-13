@@ -1,6 +1,6 @@
 # Database Schema
 
-**Última análise**: 2026-11-06 (tokens MCP + tarefas no connector)
+**Última análise**: 2026-11-13 (member-access hardening — financeiro/compensação fora de tabelas legíveis por membro)
 **Projeto Supabase**: `Delivery OS` (`tmsaucxoeqpfluzwrwkc`)
 **Schema**: `public`
 
@@ -13,9 +13,9 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 | Módulo | Tabelas | Total |
 |---|---|---|
 | **Cliente** | `clients`, `client_contracts`, `client_registration_invitations`, `repository_links`, `client_tech_items`, `client_software_items` | 6 |
-| **Operação** | `operations` | 1 |
-| **Entrega** | `frentes`, `allocations`, `tasks`, `task_assignees` | 4 |
-| **Pessoas** | `persons` | 1 |
+| **Operação** | `operations`, `operation_financials` | 2 |
+| **Entrega** | `frentes`, `allocations`, `allocation_cost_metrics`, `tasks`, `task_assignees` | 5 |
+| **Pessoas** | `persons`, `person_compensation` | 2 |
 | **Briefing** | `briefings`, `briefing_versions` | 2 |
 | **Reuniões / Decisões** | `meetings`, `meeting_attendees`, `meeting_agenda_items`, `meeting_agenda_next_steps`, `decisions`, `operation_risk_blockers` | 6 |
 | **Anexos** | `attachments` | 1 |
@@ -34,7 +34,7 @@ Referência viva das tabelas vivas. Atualizar a cada migration. **Antes de criar
 | **Notificações** | `notifications_log` | 1 |
 | **Auditoria** | `activity_events` | 1 |
 | **Comentários** | `task_comments`, `operation_comments` | 2 |
-| **Total atual** | | **40** |
+| **Total atual** | | **43** |
 
 ---
 
@@ -251,12 +251,24 @@ Discriminada por `kind`; campos mutuamente exclusivos via CHECK constraint.
 | `specialty` | text | NOT NULL se `internal`, NULL se `external` |
 | `external_role` | text | NOT NULL se `external`, NULL se `internal` |
 | `client_id` | uuid → clients (RESTRICT) | NOT NULL se `external`, NULL se `internal` |
-| `hourly_rate` | numeric(10,2) | nullable; taxa horária BRL/h (legacy). Usada se salário/horas não preenchidos |
-| `monthly_compensation` | numeric(12,2) | nullable; salário/compensação mensal bruto (BRL/mês). Junto com contracted_weekly_hours, deriva taxa horária |
-| `contracted_weekly_hours` | numeric(5,2) | nullable; horas contratadas/semana (ex: 40 CLT). Junto com salário, deriva taxa |
+| *(compensação)* | — | `hourly_rate`, `monthly_compensation`, `contracted_weekly_hours` em `person_compensation` (RLS admin-only). |
 | `created_at`, `updated_at`, `archived_at` | timestamptz | |
 
 CHECK `chk_persons_kind_consistency`: garante exclusividade.
+
+---
+
+### `person_compensation` — compensação da Pessoa (admin-only)
+
+1:1 com `persons`. RLS: somente `is_admin()`.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `person_id` | uuid PK → persons | |
+| `hourly_rate` | numeric(10,2) | nullable |
+| `monthly_compensation` | numeric(12,2) | nullable |
+| `contracted_weekly_hours` | numeric(5,2) | nullable (externos) |
+| `created_at`, `updated_at` | timestamptz | |
 
 ---
 
@@ -269,15 +281,27 @@ CHECK `chk_persons_kind_consistency`: garante exclusividade.
 | `product_line` | enum `product_line` | core / spark / studio |
 | `name` | text NOT NULL | |
 | `status` | enum `operation_status` default `em_construcao` | ativos: em_construcao / em_operacao / janela_critica · terminais: concluida / cancelada (e arquivada, legado — nunca escrito). Terminal e `archived_at` são eixos distintos: terminal sai dos agregados, `archived_at` tira da vista |
-| `monthly_recurring_revenue` | numeric(14,2) | nullable (Studio one-off) |
-| `monthly_fixed_cost` | numeric(12,2) | **LEGADO** — migrado para `operation_costs`; não usar em código novo |
-| `tax_rate_pct` | numeric(5,2) | nullable; alíquota de imposto (0–100) sobre `monthly_recurring_revenue`; valor derivado entra no custo mensal/margem. Admin-only via UI/MCP |
-| `recurrence` | enum `recurrence` | mensal / trimestral / anual / unica; nullable |
+| *(financeiro)* | — | MRR, recorrência, custo fixo mensal, alíquota e webhook de notificação migrados para `operation_financials` (RLS admin-only). Colunas removidas de `operations`. |
 | `start_date`, `end_date` | date | nullable; Tipo C/E não tem fim (validado via Frente) |
 | `response_hours` | int | SLA prometido pra primeira resposta. CHECK 0-720. Null = sem SLA |
 | `resolution_hours` | int | SLA prometido pra resolução total. CHECK 0-720. Null = sem SLA |
-| `notification_webhook_url` | text | nullable; webhook n8n por Operação |
 | `created_at`, `updated_at`, `archived_at` | timestamptz | |
+
+---
+
+### `operation_financials` — financeiro da Operação (admin-only)
+
+1:1 com `operations`. RLS: somente `is_admin()`. Member não tem SELECT nem via MCP com JWT de membro.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `operation_id` | uuid PK → operations | |
+| `recurrence` | enum `recurrence` | mensal / trimestral / anual / unica; nullable |
+| `monthly_recurring_revenue` | numeric(14,2) | nullable |
+| `monthly_fixed_cost` | numeric(12,2) | legado; preferir `operation_costs` |
+| `tax_rate_pct` | numeric(5,2) | nullable; alíquota sobre MRR |
+| `notification_webhook_url` | text | webhook n8n por Operação |
+| `created_at`, `updated_at` | timestamptz | |
 
 ---
 
@@ -315,11 +339,23 @@ Index parcial `idx_frentes_actionable_status_since_active` em `(actionable_statu
 | `frente_id` | uuid NOT NULL → frentes (CASCADE) | |
 | `role` | enum `allocation_role` | responsavel / executor / aprovador / plantao |
 | `capacity_weekly_pct` | numeric(5,2) NOT NULL default 0 | CHECK 0..100 (legacy; usado se weekly_hours null) |
-| `weekly_hours` | numeric(5,2) | nullable; horas/semana alocadas. Custo: rate × weekly_hours × 4 |
-| `monthly_cost` | numeric(12,2) | nullable; valor mensal fechado pra esta alocação. Quando preenchido, vira custo direto e ignora cálculo por horas |
+| *(métricas de custo)* | — | `weekly_hours`, `monthly_cost` em `allocation_cost_metrics` (RLS admin-only). |
 | `start_date` | date NOT NULL default current_date | |
 | `end_date` | date | nullable |
 | `created_at`, `updated_at` | timestamptz | sem `archived_at` — é puro relacionamento |
+
+---
+
+### `allocation_cost_metrics` — custo da alocação (admin-only)
+
+1:1 com `allocations`. RLS: somente `is_admin()`.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `allocation_id` | uuid PK → allocations | |
+| `weekly_hours` | numeric(5,2) | nullable |
+| `monthly_cost` | numeric(12,2) | nullable; quando preenchido, ignora cálculo por horas |
+| `created_at`, `updated_at` | timestamptz | |
 
 ---
 

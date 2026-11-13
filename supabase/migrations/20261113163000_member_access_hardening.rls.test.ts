@@ -25,6 +25,18 @@ describe("migration 20261113163000_member_access_hardening", () => {
     expect(sql).toContain("USING (public.is_admin())");
   });
 
+  it("financeiro em tabelas admin-only", () => {
+    expect(sql).toContain("CREATE TABLE IF NOT EXISTS public.operation_financials");
+    expect(sql).toContain("DROP COLUMN IF EXISTS monthly_recurring_revenue");
+    expect(sql).toContain("person_compensation");
+    expect(sql).toContain("allocation_cost_metrics");
+  });
+
+  it("catálogo picker RPC sem política team-wide", () => {
+    expect(sql).toContain("catalog_picker_villains");
+    expect(sql).not.toContain("villains_member_operation_team");
+  });
+
   it("link público insert admin", () => {
     expect(sql).toContain("public_links_admin_insert");
   });

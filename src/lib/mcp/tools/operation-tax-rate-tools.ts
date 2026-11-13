@@ -25,9 +25,8 @@ export async function mcpUpdateOperationTaxRate(
   }
   const { operation_id, tax_rate_pct } = parsed.data;
   const { error } = await ctx.supabase
-    .from("operations")
-    .update({ tax_rate_pct })
-    .eq("id", operation_id);
+    .from("operation_financials")
+    .upsert({ operation_id, tax_rate_pct }, { onConflict: "operation_id" });
   if (error) return { ok: false, message: error.message };
   return {
     ok: true,

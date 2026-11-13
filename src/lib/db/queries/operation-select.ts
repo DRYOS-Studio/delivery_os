@@ -1,11 +1,17 @@
-/** Campos financeiros / webhook — só queries admin. */
+/** Financeiro vive em `operation_financials` (RLS admin). */
 
 export const OPERATION_DETAIL_SELECT_ADMIN = `
-      id, name, product_line, status, recurrence,
-      monthly_recurring_revenue, monthly_fixed_cost, tax_rate_pct,
+      id, name, product_line, status,
       response_hours, resolution_hours,
-      diagnostic_id, start_date, end_date, notification_webhook_url,
+      diagnostic_id, start_date, end_date,
       created_at,
+      financial:operation_financials (
+        recurrence,
+        monthly_recurring_revenue,
+        monthly_fixed_cost,
+        tax_rate_pct,
+        notification_webhook_url
+      ),
       client:clients!inner(id, name, slug, archived_at),
       frentes(
         id, name, cycle_type, domain, phase,
@@ -32,8 +38,8 @@ export const OPERATION_DETAIL_SELECT_MEMBER = `
       `;
 
 export const OPERATION_LIST_SELECT_ADMIN = `
-  id, name, client_id, product_line, status, recurrence,
-  monthly_recurring_revenue, start_date, end_date, created_at, archived_at,
+  id, name, client_id, product_line, status, start_date, end_date, created_at, archived_at,
+  financial:operation_financials (recurrence, monthly_recurring_revenue),
   client:clients!inner(name, slug, archived_at),
   frentes(id, archived_at, phase)
 `;

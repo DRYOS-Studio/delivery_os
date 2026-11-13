@@ -154,73 +154,138 @@ CREATE POLICY operation_costs_admin_delete ON public.operation_costs
   FOR DELETE TO authenticated
   USING (public.is_admin());
 
--- ── 4. Campos financeiros da operação: escrita só admin ─────────────────────
+-- ── 4. Financeiro/compensação fora de tabelas legíveis por member (RLS admin) ─
 
-CREATE OR REPLACE FUNCTION public.guard_operation_financial_write()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  IF public.is_admin() THEN
-    RETURN NEW;
-  END IF;
-  IF TG_OP = 'INSERT' THEN
-    IF NEW.monthly_recurring_revenue IS NOT NULL
-       OR NEW.monthly_fixed_cost IS NOT NULL
-       OR NEW.tax_rate_pct IS NOT NULL
-       OR NEW.recurrence IS NOT NULL THEN
-      RAISE EXCEPTION 'campos financeiros da operação são admin-only'
-        USING ERRCODE = '42501';
-    END IF;
-    RETURN NEW;
-  END IF;
-  IF NEW.monthly_recurring_revenue IS DISTINCT FROM OLD.monthly_recurring_revenue
-     OR NEW.monthly_fixed_cost IS DISTINCT FROM OLD.monthly_fixed_cost
-     OR NEW.tax_rate_pct IS DISTINCT FROM OLD.tax_rate_pct
-     OR NEW.recurrence IS DISTINCT FROM OLD.recurrence THEN
-    RAISE EXCEPTION 'campos financeiros da operação são admin-only'
-      USING ERRCODE = '42501';
-  END IF;
-  RETURN NEW;
-END;
-$$;
+CREATE TABLE IF NOT EXISTS public.operation_financials (
+  operation_id uuid PRIMARY KEY,
+  recurrence public.recurrence,
+  monthly_recurring_revenue numeric(14, 2),
+  monthly_fixed_cost numeric(14, 2),
+  tax_rate_pct numeric(5, 2),
+  notification_webhook_url text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT fk_operation_financials_operation
+    FOREIGN KEY (operation_id) REFERENCES public.operations(id) ON DELETE CASCADE
+);
+
+COMMENT ON TABLE public.operation_financials IS
+  'financeiro: MRR, recorrência, custo fixo, taxa e webhook legado — admin-only (RLS).';
+
+CREATE TABLE IF NOT EXISTS public.person_compensation (
+  person_id uuid PRIMARY KEY,
+  hourly_rate numeric(10, 2),
+  monthly_compensation numeric(12, 2),
+  contracted_weekly_hours numeric(5, 2),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT fk_person_compensation_person
+    FOREIGN KEY (person_id) REFERENCES public.persons(id) ON DELETE CASCADE
+);
+
+COMMENT ON TABLE public.person_compensation IS
+  'financeiro/pessoa: taxa e salário internos — admin-only (RLS).';
+
+CREATE TABLE IF NOT EXISTS public.allocation_cost_metrics (
+  allocation_id uuid PRIMARY KEY,
+  weekly_hours numeric(5, 2),
+  monthly_cost numeric(12, 2),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT fk_allocation_cost_metrics_allocation
+    FOREIGN KEY (allocation_id) REFERENCES public.allocations(id) ON DELETE CASCADE
+);
+
+COMMENT ON TABLE public.allocation_cost_metrics IS
+  'financeiro/alocação: horas e custo mensal materializado — admin-only (RLS).';
+
+INSERT INTO public.operation_financials (
+  operation_id, recurrence, monthly_recurring_revenue, monthly_fixed_cost,
+  tax_rate_pct, notification_webhook_url
+)
+SELECT
+  o.id, o.recurrence, o.monthly_recurring_revenue, o.monthly_fixed_cost,
+  o.tax_rate_pct, o.notification_webhook_url
+FROM public.operations o
+ON CONFLICT (operation_id) DO UPDATE SET
+  recurrence = EXCLUDED.recurrence,
+  monthly_recurring_revenue = EXCLUDED.monthly_recurring_revenue,
+  monthly_fixed_cost = EXCLUDED.monthly_fixed_cost,
+  tax_rate_pct = EXCLUDED.tax_rate_pct,
+  notification_webhook_url = EXCLUDED.notification_webhook_url;
+
+INSERT INTO public.person_compensation (
+  person_id, hourly_rate, monthly_compensation, contracted_weekly_hours
+)
+SELECT p.id, p.hourly_rate, p.monthly_compensation, p.contracted_weekly_hours
+FROM public.persons p
+WHERE p.hourly_rate IS NOT NULL
+   OR p.monthly_compensation IS NOT NULL
+   OR p.contracted_weekly_hours IS NOT NULL
+ON CONFLICT (person_id) DO UPDATE SET
+  hourly_rate = EXCLUDED.hourly_rate,
+  monthly_compensation = EXCLUDED.monthly_compensation,
+  contracted_weekly_hours = EXCLUDED.contracted_weekly_hours;
+
+INSERT INTO public.allocation_cost_metrics (allocation_id, weekly_hours, monthly_cost)
+SELECT a.id, a.weekly_hours, a.monthly_cost
+FROM public.allocations a
+WHERE a.weekly_hours IS NOT NULL OR a.monthly_cost IS NOT NULL
+ON CONFLICT (allocation_id) DO UPDATE SET
+  weekly_hours = EXCLUDED.weekly_hours,
+  monthly_cost = EXCLUDED.monthly_cost;
+
+ALTER TABLE public.operations DROP COLUMN IF EXISTS recurrence;
+ALTER TABLE public.operations DROP COLUMN IF EXISTS monthly_recurring_revenue;
+ALTER TABLE public.operations DROP COLUMN IF EXISTS monthly_fixed_cost;
+ALTER TABLE public.operations DROP COLUMN IF EXISTS tax_rate_pct;
+ALTER TABLE public.operations DROP COLUMN IF EXISTS notification_webhook_url;
+
+ALTER TABLE public.persons DROP COLUMN IF EXISTS hourly_rate;
+ALTER TABLE public.persons DROP COLUMN IF EXISTS monthly_compensation;
+ALTER TABLE public.persons DROP COLUMN IF EXISTS contracted_weekly_hours;
+
+ALTER TABLE public.allocations DROP COLUMN IF EXISTS weekly_hours;
+ALTER TABLE public.allocations DROP COLUMN IF EXISTS monthly_cost;
 
 DROP TRIGGER IF EXISTS trg_operations_guard_financial ON public.operations;
-CREATE TRIGGER trg_operations_guard_financial
-  BEFORE INSERT OR UPDATE ON public.operations
-  FOR EACH ROW EXECUTE FUNCTION public.guard_operation_financial_write();
-
--- Pessoas: taxa/valores internos só admin altera
-CREATE OR REPLACE FUNCTION public.guard_person_compensation_write()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  IF public.is_admin() THEN
-    RETURN NEW;
-  END IF;
-  IF TG_OP = 'INSERT' THEN
-    IF NEW.hourly_rate IS NOT NULL OR NEW.monthly_compensation IS NOT NULL THEN
-      RAISE EXCEPTION 'compensação de pessoa é admin-only' USING ERRCODE = '42501';
-    END IF;
-    RETURN NEW;
-  END IF;
-  IF NEW.hourly_rate IS DISTINCT FROM OLD.hourly_rate
-     OR NEW.monthly_compensation IS DISTINCT FROM OLD.monthly_compensation THEN
-    RAISE EXCEPTION 'compensação de pessoa é admin-only' USING ERRCODE = '42501';
-  END IF;
-  RETURN NEW;
-END;
-$$;
-
+DROP FUNCTION IF EXISTS public.guard_operation_financial_write();
 DROP TRIGGER IF EXISTS trg_persons_guard_compensation ON public.persons;
-CREATE TRIGGER trg_persons_guard_compensation
-  BEFORE INSERT OR UPDATE ON public.persons
-  FOR EACH ROW EXECUTE FUNCTION public.guard_person_compensation_write();
+DROP FUNCTION IF EXISTS public.guard_person_compensation_write();
+
+ALTER TABLE public.operation_financials ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.person_compensation ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.allocation_cost_metrics ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY operation_financials_admin_all ON public.operation_financials
+  FOR ALL TO authenticated
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
+CREATE POLICY person_compensation_admin_all ON public.person_compensation
+  FOR ALL TO authenticated
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
+CREATE POLICY allocation_cost_metrics_admin_all ON public.allocation_cost_metrics
+  FOR ALL TO authenticated
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
+DROP TRIGGER IF EXISTS trg_operation_financials_updated_at ON public.operation_financials;
+CREATE TRIGGER trg_operation_financials_updated_at
+  BEFORE UPDATE ON public.operation_financials
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_person_compensation_updated_at ON public.person_compensation;
+CREATE TRIGGER trg_person_compensation_updated_at
+  BEFORE UPDATE ON public.person_compensation
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_allocation_cost_metrics_updated_at ON public.allocation_cost_metrics;
+CREATE TRIGGER trg_allocation_cost_metrics_updated_at
+  BEFORE UPDATE ON public.allocation_cost_metrics
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 -- ── 5. Catálogo admin-only; leitura derivada da operação ─────────────────────
 
@@ -233,7 +298,7 @@ CREATE POLICY qwc_member_via_quick_win ON public.quick_win_catalog
   USING (
     EXISTS (
       SELECT 1 FROM public.quick_wins qw
-      WHERE qw.catalog_id = quick_win_catalog.id
+      WHERE lower(trim(qw.title)) = lower(trim(quick_win_catalog.title))
         AND public.can_see_operation(qw.operation_id)
     )
   );
@@ -265,33 +330,69 @@ CREATE POLICY villains_member_via_operation ON public.villains
         AND public.can_see_operation(ov.operation_id)
     )
   );
--- Picker de vilões na Operação (lista canônica; /catalog segue admin-only na app).
-CREATE POLICY villains_member_operation_team ON public.villains
-  FOR SELECT TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.operation_members om
-      WHERE om.profile_id = auth.uid()
+-- Pickers (catálogo completo id+nome): RPC security definer, não abre a tabela.
+CREATE OR REPLACE FUNCTION public.catalog_picker_villains(p_operation_id uuid)
+RETURNS TABLE (id uuid, name text, slug text, icon_name text)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT v.id, v.name, v.slug, v.icon_name
+  FROM public.villains v
+  WHERE v.archived_at IS NULL
+    AND (public.is_admin() OR public.can_see_operation(p_operation_id))
+    AND NOT EXISTS (
+      SELECT 1 FROM public.operation_villains ov
+      WHERE ov.operation_id = p_operation_id AND ov.villain_id = v.id
     )
-  );
+  ORDER BY v.display_order, v.name;
+$$;
 
-CREATE POLICY qwc_member_operation_team ON public.quick_win_catalog
-  FOR SELECT TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.operation_members om
-      WHERE om.profile_id = auth.uid()
-    )
-  );
+CREATE OR REPLACE FUNCTION public.catalog_picker_quick_wins(p_operation_id uuid)
+RETURNS TABLE (id uuid, title text)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT q.id, q.title
+  FROM public.quick_win_catalog q
+  WHERE q.archived_at IS NULL
+    AND (public.is_admin() OR public.can_see_operation(p_operation_id))
+  ORDER BY q.title;
+$$;
 
-CREATE POLICY service_products_member_operation_team ON public.service_products
-  FOR SELECT TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.operation_members om
-      WHERE om.profile_id = auth.uid()
-    )
-  );
+CREATE OR REPLACE FUNCTION public.catalog_picker_service_products(p_operation_id uuid)
+RETURNS TABLE (
+  id uuid,
+  name text,
+  slug text,
+  default_cycle_type public.frente_cycle_type,
+  catalog_group text,
+  catalog_kind text,
+  sort_order integer
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT
+    sp.id, sp.name, sp.slug, sp.default_cycle_type,
+    sp.catalog_group::text, sp.catalog_kind::text, sp.sort_order
+  FROM public.service_products sp
+  WHERE sp.archived_at IS NULL
+    AND (public.is_admin() OR public.can_see_operation(p_operation_id))
+  ORDER BY sp.sort_order, sp.name;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.catalog_picker_villains(uuid) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.catalog_picker_quick_wins(uuid) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.catalog_picker_service_products(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.catalog_picker_villains(uuid) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.catalog_picker_quick_wins(uuid) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.catalog_picker_service_products(uuid) TO authenticated, service_role;
 
 -- ── 6. Link público: criar só admin ─────────────────────────────────────────
 
@@ -331,11 +432,12 @@ SELECT
   o.id,
   'Webhook n8n',
   'n8n_webhook',
-  trim(o.notification_webhook_url),
+  trim(f.notification_webhook_url),
   -100
 FROM public.operations o
-WHERE o.notification_webhook_url IS NOT NULL
-  AND char_length(trim(o.notification_webhook_url)) > 0
+JOIN public.operation_financials f ON f.operation_id = o.id
+WHERE f.notification_webhook_url IS NOT NULL
+  AND char_length(trim(f.notification_webhook_url)) > 0
   AND NOT EXISTS (
     SELECT 1 FROM public.client_tech_items t
     WHERE t.operation_id = o.id
@@ -361,11 +463,11 @@ AS $$
       LIMIT 1
     ),
     (
-      SELECT trim(o.notification_webhook_url)
-      FROM public.operations o
-      WHERE o.id = p_operation_id
-        AND o.notification_webhook_url IS NOT NULL
-        AND char_length(trim(o.notification_webhook_url)) > 0
+      SELECT trim(f.notification_webhook_url)
+      FROM public.operation_financials f
+      WHERE f.operation_id = p_operation_id
+        AND f.notification_webhook_url IS NOT NULL
+        AND char_length(trim(f.notification_webhook_url)) > 0
     )
   );
 $$;
@@ -374,7 +476,7 @@ REVOKE EXECUTE ON FUNCTION public.resolve_operation_notification_webhook(uuid) F
 GRANT EXECUTE ON FUNCTION public.resolve_operation_notification_webhook(uuid) TO authenticated, service_role;
 
 COMMENT ON FUNCTION public.resolve_operation_notification_webhook(uuid) IS
-  'notificação: URL do webhook n8n — prioriza client_tech_items (category=n8n_webhook), fallback operations.notification_webhook_url.';
+  'notificação: URL do webhook n8n — prioriza client_tech_items (category=n8n_webhook), fallback operation_financials.notification_webhook_url.';
 
 -- Edição de stack com operation_id: admin ou membro da operação
 DROP POLICY IF EXISTS client_tech_items_scoped_insert ON public.client_tech_items;

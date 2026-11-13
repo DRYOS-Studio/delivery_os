@@ -124,6 +124,8 @@ export async function getActiveOperations(
 // Listagem completa pra tabela /operations
 // =============================================================================
 
+type OpRecurrence = Database["public"]["Enums"]["recurrence"];
+
 export type OperationListItem = {
   id: string;
   name: string;
@@ -132,7 +134,7 @@ export type OperationListItem = {
   clientSlug: string;
   productLine: Op["product_line"];
   status: Op["status"];
-  recurrence: Op["recurrence"];
+  recurrence: OpRecurrence | null;
   monthlyRecurringRevenue: number | null;
   startDate: string | null;
   endDate: string | null;
@@ -206,18 +208,22 @@ export async function listOperations(
   );
 }
 
+type ListFinancialEmbed = {
+  recurrence: OpRecurrence | null;
+  monthly_recurring_revenue: number | null;
+};
+
 type ListRow = {
   id: string;
   name: string;
   client_id: string;
   product_line: Op["product_line"];
   status: Op["status"];
-  recurrence?: Op["recurrence"];
-  monthly_recurring_revenue?: number | null;
   start_date: string | null;
   end_date: string | null;
   created_at: string;
   archived_at: string | null;
+  financial?: ListFinancialEmbed | ListFinancialEmbed[] | null;
   client: { name: string; slug: string } | null;
   frentes: { id: string; archived_at: string | null; phase: string }[] | null;
 };
@@ -234,8 +240,10 @@ function toListItem(row: ListRow): OperationListItem {
     clientSlug: row.client?.slug ?? "—",
     productLine: row.product_line,
     status: row.status,
-    recurrence: row.recurrence ?? null,
-    monthlyRecurringRevenue: row.monthly_recurring_revenue ?? null,
+    recurrence: normalizeEmbedOne(row.financial ?? null)?.recurrence ?? null,
+    monthlyRecurringRevenue:
+      normalizeEmbedOne(row.financial ?? null)?.monthly_recurring_revenue ??
+      null,
     startDate: row.start_date,
     endDate: row.end_date,
     createdAt: row.created_at,
@@ -266,7 +274,7 @@ export type OperationDetail = {
   name: string;
   productLine: Op["product_line"];
   status: Op["status"];
-  recurrence: Op["recurrence"];
+  recurrence: OpRecurrence | null;
   monthlyRecurringRevenue: number | null;
   monthlyFixedCost: number | null;
   taxRatePct: number | null;
@@ -313,23 +321,27 @@ export async function getOperation(
     archived_at: string | null;
   };
 
-  type DetailAdmin = {
+  type FinancialEmbed = {
+    recurrence: OpRecurrence | null;
+    monthly_recurring_revenue: number | null;
+    monthly_fixed_cost: number | null;
+    tax_rate_pct: number | null;
+    notification_webhook_url: string | null;
+  };
+
+  type DetailBase = {
     id: string;
     name: string;
     product_line: Op["product_line"];
     status: Op["status"];
-    recurrence: Op["recurrence"];
-    monthly_recurring_revenue: number | null;
-    monthly_fixed_cost: number | null;
-    tax_rate_pct: number | null;
     response_hours: number | null;
     resolution_hours: number | null;
     diagnostic_id: string | null;
     start_date: string | null;
     end_date: string | null;
-    notification_webhook_url: string | null;
     created_at: string;
     client: ClientEmbed | ClientEmbed[] | null;
+    financial?: FinancialEmbed | FinancialEmbed[] | null;
     frentes: Array<{
       id: string;
       name: string;
@@ -346,16 +358,7 @@ export async function getOperation(
     }> | null;
   };
 
-  type DetailMember = Omit<
-    DetailAdmin,
-    | "recurrence"
-    | "monthly_recurring_revenue"
-    | "monthly_fixed_cost"
-    | "tax_rate_pct"
-    | "notification_webhook_url"
-  >;
-
-  const row = data as DetailAdmin | DetailMember;
+  const row = data as DetailBase;
 
   const clientEmbed = normalizeEmbedOne(row.client);
   if (!clientEmbed) return null;
@@ -400,22 +403,22 @@ export async function getOperation(
       };
     });
 
-  const adminRow = isAdmin ? (row as DetailAdmin) : null;
+  const fin = isAdmin ? normalizeEmbedOne(row.financial ?? null) : null;
   return {
     id: row.id,
     name: row.name,
     productLine: row.product_line,
     status: row.status,
-    recurrence: adminRow?.recurrence ?? null,
-    monthlyRecurringRevenue: adminRow?.monthly_recurring_revenue ?? null,
-    monthlyFixedCost: adminRow?.monthly_fixed_cost ?? null,
-    taxRatePct: adminRow?.tax_rate_pct ?? null,
+    recurrence: fin?.recurrence ?? null,
+    monthlyRecurringRevenue: fin?.monthly_recurring_revenue ?? null,
+    monthlyFixedCost: fin?.monthly_fixed_cost ?? null,
+    taxRatePct: fin?.tax_rate_pct ?? null,
     responseHours: row.response_hours,
     resolutionHours: row.resolution_hours,
     diagnosticId: row.diagnostic_id,
     startDate: row.start_date,
     endDate: row.end_date,
-    notificationWebhookUrl: adminRow?.notification_webhook_url ?? null,
+    notificationWebhookUrl: fin?.notification_webhook_url ?? null,
     createdAt: row.created_at,
     client: {
       id: clientEmbed.id,
@@ -502,11 +505,13 @@ export async function listOperationsWithFrentes(): Promise<
 export async function getClientOperationsMrrSum(clientId: string): Promise<number> {
   const supabase = await createServer();
   const { data, error } = await supabase
-    .from("operations")
-    .select("monthly_recurring_revenue")
-    .eq("client_id", clientId)
-    .is("archived_at", null)
-    .in("status", ACTIVE_STATUSES);
+    .from("operation_financials")
+    .select(
+      "monthly_recurring_revenue, operation:operations!inner(client_id, archived_at, status)",
+    )
+    .eq("operation.client_id", clientId)
+    .is("operation.archived_at", null)
+    .in("operation.status", ACTIVE_STATUSES);
   if (error) throw new Error(`getClientOperationsMrrSum: ${error.message}`);
   return (data ?? []).reduce((s, row) => {
     const v = row.monthly_recurring_revenue;

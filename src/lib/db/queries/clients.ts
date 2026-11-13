@@ -129,7 +129,7 @@ export async function getClientSummary(
 
   const opsRes = await supabase
     .from("operations")
-    .select("id, archived_at, status, monthly_recurring_revenue")
+    .select("id, archived_at, status")
     .eq("client_id", clientId);
   if (opsRes.error)
     throw new Error(`getClientSummary.ops: ${opsRes.error.message}`);
@@ -142,12 +142,22 @@ export async function getClientSummary(
   // Contado DIRETO, não por complemento: `ops.length - activeOperations` faria a
   // Operação concluída (não arquivada) aparecer como "arquivada" no card.
   const archivedOperations = ops.filter((o) => o.archived_at !== null).length;
-  const mrrTotal = active.reduce(
-    (sum, o) => sum + (o.monthly_recurring_revenue ?? 0),
-    0,
-  );
 
   const profile = await getProfile();
+  let mrrTotal = 0;
+  if (profile?.role === "admin" && active.length > 0) {
+    const activeIds = active.map((o) => o.id);
+    const finRes = await supabase
+      .from("operation_financials")
+      .select("operation_id, monthly_recurring_revenue")
+      .in("operation_id", activeIds);
+    if (finRes.error)
+      throw new Error(`getClientSummary.financials: ${finRes.error.message}`);
+    mrrTotal = (finRes.data ?? []).reduce(
+      (sum, row) => sum + (row.monthly_recurring_revenue ?? 0),
+      0,
+    );
+  }
   const cacTotal =
     profile?.role === "admin"
       ? await sumClientAcquisitionCosts(clientId)

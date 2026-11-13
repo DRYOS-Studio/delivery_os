@@ -240,10 +240,12 @@ export async function getGlobalClientCashSummary(
       .select("monthly_value, status")
       .eq("status", "vigente"),
     supabase
-      .from("operations")
-      .select("monthly_recurring_revenue")
-      .is("archived_at", null)
-      .in("status", ACTIVE_STATUSES),
+      .from("operation_financials")
+      .select(
+        "monthly_recurring_revenue, operation:operations!inner(archived_at, status)",
+      )
+      .is("operation.archived_at", null)
+      .in("operation.status", ACTIVE_STATUSES),
   ]);
   if (chargesRes.error)
     throw new Error(`getGlobalClientCashSummary: ${chargesRes.error.message}`);

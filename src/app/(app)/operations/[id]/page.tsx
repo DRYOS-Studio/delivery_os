@@ -56,7 +56,10 @@ import {
 } from "@/lib/db/queries/repository-links";
 import { listPublicLinksByOperation } from "@/lib/db/queries/publicLinks";
 import { canCreateAreaTaskInOperation } from "@/lib/db/queries/areas";
-import { listActiveQuickWinCatalog } from "@/lib/db/queries/quick-win-catalog";
+import {
+  listQuickWinCatalogPickerForOperation,
+  type QuickWinCatalogListItem,
+} from "@/lib/db/queries/quick-win-catalog";
 import { listQuickWinsByOperation } from "@/lib/db/queries/quick-wins";
 import {
   countAreaTasksByOperation,
@@ -119,7 +122,7 @@ type TabContent = {
   availableVillains: Awaited<ReturnType<typeof listAvailableVillains>>;
   quickWins: Awaited<ReturnType<typeof listQuickWinsByOperation>>;
   villainNarratives: Awaited<ReturnType<typeof listVillainNarratives>>;
-  quickWinCatalogItems: Awaited<ReturnType<typeof listActiveQuickWinCatalog>>;
+  quickWinCatalogItems: QuickWinCatalogListItem[];
   areaTasks: Awaited<ReturnType<typeof listAreaTasksByOperation>>;
   publicLinks: Awaited<ReturnType<typeof listPublicLinksByOperation>>;
   baseUrl: string;
@@ -170,7 +173,17 @@ async function loadTabContent(
         listAvailableVillains(id),
         listQuickWinsByOperation(id),
         listVillainNarratives(id, yyyymm),
-        listActiveQuickWinCatalog(),
+        listQuickWinCatalogPickerForOperation(id).then((rows) =>
+          rows.map((r) => ({
+            id: r.id,
+            title: r.title,
+            description: null,
+            defaultImpactPct: null,
+            suggestedVillainId: null,
+            suggestedVillain: null,
+            archivedAt: null,
+          })),
+        ),
         listActivityForOperation(id),
         listOperationComments(id),
       ]);

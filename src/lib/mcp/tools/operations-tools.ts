@@ -11,13 +11,13 @@ import {
 import { z } from "zod";
 
 const OP_LIST_ADMIN =
-  "id, name, status, product_line, client_id, recurrence, monthly_recurring_revenue, start_date, end_date, archived_at, client:clients!fk_operations_client_id ( id, name, slug )";
+  "id, name, status, product_line, client_id, start_date, end_date, archived_at, financial:operation_financials (recurrence, monthly_recurring_revenue), client:clients!fk_operations_client_id ( id, name, slug )";
 
 const OP_LIST_MEMBER =
   "id, name, status, product_line, client_id, start_date, end_date, archived_at, client:clients!fk_operations_client_id ( id, name, slug )";
 
 const OP_DETAIL_ADMIN =
-  "id, name, status, product_line, client_id, recurrence, monthly_recurring_revenue, monthly_fixed_cost, tax_rate_pct, start_date, end_date, response_hours, resolution_hours, notification_webhook_url, archived_at, client:clients!fk_operations_client_id ( id, name, slug )";
+  "id, name, status, product_line, client_id, start_date, end_date, response_hours, resolution_hours, archived_at, financial:operation_financials (recurrence, monthly_recurring_revenue, monthly_fixed_cost, tax_rate_pct, notification_webhook_url), client:clients!fk_operations_client_id ( id, name, slug )";
 
 const OP_DETAIL_MEMBER =
   "id, name, status, product_line, client_id, start_date, end_date, response_hours, resolution_hours, archived_at, client:clients!fk_operations_client_id ( id, name, slug )";
@@ -28,12 +28,21 @@ function operationInsert(data: z.infer<typeof operationSchema>) {
     product_line: data.product_line,
     name: data.name,
     status: data.status,
-    recurrence: data.recurrence ?? null,
-    monthly_recurring_revenue: data.monthly_recurring_revenue ?? null,
     start_date: data.start_date ?? null,
     end_date: data.end_date ?? null,
     response_hours: data.response_hours ?? null,
     resolution_hours: data.resolution_hours ?? null,
+  };
+}
+
+function operationFinancialInsert(
+  operationId: string,
+  data: z.infer<typeof operationSchema>,
+) {
+  return {
+    operation_id: operationId,
+    recurrence: data.recurrence ?? null,
+    monthly_recurring_revenue: data.monthly_recurring_revenue ?? null,
     notification_webhook_url: data.notification_webhook_url ?? null,
   };
 }
@@ -84,14 +93,33 @@ export async function mcpGetOperation(
   }
   const breakdown = await getOperationMonthlyCosts(opId, ctx.supabase);
   const adminRow = data as unknown as Record<string, unknown> & {
-    monthly_fixed_cost?: number | null;
+    financial?: {
+      monthly_fixed_cost?: number | null;
+      monthly_recurring_revenue?: number | null;
+      recurrence?: unknown;
+      tax_rate_pct?: number | null;
+      notification_webhook_url?: string | null;
+    } | Array<{
+      monthly_fixed_cost?: number | null;
+      monthly_recurring_revenue?: number | null;
+      recurrence?: unknown;
+      tax_rate_pct?: number | null;
+      notification_webhook_url?: string | null;
+    }> | null;
   };
+  const fin = Array.isArray(adminRow.financial)
+    ? adminRow.financial[0]
+    : adminRow.financial;
   return {
     ok: true,
     data: {
       operation: {
         ...adminRow,
-        monthly_fixed_cost_legacy: adminRow.monthly_fixed_cost,
+        recurrence: fin?.recurrence ?? null,
+        monthly_recurring_revenue: fin?.monthly_recurring_revenue ?? null,
+        monthly_fixed_cost_legacy: fin?.monthly_fixed_cost ?? null,
+        tax_rate_pct: fin?.tax_rate_pct ?? null,
+        notification_webhook_url: fin?.notification_webhook_url ?? null,
         operation_costs: breakdown.adHocItems.map((c) => ({
           id: c.id,
           category: c.category,
@@ -130,6 +158,12 @@ export async function mcpCreateOperation(
     .single();
   if (error) return { ok: false, message: error.message };
   if (!data) return { ok: false, message: "Falha ao criar." };
+  const { error: finErr } = await ctx.supabase
+    .from("operation_financials")
+    .upsert(operationFinancialInsert(data.id, parsed.data), {
+      onConflict: "operation_id",
+    });
+  if (finErr) return { ok: false, message: finErr.message };
   return { ok: true, data };
 }
 
@@ -152,6 +186,12 @@ export async function mcpUpdateOperation(
     .update(insertShape)
     .eq("id", opId);
   if (error) return { ok: false, message: error.message };
+  const { error: finErr } = await ctx.supabase
+    .from("operation_financials")
+    .upsert(operationFinancialInsert(opId, parsed.data), {
+      onConflict: "operation_id",
+    });
+  if (finErr) return { ok: false, message: finErr.message };
   if (
     parsed.data.notification_webhook_url !== undefined &&
     parsed.data.notification_webhook_url !== null

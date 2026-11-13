@@ -28,25 +28,25 @@ export async function listServiceProducts(): Promise<ServiceProductRow[]> {
   return sortRows(data ?? []);
 }
 
-export async function listActiveServiceProducts(): Promise<
-  ServiceProductListItem[]
-> {
+export async function listActiveServiceProductsForOperation(
+  operationId: string,
+): Promise<ServiceProductListItem[]> {
   const supabase = await createServer();
-  const { data, error } = await supabase
-    .from("service_products")
-    .select(
-      "id, name, slug, default_cycle_type, catalog_group, catalog_kind, sort_order",
-    )
-    .is("archived_at", null);
-  if (error) throw new Error(`listActiveServiceProducts: ${error.message}`);
+  const { data, error } = await supabase.rpc(
+    "catalog_picker_service_products",
+    { p_operation_id: operationId },
+  );
+  if (error) {
+    throw new Error(`listActiveServiceProductsForOperation: ${error.message}`);
+  }
   const items: ServiceProductListItem[] = (data ?? []).map((r) => ({
     id: r.id,
     name: r.name,
     slug: r.slug,
     defaultCycleType: r.default_cycle_type,
-    catalogGroup: r.catalog_group,
-    catalogKind: r.catalog_kind,
-    sortOrder: r.sort_order,
+    catalogGroup: r.catalog_group as CatalogOfferGroup | null,
+    catalogKind: r.catalog_kind as CatalogOfferKind,
+    sortOrder: r.sort_order ?? 0,
   }));
   items.sort((a, b) =>
     compareCatalogProducts(
@@ -79,9 +79,10 @@ function rowToListItem(row: ServiceProductRow, nameSuffix = ""): ServiceProductL
 
 /** Ativos para picker de Frente; inclui produto já vinculado se estiver arquivado (histórico). */
 export async function listServiceProductsForFrenteForm(
+  operationId: string,
   linkedProductId?: string | null,
 ): Promise<ServiceProductListItem[]> {
-  const active = await listActiveServiceProducts();
+  const active = await listActiveServiceProductsForOperation(operationId);
   if (!linkedProductId || active.some((p) => p.id === linkedProductId)) {
     return active;
   }

@@ -54,9 +54,9 @@ export async function upsertOperationN8nWebhookAction(
       if (delErr) return dbErr(delErr, "upsertOperationN8nWebhook.delete");
     }
     await supabase
-      .from("operations")
+      .from("operation_financials")
       .update({ notification_webhook_url: null })
-      .eq("id", operationId);
+      .eq("operation_id", operationId);
     revalidatePath(`/clients/${clientId}/ferramentas`);
     return ok({ id: operationId });
   }
@@ -85,10 +85,13 @@ export async function upsertOperationN8nWebhookAction(
     itemId = created?.id;
   }
 
-  await supabase
-    .from("operations")
-    .update({ notification_webhook_url: urlRaw })
-    .eq("id", operationId);
+  await supabase.from("operation_financials").upsert(
+    {
+      operation_id: operationId,
+      notification_webhook_url: urlRaw,
+    },
+    { onConflict: "operation_id" },
+  );
 
   revalidatePath(`/clients/${clientId}/ferramentas`);
   revalidatePath(`/operations/${operationId}`);

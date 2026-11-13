@@ -174,9 +174,9 @@ export async function listOperationCosts(
   const supabase = await createServer();
   const [opRes, costsRes] = await Promise.all([
     supabase
-      .from("operations")
+      .from("operation_financials")
       .select("monthly_recurring_revenue, tax_rate_pct")
-      .eq("id", operationId)
+      .eq("operation_id", operationId)
       .maybeSingle(),
     applyOperationCostNotVoided(
       supabase.from("operation_costs").select("*"),
@@ -207,40 +207,47 @@ export async function getOperationCost(
 ): Promise<OperationCostRow | null> {
   const supabase = await createServer();
   const { data, error } = await applyOperationCostNotVoided(
-    supabase.from("operation_costs").select(
-      "*, operation:operations!fk_operation_costs_operation_id(monthly_recurring_revenue, tax_rate_pct)",
-    ),
+    supabase.from("operation_costs").select("*"),
   )
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(`getOperationCost: ${error.message}`);
   if (!data) return null;
-  const row = data as RawCostRow & {
-    operation: {
-      monthly_recurring_revenue: number | null;
-      tax_rate_pct: number | null;
-    } | null;
-  };
+  const row = data as RawCostRow;
+  const { data: fin, error: finErr } = await supabase
+    .from("operation_financials")
+    .select("monthly_recurring_revenue, tax_rate_pct")
+    .eq("operation_id", row.operation_id)
+    .maybeSingle();
+  if (finErr) throw new Error(`getOperationCost.financials: ${finErr.message}`);
   const mrr =
-    row.operation?.monthly_recurring_revenue === null ||
-    row.operation?.monthly_recurring_revenue === undefined
+    fin?.monthly_recurring_revenue === null ||
+    fin?.monthly_recurring_revenue === undefined
       ? null
-      : Number(row.operation.monthly_recurring_revenue);
+      : Number(fin.monthly_recurring_revenue);
   const taxRatePct =
-    row.operation?.tax_rate_pct === null ||
-    row.operation?.tax_rate_pct === undefined
+    fin?.tax_rate_pct === null || fin?.tax_rate_pct === undefined
       ? null
-      : Number(row.operation.tax_rate_pct);
+      : Number(fin.tax_rate_pct);
   return mapCost(row, { chargedRevenue: mrr, taxRatePct });
 }
+
+type PersonCompensationJoin = {
+  hourly_rate: number | string | null;
+  monthly_compensation: number | string | null;
+  contracted_weekly_hours: number | string | null;
+};
 
 type PersonInJoin = {
   id: string;
   name: string;
-  hourly_rate: number | string | null;
-  monthly_compensation: number | string | null;
-  contracted_weekly_hours: number | string | null;
   archived_at: string | null;
+  compensation: PersonCompensationJoin | PersonCompensationJoin[] | null;
+};
+
+type AllocationMetricsJoin = {
+  weekly_hours: number | string | null;
+  monthly_cost: number | string | null;
 };
 
 type FrenteInJoin = {
@@ -252,9 +259,8 @@ type FrenteInJoin = {
 type AllocJoin = {
   id: string;
   capacity_weekly_pct: number | string;
-  weekly_hours: number | string | null;
-  monthly_cost: number | string | null;
   end_date: string | null;
+  metrics: AllocationMetricsJoin | AllocationMetricsJoin[] | null;
   person: PersonInJoin | PersonInJoin[] | null;
   frente: FrenteInJoin | FrenteInJoin[] | null;
 };
@@ -314,29 +320,31 @@ export function computeBreakdown(
     if (frente.archived_at !== null) continue;
     if (!person || person.archived_at !== null) continue;
 
+    const comp = pickOne(person.compensation);
     const compensation =
-      person.monthly_compensation === null ||
-      person.monthly_compensation === undefined
+      comp?.monthly_compensation === null ||
+      comp?.monthly_compensation === undefined
         ? null
-        : Number(person.monthly_compensation);
+        : Number(comp.monthly_compensation);
     const contracted =
-      person.contracted_weekly_hours === null ||
-      person.contracted_weekly_hours === undefined
+      comp?.contracted_weekly_hours === null ||
+      comp?.contracted_weekly_hours === undefined
         ? null
-        : Number(person.contracted_weekly_hours);
+        : Number(comp.contracted_weekly_hours);
     const hourlyRateRaw =
-      person.hourly_rate === null || person.hourly_rate === undefined
+      comp?.hourly_rate === null || comp?.hourly_rate === undefined
         ? null
-        : Number(person.hourly_rate);
+        : Number(comp.hourly_rate);
 
+    const metrics = pickOne(a.metrics);
     const allocWeekly =
-      a.weekly_hours === null || a.weekly_hours === undefined
+      metrics?.weekly_hours === null || metrics?.weekly_hours === undefined
         ? null
-        : Number(a.weekly_hours);
+        : Number(metrics.weekly_hours);
     const fixedMonthly =
-      a.monthly_cost === null || a.monthly_cost === undefined
+      metrics?.monthly_cost === null || metrics?.monthly_cost === undefined
         ? null
-        : Number(a.monthly_cost);
+        : Number(metrics.monthly_cost);
     const capPct = Number(a.capacity_weekly_pct);
 
     let rate: number | null = null;
@@ -398,9 +406,11 @@ export function computeBreakdown(
 }
 
 const ALLOC_SELECT_FIELDS = `
-  id, capacity_weekly_pct, weekly_hours, monthly_cost, end_date,
+  id, capacity_weekly_pct, end_date,
+  metrics:allocation_cost_metrics(weekly_hours, monthly_cost),
   person:persons!fk_allocations_person_id(
-    id, name, hourly_rate, monthly_compensation, contracted_weekly_hours, archived_at
+    id, name, archived_at,
+    compensation:person_compensation(hourly_rate, monthly_compensation, contracted_weekly_hours)
   )
 `;
 
@@ -413,9 +423,9 @@ export async function getOperationMonthlyCosts(
 
   const [opRes, costsRes, upcomingRes, allocRes] = await Promise.all([
     supabase
-      .from("operations")
+      .from("operation_financials")
       .select("monthly_recurring_revenue, tax_rate_pct")
-      .eq("id", operationId)
+      .eq("operation_id", operationId)
       .maybeSingle(),
     applyOperationCostVigentForBreakdown(
       supabase.from("operation_costs").select("*"),
@@ -514,9 +524,9 @@ export async function getOperationsMonthlyCostsBatch(
 
   const [opsRes, costsRes, allocRes] = await Promise.all([
     supabase
-      .from("operations")
-      .select("id, monthly_recurring_revenue, tax_rate_pct")
-      .in("id", uniqueIds),
+      .from("operation_financials")
+      .select("operation_id, monthly_recurring_revenue, tax_rate_pct")
+      .in("operation_id", uniqueIds),
     applyOperationCostVigentForBreakdown(
       supabase.from("operation_costs").select("*"),
       today,
@@ -550,7 +560,9 @@ export async function getOperationsMonthlyCostsBatch(
   const costsByOp = new Map<string, OperationCostRow[]>();
   for (const r of costsRes.data ?? []) {
     const raw = r as RawCostRow;
-    const opMeta = (opsRes.data ?? []).find((o) => o.id === raw.operation_id);
+    const opMeta = (opsRes.data ?? []).find(
+      (o) => o.operation_id === raw.operation_id,
+    );
     const chargedForOp =
       opMeta?.monthly_recurring_revenue === null ||
       opMeta?.monthly_recurring_revenue === undefined
@@ -580,6 +592,7 @@ export async function getOperationsMonthlyCostsBatch(
 
   const out = new Map<string, OperationCostBreakdown>();
   for (const op of opsRes.data ?? []) {
+    const opId = op.operation_id;
     const chargedRevenue =
       op.monthly_recurring_revenue === null ||
       op.monthly_recurring_revenue === undefined
@@ -590,11 +603,11 @@ export async function getOperationsMonthlyCostsBatch(
         ? null
         : Number(op.tax_rate_pct);
     out.set(
-      op.id,
+      opId,
       computeBreakdown(
-        op.id,
-        costsByOp.get(op.id) ?? [],
-        allocsByOp.get(op.id) ?? [],
+        opId,
+        costsByOp.get(opId) ?? [],
+        allocsByOp.get(opId) ?? [],
         { chargedRevenue, taxRatePct },
       ),
     );
@@ -606,25 +619,30 @@ export async function getActiveOperationsMonthlyCostsTotal(): Promise<number> {
   const supabase = await createServer();
   const today = todayISO();
 
-  const [opsRes, costsRes, allocRes] = await Promise.all([
+  const opsRes = await supabase
+    .from("operations")
+    .select("id, client:clients!inner(archived_at)")
+    .is("archived_at", null)
+    .is("client.archived_at", null)
+    .in("status", ACTIVE_STATUSES);
+  if (opsRes.error) {
+    throw new Error(
+      `getActiveOperationsMonthlyCostsTotal.operations: ${opsRes.error.message}`,
+    );
+  }
+  const opIds = (opsRes.data ?? []).map((o) => o.id);
+  if (opIds.length === 0) return 0;
+
+  const [finRes, costsRes, allocRes] = await Promise.all([
     supabase
-      .from("operations")
-      .select(
-        "id, monthly_recurring_revenue, tax_rate_pct, client:clients!inner(archived_at)",
-      )
-      .is("archived_at", null)
-      .is("client.archived_at", null)
-      .in("status", ACTIVE_STATUSES),
+      .from("operation_financials")
+      .select("operation_id, monthly_recurring_revenue, tax_rate_pct")
+      .in("operation_id", opIds),
     applyOperationCostVigentForBreakdown(
-      supabase
-        .from("operation_costs")
-        .select(
-          "*, operation:operations!fk_operation_costs_operation_id!inner(archived_at, status, monthly_recurring_revenue, tax_rate_pct)",
-        ),
+      supabase.from("operation_costs").select("*"),
       today,
     )
-      .is("operation.archived_at", null)
-      .in("operation.status", ACTIVE_STATUSES)
+      .in("operation_id", opIds)
       .eq("recurrence", "mensal"),
     supabase
       .from("allocations")
@@ -640,9 +658,9 @@ export async function getActiveOperationsMonthlyCostsTotal(): Promise<number> {
       .in("frente.operation.status", ACTIVE_STATUSES)
       .or(`end_date.is.null,end_date.gt.${today}`),
   ]);
-  if (opsRes.error)
+  if (finRes.error)
     throw new Error(
-      `getActiveOperationsMonthlyCostsTotal.operations: ${opsRes.error.message}`,
+      `getActiveOperationsMonthlyCostsTotal.financials: ${finRes.error.message}`,
     );
   if (costsRes.error)
     throw new Error(
@@ -653,24 +671,22 @@ export async function getActiveOperationsMonthlyCostsTotal(): Promise<number> {
       `getActiveOperationsMonthlyCostsTotal.allocations: ${allocRes.error.message}`,
     );
 
+  const finByOp = new Map(
+    (finRes.data ?? []).map((f) => [f.operation_id, f] as const),
+  );
   const costsByOp = new Map<string, OperationCostRow[]>();
   for (const r of costsRes.data ?? []) {
-    const row = r as RawCostRow & {
-      operation: {
-        monthly_recurring_revenue: number | null;
-        tax_rate_pct: number | null;
-      };
-    };
+    const row = r as RawCostRow;
+    const fin = finByOp.get(row.operation_id);
     const chargedForOp =
-      row.operation.monthly_recurring_revenue === null ||
-      row.operation.monthly_recurring_revenue === undefined
+      fin?.monthly_recurring_revenue === null ||
+      fin?.monthly_recurring_revenue === undefined
         ? null
-        : Number(row.operation.monthly_recurring_revenue);
+        : Number(fin.monthly_recurring_revenue);
     const taxForOp =
-      row.operation.tax_rate_pct === null ||
-      row.operation.tax_rate_pct === undefined
+      fin?.tax_rate_pct === null || fin?.tax_rate_pct === undefined
         ? null
-        : Number(row.operation.tax_rate_pct);
+        : Number(fin.tax_rate_pct);
     const cost = mapCost(row, {
       chargedRevenue: chargedForOp,
       taxRatePct: taxForOp,
@@ -691,15 +707,16 @@ export async function getActiveOperationsMonthlyCostsTotal(): Promise<number> {
 
   let total = 0;
   for (const op of opsRes.data ?? []) {
+    const fin = finByOp.get(op.id);
     const chargedRevenue =
-      op.monthly_recurring_revenue === null ||
-      op.monthly_recurring_revenue === undefined
+      fin?.monthly_recurring_revenue === null ||
+      fin?.monthly_recurring_revenue === undefined
         ? null
-        : Number(op.monthly_recurring_revenue);
+        : Number(fin.monthly_recurring_revenue);
     const taxRatePct =
-      op.tax_rate_pct === null || op.tax_rate_pct === undefined
+      fin?.tax_rate_pct === null || fin?.tax_rate_pct === undefined
         ? null
-        : Number(op.tax_rate_pct);
+        : Number(fin.tax_rate_pct);
     const breakdown = computeBreakdown(
       op.id,
       costsByOp.get(op.id) ?? [],

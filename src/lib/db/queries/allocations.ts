@@ -1,7 +1,14 @@
+import { getProfile } from "@/lib/auth/server";
 import { createServer } from "@/lib/db/client";
+import { normalizeEmbedOne } from "@/lib/db/normalize-embed";
 import type { Database } from "@/lib/db/types";
 
 export type AllocationRow = Database["public"]["Tables"]["allocations"]["Row"];
+
+export type AllocationWithMetrics = AllocationRow & {
+  weekly_hours: number | null;
+  monthly_cost: number | null;
+};
 
 export type AllocationListItem = {
   id: string;
@@ -58,13 +65,46 @@ export async function listAllocationsByFrente(
 
 export async function getAllocation(
   id: string,
-): Promise<AllocationRow | null> {
+): Promise<AllocationWithMetrics | null> {
   const supabase = await createServer();
-  const { data, error } = await supabase
-    .from("allocations")
-    .select("*")
+  const profile = await getProfile();
+  const isAdmin = profile?.role === "admin";
+  const { data, error } = await (isAdmin
+    ? supabase
+        .from("allocations")
+        .select(
+          "*, metrics:allocation_cost_metrics(weekly_hours, monthly_cost)",
+        )
+    : supabase.from("allocations").select("*")
+  )
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(`getAllocation: ${error.message}`);
-  return data;
+  if (!data) return null;
+  const metrics = isAdmin
+    ? normalizeEmbedOne(
+        (
+          data as AllocationRow & {
+            metrics:
+              | { weekly_hours: number | null; monthly_cost: number | null }
+              | { weekly_hours: number | null; monthly_cost: number | null }[]
+              | null;
+          }
+        ).metrics,
+      )
+    : null;
+  const { metrics: _m, ...base } = data as AllocationRow & {
+    metrics?: unknown;
+  };
+  return {
+    ...base,
+    weekly_hours:
+      metrics?.weekly_hours === null || metrics?.weekly_hours === undefined
+        ? null
+        : Number(metrics.weekly_hours),
+    monthly_cost:
+      metrics?.monthly_cost === null || metrics?.monthly_cost === undefined
+        ? null
+        : Number(metrics.monthly_cost),
+  };
 }
