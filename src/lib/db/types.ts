@@ -1006,6 +1006,7 @@ export type Database = {
           id: string
           name: string
           notes: string | null
+          operation_id: string | null
           sort_order: number
           updated_at: string
           url: string | null
@@ -1017,6 +1018,7 @@ export type Database = {
           id?: string
           name: string
           notes?: string | null
+          operation_id?: string | null
           sort_order?: number
           updated_at?: string
           url?: string | null
@@ -1024,6 +1026,7 @@ export type Database = {
         Update: {
           category?: string | null
           client_id?: string
+          operation_id?: string | null
           created_at?: string
           id?: string
           name?: string
@@ -2902,6 +2905,10 @@ export type Database = {
       can_access_client_vault: {
         Args: { p_client_id: string }
         Returns: boolean
+      }
+      resolve_operation_notification_webhook: {
+        Args: { p_operation_id: string }
+        Returns: string
       }
       can_read_operation: { Args: { op_id: string }; Returns: boolean }
       can_see_operation: { Args: { op_id: string }; Returns: boolean }

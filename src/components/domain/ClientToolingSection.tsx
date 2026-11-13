@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { ClientN8nWebhooksPanel } from "@/components/domain/ClientN8nWebhooksPanel";
 import { OptionalHttpsLink } from "@/components/domain/OptionalHttpsLink";
 import { RepositoryLinksPanel } from "@/components/domain/RepositoryLinksPanel";
 import { Button } from "@/components/ui/Button";
@@ -25,6 +26,8 @@ type Props = {
   repoLinks: RepositoryLinkRow[];
   techItems: ClientTechItemRow[];
   softwareItems: ClientSoftwareItemRow[];
+  operations: { id: string; name: string }[];
+  webhookByOperationId: Record<string, string | null>;
 };
 
 const inputCn =
@@ -36,7 +39,10 @@ export function ClientToolingSection({
   repoLinks,
   techItems,
   softwareItems,
+  operations,
+  webhookByOperationId,
 }: Props): React.JSX.Element {
+  const stackItems = techItems.filter((t) => t.category !== "n8n_webhook");
   const [showTechForm, setShowTechForm] = useState(false);
   const [showSoftwareForm, setShowSoftwareForm] = useState(false);
   return (
@@ -52,6 +58,12 @@ export function ClientToolingSection({
       </p>
 
       <div className="space-y-8">
+        <ClientN8nWebhooksPanel
+          clientId={clientId}
+          isAdmin={isAdmin}
+          operations={operations}
+          webhookByOperationId={webhookByOperationId}
+        />
         <RepositoryLinksPanel
           scope={{ kind: "client", clientId }}
           displayLinks={repoLinks}
@@ -65,11 +77,11 @@ export function ClientToolingSection({
           subtitle="Linguagens, frameworks, cloud, dados — desenvolvimento e infra."
           isAdmin={isAdmin}
         >
-          {techItems.length === 0 ? (
+          {stackItems.length === 0 ? (
             <p className="text-sm text-mute">Nenhuma tecnologia cadastrada.</p>
           ) : (
             <ul className="space-y-3">
-              {techItems.map((item) => (
+              {stackItems.map((item) => (
                 <EditableToolingRow
                   key={item.id}
                   name={item.name}

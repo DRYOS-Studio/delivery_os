@@ -1,4 +1,11 @@
+import { getProfile } from "@/lib/auth/server";
 import { createServer } from "@/lib/db/client";
+import {
+  OPERATION_DETAIL_SELECT_ADMIN,
+  OPERATION_DETAIL_SELECT_MEMBER,
+  OPERATION_LIST_SELECT_ADMIN,
+  OPERATION_LIST_SELECT_MEMBER,
+} from "@/lib/db/queries/operation-select";
 import { normalizeEmbedOne } from "@/lib/db/normalize-embed";
 import { ACTIVE_STATUSES } from "@/lib/utils/operation-status";
 import type { Database } from "@/lib/db/types";
@@ -134,12 +141,10 @@ export type OperationListItem = {
   archivedAt: string | null;
 };
 
-const LIST_SELECT = `
-  id, name, client_id, product_line, status, recurrence,
-  monthly_recurring_revenue, start_date, end_date, created_at, archived_at,
-  client:clients!inner(name, slug, archived_at),
-  frentes(id, archived_at, phase)
-`;
+async function callerIsAdmin(): Promise<boolean> {
+  const profile = await getProfile();
+  return profile?.role === "admin";
+}
 
 /**
  * Predicado VISÍVEL: `archived_at IS NULL` + Cliente dono não arquivado.
@@ -154,11 +159,14 @@ export async function listOperations(
   options: { search?: string | undefined; includeArchived?: boolean } = {},
 ): Promise<OperationListItem[]> {
   const supabase = await createServer();
+  const isAdmin = await callerIsAdmin();
   const search = options.search?.trim();
   const includeArchived = options.includeArchived ?? false;
 
   const base = () => {
-    const q = supabase.from("operations").select(LIST_SELECT);
+    const q = isAdmin
+      ? supabase.from("operations").select(OPERATION_LIST_SELECT_ADMIN)
+      : supabase.from("operations").select(OPERATION_LIST_SELECT_MEMBER);
     return includeArchived ? q : q.is("archived_at", null);
   };
 
@@ -204,8 +212,8 @@ type ListRow = {
   client_id: string;
   product_line: Op["product_line"];
   status: Op["status"];
-  recurrence: Op["recurrence"];
-  monthly_recurring_revenue: number | null;
+  recurrence?: Op["recurrence"];
+  monthly_recurring_revenue?: number | null;
   start_date: string | null;
   end_date: string | null;
   created_at: string;
@@ -226,8 +234,8 @@ function toListItem(row: ListRow): OperationListItem {
     clientSlug: row.client?.slug ?? "—",
     productLine: row.product_line,
     status: row.status,
-    recurrence: row.recurrence,
-    monthlyRecurringRevenue: row.monthly_recurring_revenue,
+    recurrence: row.recurrence ?? null,
+    monthlyRecurringRevenue: row.monthly_recurring_revenue ?? null,
     startDate: row.start_date,
     endDate: row.end_date,
     createdAt: row.created_at,
@@ -285,28 +293,12 @@ export async function getOperation(
   id: string,
   options: { includeArchived?: boolean } = {},
 ): Promise<OperationDetail | null> {
+  const isAdmin = await callerIsAdmin();
   const supabase = await createServer();
-  const q = supabase
-    .from("operations")
-    .select(
-      `
-      id, name, product_line, status, recurrence,
-      monthly_recurring_revenue, monthly_fixed_cost, tax_rate_pct,
-      response_hours, resolution_hours,
-      diagnostic_id, start_date, end_date, notification_webhook_url,
-      created_at,
-      client:clients!inner(id, name, slug, archived_at),
-      frentes(
-        id, name, cycle_type, domain, phase,
-        actionable_status, actionable_status_since,
-        responsible_person_id, archived_at, created_at,
-        responsible:persons!fk_frentes_responsible_person_id(name),
-        tasks(id, status, parent_task_id)
-      )
-      `,
-    )
-    .eq("id", id)
-    .is("client.archived_at", null);
+  const base = isAdmin
+    ? supabase.from("operations").select(OPERATION_DETAIL_SELECT_ADMIN)
+    : supabase.from("operations").select(OPERATION_DETAIL_SELECT_MEMBER);
+  const q = base.eq("id", id).is("client.archived_at", null);
   const { data, error } = await (options.includeArchived
     ? q
     : q.is("archived_at", null)
@@ -320,12 +312,55 @@ export async function getOperation(
     slug: string;
     archived_at: string | null;
   };
-  const clientEmbed = normalizeEmbedOne(
-    data.client as ClientEmbed | ClientEmbed[] | null,
-  );
+
+  type DetailAdmin = {
+    id: string;
+    name: string;
+    product_line: Op["product_line"];
+    status: Op["status"];
+    recurrence: Op["recurrence"];
+    monthly_recurring_revenue: number | null;
+    monthly_fixed_cost: number | null;
+    tax_rate_pct: number | null;
+    response_hours: number | null;
+    resolution_hours: number | null;
+    diagnostic_id: string | null;
+    start_date: string | null;
+    end_date: string | null;
+    notification_webhook_url: string | null;
+    created_at: string;
+    client: ClientEmbed | ClientEmbed[] | null;
+    frentes: Array<{
+      id: string;
+      name: string;
+      cycle_type: Frente["cycle_type"];
+      domain: Frente["domain"];
+      phase: Frente["phase"];
+      actionable_status: string;
+      actionable_status_since: string;
+      responsible_person_id: string | null;
+      archived_at: string | null;
+      created_at: string;
+      responsible: { name: string } | { name: string }[] | null;
+      tasks?: Array<{ status: TaskStatus; parent_task_id: string | null }>;
+    }> | null;
+  };
+
+  type DetailMember = Omit<
+    DetailAdmin,
+    | "recurrence"
+    | "monthly_recurring_revenue"
+    | "monthly_fixed_cost"
+    | "tax_rate_pct"
+    | "notification_webhook_url"
+  >;
+
+  const row = data as DetailAdmin | DetailMember;
+
+  const clientEmbed = normalizeEmbedOne(row.client);
   if (!clientEmbed) return null;
 
-  const frentes: FrenteListItem[] = (data.frentes ?? [])
+  const frentes: FrenteListItem[] = (row.frentes ?? [])
     .filter((f) => f.archived_at === null)
     .sort((a, b) =>
       (a.created_at ?? "").localeCompare(b.created_at ?? "", undefined, {
@@ -365,22 +400,23 @@ export async function getOperation(
       };
     });
 
+  const adminRow = isAdmin ? (row as DetailAdmin) : null;
   return {
-    id: data.id,
-    name: data.name,
-    productLine: data.product_line,
-    status: data.status,
-    recurrence: data.recurrence,
-    monthlyRecurringRevenue: data.monthly_recurring_revenue,
-    monthlyFixedCost: data.monthly_fixed_cost,
-    taxRatePct: data.tax_rate_pct,
-    responseHours: data.response_hours,
-    resolutionHours: data.resolution_hours,
-    diagnosticId: data.diagnostic_id,
-    startDate: data.start_date,
-    endDate: data.end_date,
-    notificationWebhookUrl: data.notification_webhook_url,
-    createdAt: data.created_at,
+    id: row.id,
+    name: row.name,
+    productLine: row.product_line,
+    status: row.status,
+    recurrence: adminRow?.recurrence ?? null,
+    monthlyRecurringRevenue: adminRow?.monthly_recurring_revenue ?? null,
+    monthlyFixedCost: adminRow?.monthly_fixed_cost ?? null,
+    taxRatePct: adminRow?.tax_rate_pct ?? null,
+    responseHours: row.response_hours,
+    resolutionHours: row.resolution_hours,
+    diagnosticId: row.diagnostic_id,
+    startDate: row.start_date,
+    endDate: row.end_date,
+    notificationWebhookUrl: adminRow?.notification_webhook_url ?? null,
+    createdAt: row.created_at,
     client: {
       id: clientEmbed.id,
       name: clientEmbed.name,

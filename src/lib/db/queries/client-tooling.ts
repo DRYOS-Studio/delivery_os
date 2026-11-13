@@ -4,6 +4,7 @@ import type { Database } from "@/lib/db/types";
 export type ClientTechItemRow = {
   id: string;
   clientId: string;
+  operationId: string | null;
   name: string;
   category: string | null;
   url: string | null;
@@ -35,6 +36,7 @@ export async function listClientTechItems(
   return (data ?? []).map((row: Database["public"]["Tables"]["client_tech_items"]["Row"]) => ({
     id: row.id,
     clientId: row.client_id,
+    operationId: row.operation_id ?? null,
     name: row.name,
     category: row.category,
     url: row.url,

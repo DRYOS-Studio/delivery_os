@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/db/types";
-import { resolveOperationWebhook } from "@/lib/notifications/webhook-resolve";
+import { resolveOperationWebhookFromDb } from "@/lib/notifications/webhook-resolve";
 
 const DEDUP_WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -133,7 +133,6 @@ export async function listOpenSlaIncidentsPendingNotification(
         name,
         response_hours,
         resolution_hours,
-        notification_webhook_url,
         archived_at,
         client:clients!inner ( id, name )
       )
@@ -146,12 +145,17 @@ export async function listOpenSlaIncidentsPendingNotification(
   }
 
   const rows = (incidents ?? []) as unknown as IncidentRow[];
+  const webhookByOp = new Map<string, string | null>();
 
   const candidates: SlaBreachToNotify[] = [];
   for (const r of rows) {
     const op = pickOne(r.operation);
     if (!op || op.archived_at !== null) continue;
-    const webhook = resolveOperationWebhook(op.notification_webhook_url);
+    let webhook = webhookByOp.get(op.id) ?? null;
+    if (!webhookByOp.has(op.id)) {
+      webhook = await resolveOperationWebhookFromDb(supabase, op.id);
+      webhookByOp.set(op.id, webhook);
+    }
     if (!webhook) continue;
     const client = pickOne(op.client);
     if (!client) continue;

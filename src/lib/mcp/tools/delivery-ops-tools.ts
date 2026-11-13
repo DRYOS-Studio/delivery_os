@@ -402,6 +402,8 @@ export async function mcpGetOperationMonthlyCosts(
   ctx: McpHandlerContext,
   args: Record<string, unknown>,
 ): Promise<McpToolResult<Record<string, unknown>>> {
+  const denied = await mcpRequireAdmin(ctx);
+  if (denied) return denied;
   const opId = typeof args.operation_id === "string" ? args.operation_id.trim() : "";
   if (!opId) return { ok: false, message: "operation_id obrigatório." };
   try {

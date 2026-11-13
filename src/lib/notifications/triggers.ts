@@ -3,6 +3,7 @@ import { alreadySent } from "./dedup";
 import { detectSlaBreach } from "./detectors/sla-breach";
 import { dispatch } from "./dispatcher";
 import { buildSlaBreachPayload } from "./payload";
+import { resolveOperationWebhookFromDb } from "./webhook-resolve";
 
 /**
  * Trigger síncrono pra SLA breach. Chamado pelas Server Actions de
@@ -27,7 +28,7 @@ export async function maybeNotifySlaBreach(incidentId: string): Promise<void> {
         id, title, severity, status, opened_at, responded_at, resolved_at,
         operation:operations!inner (
           id, name, response_hours, resolution_hours,
-          notification_webhook_url, archived_at,
+          archived_at,
           client:clients!inner ( id, name )
         )
       `,
@@ -41,7 +42,8 @@ export async function maybeNotifySlaBreach(incidentId: string): Promise<void> {
       ? incident.operation[0]
       : incident.operation;
     if (!op || op.archived_at !== null) return;
-    if (!op.notification_webhook_url) return;
+    const webhookUrl = await resolveOperationWebhookFromDb(supabase, op.id);
+    if (!webhookUrl) return;
 
     const client = Array.isArray(op.client) ? op.client[0] : op.client;
     if (!client) return;
@@ -72,7 +74,7 @@ export async function maybeNotifySlaBreach(incidentId: string): Promise<void> {
     });
 
     await dispatch({
-      webhookUrl: op.notification_webhook_url,
+      webhookUrl,
       operationId: op.id,
       subjectKind: "sla_incident",
       subjectId: incident.id,

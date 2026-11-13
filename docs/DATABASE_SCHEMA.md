@@ -99,9 +99,12 @@ Migration `20261108040000` importa colunas legadas `git_repository_url` (se exis
 | Coluna | Tipo | Notas |
 |---|---|---|
 | `name` | text NOT NULL | texto livre |
-| `category` | text | ex.: cloud, linguagem |
+| `category` | text | ex.: cloud, linguagem, `n8n_webhook` |
+| `operation_id` | uuid FK → `operations` | opcional — escopo por operação (webhook n8n) |
 | `url` | text | https opcional (docs/console) |
 | `notes` | text | opcional |
+
+Webhook n8n: prioridade `resolve_operation_notification_webhook(operation_id)` → item `n8n_webhook` → `operations.notification_webhook_url` (legado).
 
 ### `client_software_items` — softwares que o cliente usa
 

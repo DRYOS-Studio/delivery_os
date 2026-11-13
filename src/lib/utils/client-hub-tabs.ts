@@ -16,6 +16,8 @@ export type ClientHubTabDef = {
   label: string;
   href: (clientId: string) => string;
   adminOnly?: boolean;
+  /** Exige Cofre liberado (admin OU membro de operação ativa do cliente). */
+  requiresVaultAccess?: boolean;
 };
 
 export const CLIENT_HUB_TABS: readonly ClientHubTabDef[] = [
@@ -43,6 +45,7 @@ export const CLIENT_HUB_TABS: readonly ClientHubTabDef[] = [
     key: "cofre",
     label: "Cofre",
     href: (id) => `/clients/${id}/cofre`,
+    requiresVaultAccess: true,
   },
   { key: "operacoes", label: "Operações", href: (id) => `/clients/${id}/operacoes` },
   { key: "pessoas", label: "Pessoas", href: (id) => `/clients/${id}/pessoas` },

@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/db/types";
-import { resolveOperationWebhook } from "@/lib/notifications/webhook-resolve";
+import { resolveOperationWebhookFromDb } from "@/lib/notifications/webhook-resolve";
 
 const STALE_DAYS_THRESHOLD = 7;
 const DEDUP_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -69,7 +69,6 @@ export async function listStaleFrentesPendingNotification(
       operation:operations!inner (
         id,
         name,
-        notification_webhook_url,
         archived_at,
         client:clients!inner ( id, name )
       )
@@ -84,30 +83,35 @@ export async function listStaleFrentesPendingNotification(
 
   const rows = (frentes ?? []) as unknown as FrenteRow[];
 
+  const webhookByOp = new Map<string, string | null>();
+
   // 2. Filtra in-memory por Op ativa + URL configurada
-  const candidates = rows
-    .map((f) => {
-      const op = pickOne(f.operation);
-      if (!op || op.archived_at !== null) return null;
-      const webhook = resolveOperationWebhook(op.notification_webhook_url);
-      if (!webhook) return null;
-      const client = pickOne(op.client);
-      if (!client) return null;
-      const staleMs = Date.now() - new Date(f.actionable_status_since).getTime();
-      const stale_days = Math.floor(staleMs / 86_400_000);
-      return {
-        frente_id: f.id,
-        frente_name: f.name,
-        actionable_status: f.actionable_status,
-        stale_days,
-        operation_id: op.id,
-        operation_name: op.name,
-        client_id: client.id,
-        client_name: client.name,
-        webhook_url: webhook,
-      };
-    })
-    .filter((v): v is StaleFrenteToNotify => v !== null);
+  const candidates: StaleFrenteToNotify[] = [];
+  for (const f of rows) {
+    const op = pickOne(f.operation);
+    if (!op || op.archived_at !== null) continue;
+    let webhook = webhookByOp.get(op.id) ?? null;
+    if (!webhookByOp.has(op.id)) {
+      webhook = await resolveOperationWebhookFromDb(supabase, op.id);
+      webhookByOp.set(op.id, webhook);
+    }
+    if (!webhook) continue;
+    const client = pickOne(op.client);
+    if (!client) continue;
+    const staleMs = Date.now() - new Date(f.actionable_status_since).getTime();
+    const stale_days = Math.floor(staleMs / 86_400_000);
+    candidates.push({
+      frente_id: f.id,
+      frente_name: f.name,
+      actionable_status: f.actionable_status,
+      stale_days,
+      operation_id: op.id,
+      operation_name: op.name,
+      client_id: client.id,
+      client_name: client.name,
+      webhook_url: webhook,
+    });
+  }
 
   if (candidates.length === 0) return [];
 

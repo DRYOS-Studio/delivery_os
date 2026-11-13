@@ -9,6 +9,7 @@ import {
 } from "@/lib/actions/_types";
 import { requireAdminAction, requireUserAction } from "@/lib/auth/server";
 import { createServer } from "@/lib/db/client";
+import type { Database } from "@/lib/db/types";
 import {
   getOperation,
 } from "@/lib/db/queries/operations";
@@ -104,10 +105,25 @@ export async function createOperationAction(
   const v = validate(formData);
   if (!v.ok) return v;
 
+  const adminGuard = await requireAdminAction();
+  const insertRow = adminGuard.ok
+    ? v.data
+    : {
+        client_id: v.data.client_id,
+        product_line: v.data.product_line,
+        name: v.data.name,
+        status: v.data.status,
+        response_hours: v.data.response_hours,
+        resolution_hours: v.data.resolution_hours,
+        diagnostic_id: v.data.diagnostic_id,
+        start_date: v.data.start_date,
+        end_date: v.data.end_date,
+      };
+
   const supabase = await createServer();
   const { data, error: dbError } = await supabase
     .from("operations")
-    .insert(v.data)
+    .insert(insertRow)
     .select("id, name")
     .single();
 
@@ -144,23 +160,30 @@ export async function updateOperationAction(
     if (!adminGuard.ok) return adminGuard;
   }
 
+  const financialAdmin = await requireAdminAction();
+  const isAdmin = financialAdmin.ok;
+
   // client_id não pode mudar — força o valor atual
   const supabase = await createServer();
+  const patch: Database["public"]["Tables"]["operations"]["Update"] = {
+    product_line: v.data.product_line,
+    name: v.data.name,
+    status: v.data.status,
+    response_hours: v.data.response_hours,
+    resolution_hours: v.data.resolution_hours,
+    diagnostic_id: v.data.diagnostic_id,
+    start_date: v.data.start_date,
+    end_date: v.data.end_date,
+  };
+  if (isAdmin) {
+    patch.recurrence = v.data.recurrence;
+    patch.monthly_recurring_revenue = v.data.monthly_recurring_revenue;
+    patch.notification_webhook_url = v.data.notification_webhook_url;
+  }
+
   const { error: dbError } = await supabase
     .from("operations")
-    .update({
-      product_line: v.data.product_line,
-      name: v.data.name,
-      status: v.data.status,
-      recurrence: v.data.recurrence,
-      monthly_recurring_revenue: v.data.monthly_recurring_revenue,
-      response_hours: v.data.response_hours,
-      resolution_hours: v.data.resolution_hours,
-      diagnostic_id: v.data.diagnostic_id,
-      start_date: v.data.start_date,
-      end_date: v.data.end_date,
-      notification_webhook_url: v.data.notification_webhook_url,
-    })
+    .update(patch)
     .eq("id", id);
 
   if (dbError) return dbErr(dbError, "updateOperationAction");

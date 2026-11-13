@@ -35,7 +35,7 @@ export function PublicLinksSection({
       </div>
 
       <div className="space-y-4">
-        <CreatePublicLinkForm operationId={operationId} />
+        {isAdmin ? <CreatePublicLinkForm operationId={operationId} /> : null}
 
         {links.length === 0 ? (
           <Card>
