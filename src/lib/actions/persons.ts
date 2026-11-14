@@ -71,9 +71,6 @@ export async function createPersonAction(
           specialty: data.specialty,
           external_role: null,
           client_id: null,
-          hourly_rate: data.hourly_rate ?? null,
-          monthly_compensation: data.monthly_compensation ?? null,
-          contracted_weekly_hours: data.contracted_weekly_hours ?? null,
         }
       : {
           kind: "external",
@@ -82,9 +79,6 @@ export async function createPersonAction(
           specialty: null,
           external_role: data.external_role,
           client_id: data.client_id,
-          hourly_rate: data.hourly_rate ?? null,
-          monthly_compensation: data.monthly_compensation ?? null,
-          contracted_weekly_hours: data.contracted_weekly_hours ?? null,
         };
 
   const { data: row, error: dbError } = await supabase
@@ -99,6 +93,26 @@ export async function createPersonAction(
     return dbErr(dbError, "createPersonAction");
   }
   if (!row) return err("Falha inesperada ao criar Pessoa.", "no_data");
+
+  const adminGuard = await requireAdminAction();
+  if (
+    adminGuard.ok &&
+    (data.hourly_rate !== undefined ||
+      data.monthly_compensation !== undefined ||
+      data.contracted_weekly_hours !== undefined)
+  ) {
+    const { error: compErr } = await supabase.from("person_compensation").upsert(
+      {
+        person_id: row.id,
+        hourly_rate: data.hourly_rate ?? null,
+        monthly_compensation: data.monthly_compensation ?? null,
+        contracted_weekly_hours: data.contracted_weekly_hours ?? null,
+      },
+      { onConflict: "person_id" },
+    );
+    if (compErr) return dbErr(compErr, "createPersonAction.compensation");
+  }
+
   return ok({ id: row.id });
 }
 
@@ -129,18 +143,12 @@ export async function updatePersonAction(
           name: data.name,
           email: data.email ?? null,
           specialty: data.specialty,
-          hourly_rate: data.hourly_rate ?? null,
-          monthly_compensation: data.monthly_compensation ?? null,
-          contracted_weekly_hours: data.contracted_weekly_hours ?? null,
         }
       : {
           name: data.name,
           email: data.email ?? null,
           external_role: data.external_role,
           client_id: data.client_id,
-          hourly_rate: data.hourly_rate ?? null,
-          monthly_compensation: data.monthly_compensation ?? null,
-          contracted_weekly_hours: data.contracted_weekly_hours ?? null,
         };
 
   const supabase = await createServer();
@@ -154,6 +162,21 @@ export async function updatePersonAction(
     if (mapped) return mapped;
     return dbErr(dbError, "updatePersonAction");
   }
+
+  const adminGuard = await requireAdminAction();
+  if (adminGuard.ok) {
+    const { error: compErr } = await supabase.from("person_compensation").upsert(
+      {
+        person_id: id,
+        hourly_rate: data.hourly_rate ?? null,
+        monthly_compensation: data.monthly_compensation ?? null,
+        contracted_weekly_hours: data.contracted_weekly_hours ?? null,
+      },
+      { onConflict: "person_id" },
+    );
+    if (compErr) return dbErr(compErr, "updatePersonAction.compensation");
+  }
+
   return ok({ id });
 }
 

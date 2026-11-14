@@ -1,3 +1,4 @@
+import type { Database } from "@/lib/db/types";
 import { syncAutoTasksForMeeting } from "@/lib/meetings/meeting-next-step-tasks";
 import { briefingSchema } from "@/lib/validators/briefing";
 import { decisionSchema } from "@/lib/validators/decision";
@@ -6,6 +7,7 @@ import { meetingSchema } from "@/lib/validators/meeting";
 import { personSchema } from "@/lib/validators/person";
 import {
   clampLimit,
+  mcpRequireAdmin,
   type McpHandlerContext,
   type McpToolResult,
 } from "@/lib/mcp/tools/shared";
@@ -41,37 +43,63 @@ export async function mcpCreatePerson(
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   }
   const p = parsed.data;
-  const { data, error } =
+  type PersonInsert = Database["public"]["Tables"]["persons"]["Insert"];
+  const insertPayload: PersonInsert =
     p.kind === "internal"
-      ? await ctx.supabase
-          .from("persons")
-          .insert({
-            kind: "internal",
-            name: p.name,
-            email: p.email ?? null,
-            specialty: p.specialty,
-            external_role: null,
-            client_id: null,
-            hourly_rate: p.hourly_rate ?? null,
-            monthly_compensation: p.monthly_compensation ?? null,
-          })
-          .select("id")
-          .single()
-      : await ctx.supabase
-          .from("persons")
-          .insert({
-            kind: "external",
-            name: p.name,
-            email: p.email ?? null,
-            specialty: null,
-            external_role: p.external_role,
-            client_id: p.client_id,
-            contracted_weekly_hours: p.contracted_weekly_hours ?? null,
-          })
-          .select("id")
-          .single();
+      ? {
+          kind: "internal",
+          name: p.name,
+          email: p.email ?? null,
+          specialty: p.specialty,
+          external_role: null,
+          client_id: null,
+        }
+      : {
+          kind: "external",
+          name: p.name,
+          email: p.email ?? null,
+          specialty: null,
+          external_role: p.external_role,
+          client_id: p.client_id,
+        };
+  const { data, error } = await ctx.supabase
+    .from("persons")
+    .insert(insertPayload)
+    .select("id")
+    .single();
   if (error) return { ok: false, message: error.message };
   if (!data) return { ok: false, message: "Falha ao criar." };
+
+  const denied = await mcpRequireAdmin(ctx);
+  if (
+    !denied &&
+    (p.hourly_rate !== undefined ||
+      p.monthly_compensation !== undefined ||
+      p.contracted_weekly_hours !== undefined)
+  ) {
+    const { error: cErr } =
+      p.kind === "internal"
+        ? await ctx.supabase.from("person_compensation").upsert(
+            {
+              person_id: data.id,
+              hourly_rate: p.hourly_rate ?? null,
+              monthly_compensation: p.monthly_compensation ?? null,
+              contracted_weekly_hours: null,
+            },
+            { onConflict: "person_id" },
+          )
+        : await ctx.supabase.from("person_compensation").upsert(
+            {
+              person_id: data.id,
+              hourly_rate: null,
+              monthly_compensation: null,
+              contracted_weekly_hours: p.contracted_weekly_hours ?? null,
+            },
+            { onConflict: "person_id" },
+          );
+    if (cErr) return { ok: false, message: cErr.message };
+  }
+
   return { ok: true, data: { id: data.id } };
 }
 

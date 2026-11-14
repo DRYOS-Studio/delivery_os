@@ -57,12 +57,25 @@ export async function mcpListAllocations(
   const { data, error } = await ctx.supabase
     .from("allocations")
     .select(
-      "id, person_id, frente_id, role, capacity_weekly_pct, weekly_hours, monthly_cost, start_date, end_date, person:persons!fk_allocations_person_id ( id, name )",
+      `id, person_id, frente_id, role, capacity_weekly_pct, start_date, end_date,
+      metrics:allocation_cost_metrics(weekly_hours, monthly_cost),
+      person:persons!fk_allocations_person_id ( id, name )`,
     )
     .eq("frente_id", frenteId)
     .order("start_date", { ascending: false });
   if (error) return { ok: false, message: error.message };
-  return { ok: true, data: { allocations: data ?? [] } };
+  const allocations = (data ?? []).map((row) => {
+    const m = Array.isArray(row.metrics)
+      ? (row.metrics[0] ?? null)
+      : (row.metrics ?? null);
+    const { metrics: _m, ...rest } = row;
+    return {
+      ...rest,
+      weekly_hours: m?.weekly_hours ?? null,
+      monthly_cost: m?.monthly_cost ?? null,
+    };
+  });
+  return { ok: true, data: { allocations } };
 }
 
 const createAlloc = allocationSchema.and(z.object({ frente_id: z.string().uuid() }));
@@ -83,8 +96,6 @@ export async function mcpCreateAllocation(
       person_id: a.person_id,
       role: a.role,
       capacity_weekly_pct: a.capacity_weekly_pct ?? 0,
-      weekly_hours: a.weekly_hours ?? null,
-      monthly_cost: a.monthly_cost ?? null,
       start_date: a.start_date,
       end_date: a.end_date ?? null,
     })
@@ -92,6 +103,23 @@ export async function mcpCreateAllocation(
     .single();
   if (error) return { ok: false, message: error.message };
   if (!data) return { ok: false, message: "Falha ao criar." };
+  const adminDenied = await mcpRequireAdmin(ctx);
+  if (
+    !adminDenied &&
+    (a.weekly_hours !== undefined || a.monthly_cost !== undefined)
+  ) {
+    const { error: mErr } = await ctx.supabase
+      .from("allocation_cost_metrics")
+      .upsert(
+        {
+          allocation_id: data.id,
+          weekly_hours: a.weekly_hours ?? null,
+          monthly_cost: a.monthly_cost ?? null,
+        },
+        { onConflict: "allocation_id" },
+      );
+    if (mErr) return { ok: false, message: mErr.message };
+  }
   return { ok: true, data: { id: data.id } };
 }
 
@@ -113,13 +141,28 @@ export async function mcpUpdateAllocation(
       person_id: a.person_id,
       role: a.role,
       capacity_weekly_pct: a.capacity_weekly_pct ?? 0,
-      weekly_hours: a.weekly_hours ?? null,
-      monthly_cost: a.monthly_cost ?? null,
       start_date: a.start_date,
       end_date: a.end_date ?? null,
     })
     .eq("id", allocId);
   if (error) return { ok: false, message: error.message };
+  const adminDenied = await mcpRequireAdmin(ctx);
+  if (
+    !adminDenied &&
+    (a.weekly_hours !== undefined || a.monthly_cost !== undefined)
+  ) {
+    const { error: mErr } = await ctx.supabase
+      .from("allocation_cost_metrics")
+      .upsert(
+        {
+          allocation_id: allocId,
+          weekly_hours: a.weekly_hours ?? null,
+          monthly_cost: a.monthly_cost ?? null,
+        },
+        { onConflict: "allocation_id" },
+      );
+    if (mErr) return { ok: false, message: mErr.message };
+  }
   return { ok: true, data: { id: allocId } };
 }
 
@@ -132,13 +175,27 @@ export async function mcpGetAllocation(
   const { data, error } = await ctx.supabase
     .from("allocations")
     .select(
-      "id, person_id, frente_id, role, capacity_weekly_pct, weekly_hours, monthly_cost, start_date, end_date",
+      `id, person_id, frente_id, role, capacity_weekly_pct, start_date, end_date,
+      metrics:allocation_cost_metrics(weekly_hours, monthly_cost)`,
     )
     .eq("id", id)
     .maybeSingle();
   if (error) return { ok: false, message: error.message };
   if (!data) return { ok: false, message: "Alocação não encontrada.", notFound: true };
-  return { ok: true, data: { allocation: data } };
+  const m = Array.isArray(data.metrics)
+    ? (data.metrics[0] ?? null)
+    : (data.metrics ?? null);
+  const { metrics: _m, ...rest } = data;
+  return {
+    ok: true,
+    data: {
+      allocation: {
+        ...rest,
+        weekly_hours: m?.weekly_hours ?? null,
+        monthly_cost: m?.monthly_cost ?? null,
+      },
+    },
+  };
 }
 
 export async function mcpEndAllocation(
@@ -402,14 +459,16 @@ export async function mcpGetOperationMonthlyCosts(
   ctx: McpHandlerContext,
   args: Record<string, unknown>,
 ): Promise<McpToolResult<Record<string, unknown>>> {
+  const denied = await mcpRequireAdmin(ctx);
+  if (denied) return denied;
   const opId = typeof args.operation_id === "string" ? args.operation_id.trim() : "";
   if (!opId) return { ok: false, message: "operation_id obrigatório." };
   try {
     const snapshot = await getOperationMonthlyCosts(opId, ctx.supabase);
     const { data: opRow, error: opErr } = await ctx.supabase
-      .from("operations")
+      .from("operation_financials")
       .select("monthly_recurring_revenue")
-      .eq("id", opId)
+      .eq("operation_id", opId)
       .maybeSingle();
     if (opErr) return { ok: false, message: opErr.message };
     if (!opRow) {

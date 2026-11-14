@@ -149,14 +149,16 @@ export function OperationForm(props: Props): React.JSX.Element {
     fd.set("product_line", data.product_line);
     fd.set("name", data.name);
     fd.set("status", data.status);
-    fd.set("recurrence", data.recurrence ?? "");
-    fd.set(
-      "monthly_recurring_revenue",
-      data.monthly_recurring_revenue !== null &&
-        data.monthly_recurring_revenue !== undefined
-        ? String(data.monthly_recurring_revenue)
-        : "",
-    );
+    if (isAdmin) {
+      fd.set("recurrence", data.recurrence ?? "");
+      fd.set(
+        "monthly_recurring_revenue",
+        data.monthly_recurring_revenue !== null &&
+          data.monthly_recurring_revenue !== undefined
+          ? String(data.monthly_recurring_revenue)
+          : "",
+      );
+    }
     fd.set(
       "response_hours",
       data.response_hours !== undefined && data.response_hours !== null
@@ -172,7 +174,9 @@ export function OperationForm(props: Props): React.JSX.Element {
     fd.set("diagnostic_id", data.diagnostic_id ?? "");
     fd.set("start_date", data.start_date ?? "");
     fd.set("end_date", data.end_date ?? "");
-    fd.set("notification_webhook_url", data.notification_webhook_url ?? "");
+    if (isAdmin) {
+      fd.set("notification_webhook_url", data.notification_webhook_url ?? "");
+    }
     const result = isEdit
       ? await updateOperationAction(props.initialData.id, fd)
       : await createOperationAction(fd);
@@ -375,15 +379,7 @@ export function OperationForm(props: Props): React.JSX.Element {
             </Field>
           </div>
         </>
-      ) : (
-        <>
-          <input type="hidden" {...register("recurrence")} />
-          <input
-            type="hidden"
-            {...register("monthly_recurring_revenue")}
-          />
-        </>
-      )}
+      ) : null}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Field
@@ -487,26 +483,34 @@ export function OperationForm(props: Props): React.JSX.Element {
         </Field>
       </div>
 
-      <fieldset className="border-t border-line pt-5 mt-2">
-        <legend className="font-display text-sm font-semibold text-ink mb-3 px-0">
-          Integrações
-        </legend>
-        <Field
-          label="Webhook de notificação (n8n)"
-          htmlFor="notification_webhook_url"
-          error={errors.notification_webhook_url?.message}
-          hint="URL pra onde DRYOS posta eventos (Frente parada, SLA estourado). Precisa ser https em domínio público. Deixe em branco pra desligar."
-        >
-          <input
-            id="notification_webhook_url"
-            type="url"
-            placeholder="https://n8n.exemplo.com/webhook/dryos-..."
-            {...register("notification_webhook_url")}
-            disabled={busy}
-            className={inputCn}
-          />
-        </Field>
-      </fieldset>
+      {isAdmin ? (
+        <fieldset className="border-t border-line pt-5 mt-2">
+          <legend className="font-display text-sm font-semibold text-ink mb-3 px-0">
+            Integrações
+          </legend>
+          <p className="text-sm text-mute mb-3">
+            O webhook n8n agora vive em{" "}
+            <strong className="text-ink font-medium">Cliente → Ferramentas</strong>{" "}
+            (stack, por operação). O campo abaixo permanece só até a limpeza da coluna
+            legada — prefira Ferramentas.
+          </p>
+          <Field
+            label="Webhook de notificação (n8n) — legado"
+            htmlFor="notification_webhook_url"
+            error={errors.notification_webhook_url?.message}
+            hint="URL pra onde DRYOS posta eventos (Frente parada, SLA estourado)."
+          >
+            <input
+              id="notification_webhook_url"
+              type="url"
+              placeholder="https://n8n.exemplo.com/webhook/dryos-..."
+              {...register("notification_webhook_url")}
+              disabled={busy}
+              className={inputCn}
+            />
+          </Field>
+        </fieldset>
+      ) : null}
 
       <div className="flex items-center justify-between pt-2">
         <div className="flex items-center gap-2">

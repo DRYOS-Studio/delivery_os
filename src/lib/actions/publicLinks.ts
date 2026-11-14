@@ -12,6 +12,9 @@ export async function createPublicLinkAction(
   const userResult = await requireUserAction();
   if (!userResult.ok) return userResult;
 
+  const adminGuard = await requireAdminAction();
+  if (!adminGuard.ok) return adminGuard;
+
   const labelRaw = ((formData.get("label") as string | null) ?? "").trim();
   const label = labelRaw.length > 0 ? labelRaw.slice(0, 200) : null;
 

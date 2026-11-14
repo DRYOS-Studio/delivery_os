@@ -25,12 +25,21 @@ function activeTabFromPathname(
 type Props = {
   clientId: string;
   isAdmin: boolean;
+  canAccessVault?: boolean;
 };
 
-export function ClientHubNav({ clientId, isAdmin }: Props): React.JSX.Element {
+export function ClientHubNav({
+  clientId,
+  isAdmin,
+  canAccessVault = false,
+}: Props): React.JSX.Element {
   const pathname = usePathname();
   const active = activeTabFromPathname(clientId, pathname);
-  const tabs = CLIENT_HUB_TABS.filter((t) => !t.adminOnly || isAdmin);
+  const tabs = CLIENT_HUB_TABS.filter((t) => {
+    if (t.adminOnly && !isAdmin) return false;
+    if (t.requiresVaultAccess && !isAdmin && !canAccessVault) return false;
+    return true;
+  });
 
   return (
     <nav className="sticky top-0 z-10 bg-bg border-b border-line mb-7 -mx-4 px-4 md:-mx-7 md:px-7">

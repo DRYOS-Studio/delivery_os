@@ -43,6 +43,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
 
   const [
     opsRes,
+    finRes,
     frentesRes,
     qwCountRes,
     internalCountRes,
@@ -59,9 +60,8 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
       // Operações de um Cliente arquivado sumirem também do card "Operações
       // arquivadas" — que iria a 0 em vez de contá-las. A cláusula do Cliente
       // pertence ao predicado ATIVA, não à contagem de arquivadas.
-      .select(
-        "id, monthly_recurring_revenue, archived_at, status, client:clients!inner(archived_at)",
-      ),
+      .select("id, archived_at, status, client:clients!inner(archived_at)"),
+    supabase.from("operation_financials").select("operation_id, monthly_recurring_revenue"),
     supabase
       .from("frentes")
       .select("actionable_status, updated_at")
@@ -125,6 +125,16 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     throw new Error(
       `dashboard.getDashboardSummary.tasks: ${openTasksRes.error.message}`,
     );
+  if (finRes.error)
+    throw new Error(
+      `dashboard.getDashboardSummary.financials: ${finRes.error.message}`,
+    );
+
+  const mrrByOp = new Map(
+    (finRes.data ?? []).map(
+      (r) => [r.operation_id, r.monthly_recurring_revenue ?? 0] as const,
+    ),
+  );
 
   const ops = opsRes.data ?? [];
   // ATIVA: não arquivada E status não-terminal (senão Operação cancelada segue somando MRR).
@@ -140,7 +150,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     (o) => !o.archived_at && isActiveStatus(o.status) && !clienteArquivado(o),
   );
   const mrrTotal = active.reduce(
-    (sum, o) => sum + (o.monthly_recurring_revenue ?? 0),
+    (sum, o) => sum + (mrrByOp.get(o.id) ?? 0),
     0,
   );
   const activeOperations = active.length;
@@ -175,16 +185,21 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
   };
 }
 
-type OpClientJoin = {
-  client_id: string;
+type FinClientJoin = {
   monthly_recurring_revenue: number | null;
-  clients: { id: string; name: string } | { id: string; name: string }[] | null;
+  operation: {
+    client_id: string;
+    clients:
+      | { id: string; name: string; archived_at: string | null }
+      | { id: string; name: string; archived_at: string | null }[]
+      | null;
+  };
 };
 
-function pickClient(
-  row: OpClientJoin,
+function pickClientFromFin(
+  row: FinClientJoin,
 ): { id: string; name: string } | null {
-  const c = row.clients;
+  const c = row.operation.clients;
   if (!c) return null;
   if (Array.isArray(c)) return c[0] ?? null;
   return c;
@@ -193,21 +208,21 @@ function pickClient(
 export async function getTopClientsByMRR(limit = 5): Promise<ClientMRR[]> {
   const supabase = await createServer();
   const { data, error } = await supabase
-    .from("operations")
+    .from("operation_financials")
     .select(
-      "client_id, monthly_recurring_revenue, status, clients!inner(id, name, archived_at)",
+      "monthly_recurring_revenue, operation:operations!inner(client_id, archived_at, status, clients!inner(id, name, archived_at))",
     )
-    .is("archived_at", null)
-    .is("clients.archived_at", null)
-    .in("status", ACTIVE_STATUSES);
+    .is("operation.archived_at", null)
+    .is("operation.clients.archived_at", null)
+    .in("operation.status", ACTIVE_STATUSES);
 
   if (error)
     throw new Error(`dashboard.getTopClientsByMRR: ${error.message}`);
 
-  const rows = (data ?? []) as unknown as OpClientJoin[];
+  const rows = (data ?? []) as unknown as FinClientJoin[];
   const byClient = new Map<string, ClientMRR>();
   for (const row of rows) {
-    const c = pickClient(row);
+    const c = pickClientFromFin(row);
     if (!c) continue;
     const cur = byClient.get(c.id) ?? {
       clientId: c.id,

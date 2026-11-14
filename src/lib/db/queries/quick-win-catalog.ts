@@ -107,6 +107,20 @@ export async function listActiveQuickWinCatalog(): Promise<
   return (data ?? []).map((r) => mapRow(r as RawJoin));
 }
 
+/** Picker na Operação — RPC expõe só id+título (sem abrir catálogo inteiro). */
+export async function listQuickWinCatalogPickerForOperation(
+  operationId: string,
+): Promise<Array<{ id: string; title: string }>> {
+  const supabase = await createServer();
+  const { data, error } = await supabase.rpc("catalog_picker_quick_wins", {
+    p_operation_id: operationId,
+  });
+  if (error) {
+    throw new Error(`listQuickWinCatalogPickerForOperation: ${error.message}`);
+  }
+  return data ?? [];
+}
+
 export async function getQuickWinCatalogItem(
   id: string,
 ): Promise<QuickWinCatalogRow | null> {

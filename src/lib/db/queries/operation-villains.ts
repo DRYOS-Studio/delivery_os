@@ -157,21 +157,16 @@ export async function listAvailableVillains(
   if (aErr) throw new Error(`listAvailableVillains.assigned: ${aErr.message}`);
   const assignedIds = (assigned ?? []).map((r) => r.villain_id);
 
-  let query = supabase
-    .from("villains")
-    .select("id, name, slug, icon_name")
-    .is("archived_at", null)
-    .order("display_order", { ascending: true });
-  if (assignedIds.length > 0) {
-    query = query.not("id", "in", `(${assignedIds.join(",")})`);
-  }
-  const { data, error } = await query;
+  const { data, error } = await supabase.rpc("catalog_picker_villains", {
+    p_operation_id: operationId,
+  });
   if (error) throw new Error(`listAvailableVillains: ${error.message}`);
-  if (!data) return [];
-  return data.map((v) => ({
-    id: v.id,
-    name: v.name,
-    slug: v.slug,
-    iconName: v.icon_name,
-  }));
+  return (data ?? [])
+    .filter((v) => !assignedIds.includes(v.id))
+    .map((v) => ({
+      id: v.id,
+      name: v.name,
+      slug: v.slug,
+      iconName: v.icon_name,
+    }));
 }

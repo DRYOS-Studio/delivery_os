@@ -154,7 +154,11 @@ export function OperationHero({
             <>
               <MetaChip
                 label="Recorrência"
-                value={op.recurrence ? RECURRENCE_LABEL[op.recurrence] : "—"}
+                value={
+                  op.recurrence
+                    ? (RECURRENCE_LABEL[op.recurrence] ?? "—")
+                    : "—"
+                }
               />
               <MetaChip
                 label="MRR"

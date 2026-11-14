@@ -21,12 +21,10 @@ export type Database = {
           end_date: string | null
           frente_id: string
           id: string
-          monthly_cost: number | null
           person_id: string
           role: Database["public"]["Enums"]["allocation_role"]
           start_date: string
           updated_at: string
-          weekly_hours: number | null
         }
         Insert: {
           capacity_weekly_pct?: number
@@ -34,12 +32,10 @@ export type Database = {
           end_date?: string | null
           frente_id: string
           id?: string
-          monthly_cost?: number | null
           person_id: string
           role: Database["public"]["Enums"]["allocation_role"]
           start_date?: string
           updated_at?: string
-          weekly_hours?: number | null
         }
         Update: {
           capacity_weekly_pct?: number
@@ -47,12 +43,10 @@ export type Database = {
           end_date?: string | null
           frente_id?: string
           id?: string
-          monthly_cost?: number | null
           person_id?: string
           role?: Database["public"]["Enums"]["allocation_role"]
           start_date?: string
           updated_at?: string
-          weekly_hours?: number | null
         }
         Relationships: [
           {
@@ -1006,6 +1000,7 @@ export type Database = {
           id: string
           name: string
           notes: string | null
+          operation_id: string | null
           sort_order: number
           updated_at: string
           url: string | null
@@ -1017,6 +1012,7 @@ export type Database = {
           id?: string
           name: string
           notes?: string | null
+          operation_id?: string | null
           sort_order?: number
           updated_at?: string
           url?: string | null
@@ -1024,6 +1020,7 @@ export type Database = {
         Update: {
           category?: string | null
           client_id?: string
+          operation_id?: string | null
           created_at?: string
           id?: string
           name?: string
@@ -1841,6 +1838,114 @@ export type Database = {
           },
         ]
       }
+      operation_financials: {
+        Row: {
+          created_at: string
+          monthly_fixed_cost: number | null
+          monthly_recurring_revenue: number | null
+          notification_webhook_url: string | null
+          operation_id: string
+          recurrence: Database["public"]["Enums"]["recurrence"] | null
+          tax_rate_pct: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          monthly_fixed_cost?: number | null
+          monthly_recurring_revenue?: number | null
+          notification_webhook_url?: string | null
+          operation_id: string
+          recurrence?: Database["public"]["Enums"]["recurrence"] | null
+          tax_rate_pct?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          monthly_fixed_cost?: number | null
+          monthly_recurring_revenue?: number | null
+          notification_webhook_url?: string | null
+          operation_id?: string
+          recurrence?: Database["public"]["Enums"]["recurrence"] | null
+          tax_rate_pct?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_operation_financials_operation"
+            columns: ["operation_id"]
+            isOneToOne: true
+            referencedRelation: "operations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      person_compensation: {
+        Row: {
+          contracted_weekly_hours: number | null
+          created_at: string
+          hourly_rate: number | null
+          monthly_compensation: number | null
+          person_id: string
+          updated_at: string
+        }
+        Insert: {
+          contracted_weekly_hours?: number | null
+          created_at?: string
+          hourly_rate?: number | null
+          monthly_compensation?: number | null
+          person_id: string
+          updated_at?: string
+        }
+        Update: {
+          contracted_weekly_hours?: number | null
+          created_at?: string
+          hourly_rate?: number | null
+          monthly_compensation?: number | null
+          person_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_person_compensation_person"
+            columns: ["person_id"]
+            isOneToOne: true
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      allocation_cost_metrics: {
+        Row: {
+          allocation_id: string
+          created_at: string
+          monthly_cost: number | null
+          updated_at: string
+          weekly_hours: number | null
+        }
+        Insert: {
+          allocation_id: string
+          created_at?: string
+          monthly_cost?: number | null
+          updated_at?: string
+          weekly_hours?: number | null
+        }
+        Update: {
+          allocation_id?: string
+          created_at?: string
+          monthly_cost?: number | null
+          updated_at?: string
+          weekly_hours?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_allocation_cost_metrics_allocation"
+            columns: ["allocation_id"]
+            isOneToOne: true
+            referencedRelation: "allocations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       operations: {
         Row: {
           archived_at: string | null
@@ -1849,17 +1954,12 @@ export type Database = {
           diagnostic_id: string | null
           end_date: string | null
           id: string
-          monthly_fixed_cost: number | null
-          monthly_recurring_revenue: number | null
           name: string
-          notification_webhook_url: string | null
           product_line: Database["public"]["Enums"]["product_line"]
-          recurrence: Database["public"]["Enums"]["recurrence"] | null
           resolution_hours: number | null
           response_hours: number | null
           start_date: string | null
           status: Database["public"]["Enums"]["operation_status"]
-          tax_rate_pct: number | null
           updated_at: string
         }
         Insert: {
@@ -1869,17 +1969,12 @@ export type Database = {
           diagnostic_id?: string | null
           end_date?: string | null
           id?: string
-          monthly_fixed_cost?: number | null
-          monthly_recurring_revenue?: number | null
           name: string
-          notification_webhook_url?: string | null
           product_line: Database["public"]["Enums"]["product_line"]
-          recurrence?: Database["public"]["Enums"]["recurrence"] | null
           resolution_hours?: number | null
           response_hours?: number | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["operation_status"]
-          tax_rate_pct?: number | null
           updated_at?: string
         }
         Update: {
@@ -1889,17 +1984,12 @@ export type Database = {
           diagnostic_id?: string | null
           end_date?: string | null
           id?: string
-          monthly_fixed_cost?: number | null
-          monthly_recurring_revenue?: number | null
           name?: string
-          notification_webhook_url?: string | null
           product_line?: Database["public"]["Enums"]["product_line"]
-          recurrence?: Database["public"]["Enums"]["recurrence"] | null
           resolution_hours?: number | null
           response_hours?: number | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["operation_status"]
-          tax_rate_pct?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -1923,14 +2013,11 @@ export type Database = {
         Row: {
           archived_at: string | null
           client_id: string | null
-          contracted_weekly_hours: number | null
           created_at: string
           email: string | null
           external_role: string | null
-          hourly_rate: number | null
           id: string
           kind: Database["public"]["Enums"]["person_kind"]
-          monthly_compensation: number | null
           name: string
           specialty: string | null
           updated_at: string
@@ -1938,14 +2025,11 @@ export type Database = {
         Insert: {
           archived_at?: string | null
           client_id?: string | null
-          contracted_weekly_hours?: number | null
           created_at?: string
           email?: string | null
           external_role?: string | null
-          hourly_rate?: number | null
           id?: string
           kind: Database["public"]["Enums"]["person_kind"]
-          monthly_compensation?: number | null
           name: string
           specialty?: string | null
           updated_at?: string
@@ -1953,14 +2037,11 @@ export type Database = {
         Update: {
           archived_at?: string | null
           client_id?: string | null
-          contracted_weekly_hours?: number | null
           created_at?: string
           email?: string | null
           external_role?: string | null
-          hourly_rate?: number | null
           id?: string
           kind?: Database["public"]["Enums"]["person_kind"]
-          monthly_compensation?: number | null
           name?: string
           specialty?: string | null
           updated_at?: string
@@ -2902,6 +2983,35 @@ export type Database = {
       can_access_client_vault: {
         Args: { p_client_id: string }
         Returns: boolean
+      }
+      resolve_operation_notification_webhook: {
+        Args: { p_operation_id: string }
+        Returns: string
+      }
+      catalog_picker_villains: {
+        Args: { p_operation_id: string }
+        Returns: {
+          icon_name: string
+          id: string
+          name: string
+          slug: string
+        }[]
+      }
+      catalog_picker_quick_wins: {
+        Args: { p_operation_id: string }
+        Returns: { id: string; title: string }[]
+      }
+      catalog_picker_service_products: {
+        Args: { p_operation_id: string }
+        Returns: {
+          catalog_group: string
+          catalog_kind: string
+          default_cycle_type: Database["public"]["Enums"]["frente_cycle_type"]
+          id: string
+          name: string
+          slug: string
+          sort_order: number
+        }[]
       }
       can_read_operation: { Args: { op_id: string }; Returns: boolean }
       can_see_operation: { Args: { op_id: string }; Returns: boolean }

@@ -35,13 +35,27 @@ export async function mcpGetPerson(
   const { data, error } = await ctx.supabase
     .from("persons")
     .select(
-      "id, name, kind, email, specialty, external_role, client_id, hourly_rate, monthly_compensation, contracted_weekly_hours, archived_at, created_at, updated_at",
+      "id, name, kind, email, specialty, external_role, client_id, archived_at, created_at, updated_at, compensation:person_compensation(hourly_rate, monthly_compensation, contracted_weekly_hours)",
     )
     .eq("id", id)
     .maybeSingle();
   if (error) return { ok: false, message: error.message };
   if (!data) return { ok: false, message: "Pessoa não encontrada.", notFound: true };
-  return { ok: true, data: { person: data } };
+  const comp = Array.isArray(data.compensation)
+    ? (data.compensation[0] ?? null)
+    : (data.compensation ?? null);
+  const { compensation: _c, ...base } = data;
+  return {
+    ok: true,
+    data: {
+      person: {
+        ...base,
+        hourly_rate: comp?.hourly_rate ?? null,
+        monthly_compensation: comp?.monthly_compensation ?? null,
+        contracted_weekly_hours: comp?.contracted_weekly_hours ?? null,
+      },
+    },
+  };
 }
 
 export async function mcpUpdatePerson(
@@ -65,9 +79,6 @@ export async function mcpUpdatePerson(
           specialty: p.specialty,
           external_role: null,
           client_id: null,
-          hourly_rate: p.hourly_rate ?? null,
-          monthly_compensation: p.monthly_compensation ?? null,
-          contracted_weekly_hours: null,
         }
       : {
           kind: "external" as const,
@@ -76,12 +87,38 @@ export async function mcpUpdatePerson(
           specialty: null,
           external_role: p.external_role,
           client_id: p.client_id,
-          hourly_rate: null,
-          monthly_compensation: null,
-          contracted_weekly_hours: p.contracted_weekly_hours ?? null,
         };
   const { error } = await ctx.supabase.from("persons").update(row).eq("id", id);
   if (error) return { ok: false, message: error.message };
+  const adminDenied = await mcpRequireAdmin(ctx);
+  if (
+    !adminDenied &&
+    (p.hourly_rate !== undefined ||
+      p.monthly_compensation !== undefined ||
+      p.contracted_weekly_hours !== undefined)
+  ) {
+    const { error: cErr } =
+      p.kind === "internal"
+        ? await ctx.supabase.from("person_compensation").upsert(
+            {
+              person_id: id,
+              hourly_rate: p.hourly_rate ?? null,
+              monthly_compensation: p.monthly_compensation ?? null,
+              contracted_weekly_hours: null,
+            },
+            { onConflict: "person_id" },
+          )
+        : await ctx.supabase.from("person_compensation").upsert(
+            {
+              person_id: id,
+              hourly_rate: null,
+              monthly_compensation: null,
+              contracted_weekly_hours: p.contracted_weekly_hours ?? null,
+            },
+            { onConflict: "person_id" },
+          );
+    if (cErr) return { ok: false, message: cErr.message };
+  }
   return { ok: true, data: { id } };
 }
 

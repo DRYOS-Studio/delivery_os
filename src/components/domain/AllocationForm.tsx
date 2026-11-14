@@ -11,7 +11,7 @@ import {
   deleteAllocationAction,
   updateAllocationAction,
 } from "@/lib/actions/allocations";
-import type { AllocationRow } from "@/lib/db/queries/allocations";
+import type { AllocationWithMetrics } from "@/lib/db/queries/allocations";
 import type { InternalPersonItem } from "@/lib/db/queries/persons";
 import {
   allocationSchema,
@@ -28,7 +28,7 @@ type Props = (
     }
   | {
       mode: "edit";
-      initialData: AllocationRow;
+      initialData: AllocationWithMetrics;
       operationId: string;
       frenteId: string;
       internalPersons: InternalPersonItem[];

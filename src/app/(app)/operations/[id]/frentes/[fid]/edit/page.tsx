@@ -25,7 +25,7 @@ export default async function Page({
     listInternalPersons(),
     listAllocationsByFrente(fid),
   ]);
-  const products = await listServiceProductsForFrenteForm(frente?.product_id);
+  const products = await listServiceProductsForFrenteForm(id, frente?.product_id);
   if (!op) redirect("/operations");
   if (!frente) redirect(`/operations/${id}`);
   if (frente.operation_id !== id) redirect(`/operations/${id}`);

@@ -1,8 +1,13 @@
+import { getProfile } from "@/lib/auth/server";
 import { createServer } from "@/lib/db/client";
 import { calendarDateLocalToday } from "@/lib/utils/calendar-date";
 import type { Database } from "@/lib/db/types";
 
-export type PersonDetail = Database["public"]["Tables"]["persons"]["Row"];
+export type PersonDetail = Database["public"]["Tables"]["persons"]["Row"] & {
+  hourly_rate?: number | null;
+  monthly_compensation?: number | null;
+  contracted_weekly_hours?: number | null;
+};
 
 export type PersonKindFilter = "internal" | "external" | undefined;
 
@@ -92,7 +97,21 @@ export async function getPerson(id: string): Promise<PersonDetail | null> {
     .is("archived_at", null)
     .maybeSingle();
   if (error) throw new Error(`getPerson: ${error.message}`);
-  return data;
+  if (!data) return null;
+  const profile = await getProfile();
+  if (profile?.role !== "admin") return data;
+  const { data: comp, error: compErr } = await supabase
+    .from("person_compensation")
+    .select("hourly_rate, monthly_compensation, contracted_weekly_hours")
+    .eq("person_id", id)
+    .maybeSingle();
+  if (compErr) throw new Error(`getPerson.compensation: ${compErr.message}`);
+  return {
+    ...data,
+    hourly_rate: comp?.hourly_rate ?? null,
+    monthly_compensation: comp?.monthly_compensation ?? null,
+    contracted_weekly_hours: comp?.contracted_weekly_hours ?? null,
+  };
 }
 
 export async function countActivePersons(): Promise<{

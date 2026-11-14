@@ -50,6 +50,7 @@ export async function createAllocationAction(
   if (!v.ok) return v;
   const data = v.data;
 
+  const adminGuard = await requireAdminAction();
   const supabase = await createServer();
   const { data: row, error: dbError } = await supabase
     .from("allocations")
@@ -58,8 +59,6 @@ export async function createAllocationAction(
       person_id: data.person_id,
       role: data.role,
       capacity_weekly_pct: data.capacity_weekly_pct,
-      weekly_hours: data.weekly_hours ?? null,
-      monthly_cost: data.monthly_cost ?? null,
       start_date: data.start_date,
       end_date: data.end_date ?? null,
     })
@@ -72,6 +71,20 @@ export async function createAllocationAction(
     return dbErr(dbError, "createAllocationAction");
   }
   if (!row) return err("Falha inesperada ao criar alocação.", "no_data");
+  if (
+    adminGuard.ok &&
+    (data.weekly_hours !== undefined || data.monthly_cost !== undefined)
+  ) {
+    const { error: mErr } = await supabase.from("allocation_cost_metrics").upsert(
+      {
+        allocation_id: row.id,
+        weekly_hours: data.weekly_hours ?? null,
+        monthly_cost: data.monthly_cost ?? null,
+      },
+      { onConflict: "allocation_id" },
+    );
+    if (mErr) return dbErr(mErr, "createAllocationAction.metrics");
+  }
   return ok({ id: row.id, frenteId, operationId });
 }
 
@@ -90,14 +103,13 @@ export async function updateAllocationAction(
   const data = v.data;
 
   // person_id locked em edit — força valor atual
+  const adminGuard = await requireAdminAction();
   const supabase = await createServer();
   const { error: dbError } = await supabase
     .from("allocations")
     .update({
       role: data.role,
       capacity_weekly_pct: data.capacity_weekly_pct,
-      weekly_hours: data.weekly_hours ?? null,
-      monthly_cost: data.monthly_cost ?? null,
       start_date: data.start_date,
       end_date: data.end_date ?? null,
     })
@@ -107,6 +119,18 @@ export async function updateAllocationAction(
     const mapped = mapDbError(dbError as PostgresError);
     if (mapped) return mapped;
     return dbErr(dbError, "updateAllocationAction");
+  }
+
+  if (adminGuard.ok) {
+    const { error: mErr } = await supabase.from("allocation_cost_metrics").upsert(
+      {
+        allocation_id: id,
+        weekly_hours: data.weekly_hours ?? null,
+        monthly_cost: data.monthly_cost ?? null,
+      },
+      { onConflict: "allocation_id" },
+    );
+    if (mErr) return dbErr(mErr, "updateAllocationAction.metrics");
   }
 
   const frente = await getFrente(current.frente_id);

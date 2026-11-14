@@ -3,17 +3,24 @@ import { operationCostCategoryLabel } from "@/lib/utils/operation-cost-category"
 import { operationSchema } from "@/lib/validators/operation";
 import {
   clampLimit,
+  mcpCallerIsAdmin,
   mcpRequireAdmin,
   type McpHandlerContext,
   type McpToolResult,
 } from "@/lib/mcp/tools/shared";
 import { z } from "zod";
 
-const OP_LIST =
-  "id, name, status, product_line, client_id, recurrence, monthly_recurring_revenue, start_date, end_date, archived_at, client:clients!fk_operations_client_id ( id, name, slug )";
+const OP_LIST_ADMIN =
+  "id, name, status, product_line, client_id, start_date, end_date, archived_at, financial:operation_financials (recurrence, monthly_recurring_revenue), client:clients!fk_operations_client_id ( id, name, slug )";
 
-const OP_DETAIL =
-  "id, name, status, product_line, client_id, recurrence, monthly_recurring_revenue, monthly_fixed_cost, tax_rate_pct, start_date, end_date, response_hours, resolution_hours, notification_webhook_url, archived_at, client:clients!fk_operations_client_id ( id, name, slug )";
+const OP_LIST_MEMBER =
+  "id, name, status, product_line, client_id, start_date, end_date, archived_at, client:clients!fk_operations_client_id ( id, name, slug )";
+
+const OP_DETAIL_ADMIN =
+  "id, name, status, product_line, client_id, start_date, end_date, response_hours, resolution_hours, archived_at, financial:operation_financials (recurrence, monthly_recurring_revenue, monthly_fixed_cost, tax_rate_pct, notification_webhook_url), client:clients!fk_operations_client_id ( id, name, slug )";
+
+const OP_DETAIL_MEMBER =
+  "id, name, status, product_line, client_id, start_date, end_date, response_hours, resolution_hours, archived_at, client:clients!fk_operations_client_id ( id, name, slug )";
 
 function operationInsert(data: z.infer<typeof operationSchema>) {
   return {
@@ -21,12 +28,21 @@ function operationInsert(data: z.infer<typeof operationSchema>) {
     product_line: data.product_line,
     name: data.name,
     status: data.status,
-    recurrence: data.recurrence ?? null,
-    monthly_recurring_revenue: data.monthly_recurring_revenue ?? null,
     start_date: data.start_date ?? null,
     end_date: data.end_date ?? null,
     response_hours: data.response_hours ?? null,
     resolution_hours: data.resolution_hours ?? null,
+  };
+}
+
+function operationFinancialInsert(
+  operationId: string,
+  data: z.infer<typeof operationSchema>,
+) {
+  return {
+    operation_id: operationId,
+    recurrence: data.recurrence ?? null,
+    monthly_recurring_revenue: data.monthly_recurring_revenue ?? null,
     notification_webhook_url: data.notification_webhook_url ?? null,
   };
 }
@@ -36,11 +52,12 @@ export async function mcpListOperations(
   args: Record<string, unknown>,
 ): Promise<McpToolResult<{ operations: unknown[] }>> {
   const limit = clampLimit(args.limit);
+  const isAdmin = await mcpCallerIsAdmin(ctx.supabase, ctx.callerUserId);
   const clientId =
     typeof args.client_id === "string" ? args.client_id.trim() : undefined;
   let q = ctx.supabase
     .from("operations")
-    .select(OP_LIST)
+    .select(isAdmin ? OP_LIST_ADMIN : OP_LIST_MEMBER)
     .is("archived_at", null)
     .order("name", { ascending: true })
     .limit(limit);
@@ -56,20 +73,53 @@ export async function mcpGetOperation(
 ): Promise<McpToolResult<{ operation: unknown }>> {
   const opId = typeof args.operation_id === "string" ? args.operation_id.trim() : "";
   if (!opId) return { ok: false, message: "operation_id obrigatório." };
-  const { data, error } = await ctx.supabase
-    .from("operations")
-    .select(OP_DETAIL)
-    .eq("id", opId)
-    .maybeSingle();
+  const isAdmin = await mcpCallerIsAdmin(ctx.supabase, ctx.callerUserId);
+  const fetched = isAdmin
+    ? await ctx.supabase
+        .from("operations")
+        .select(OP_DETAIL_ADMIN)
+        .eq("id", opId)
+        .maybeSingle()
+    : await ctx.supabase
+        .from("operations")
+        .select(OP_DETAIL_MEMBER)
+        .eq("id", opId)
+        .maybeSingle();
+  const { data, error } = fetched;
   if (error) return { ok: false, message: error.message };
   if (!data) return { ok: false, message: "Operação não encontrada.", notFound: true };
+  if (!isAdmin) {
+    return { ok: true, data: { operation: data as unknown as Record<string, unknown> } };
+  }
   const breakdown = await getOperationMonthlyCosts(opId, ctx.supabase);
+  const adminRow = data as unknown as Record<string, unknown> & {
+    financial?: {
+      monthly_fixed_cost?: number | null;
+      monthly_recurring_revenue?: number | null;
+      recurrence?: unknown;
+      tax_rate_pct?: number | null;
+      notification_webhook_url?: string | null;
+    } | Array<{
+      monthly_fixed_cost?: number | null;
+      monthly_recurring_revenue?: number | null;
+      recurrence?: unknown;
+      tax_rate_pct?: number | null;
+      notification_webhook_url?: string | null;
+    }> | null;
+  };
+  const fin = Array.isArray(adminRow.financial)
+    ? adminRow.financial[0]
+    : adminRow.financial;
   return {
     ok: true,
     data: {
       operation: {
-        ...data,
-        monthly_fixed_cost_legacy: data.monthly_fixed_cost,
+        ...adminRow,
+        recurrence: fin?.recurrence ?? null,
+        monthly_recurring_revenue: fin?.monthly_recurring_revenue ?? null,
+        monthly_fixed_cost_legacy: fin?.monthly_fixed_cost ?? null,
+        tax_rate_pct: fin?.tax_rate_pct ?? null,
+        notification_webhook_url: fin?.notification_webhook_url ?? null,
         operation_costs: breakdown.adHocItems.map((c) => ({
           id: c.id,
           category: c.category,
@@ -108,6 +158,12 @@ export async function mcpCreateOperation(
     .single();
   if (error) return { ok: false, message: error.message };
   if (!data) return { ok: false, message: "Falha ao criar." };
+  const { error: finErr } = await ctx.supabase
+    .from("operation_financials")
+    .upsert(operationFinancialInsert(data.id, parsed.data), {
+      onConflict: "operation_id",
+    });
+  if (finErr) return { ok: false, message: finErr.message };
   return { ok: true, data };
 }
 
@@ -124,11 +180,54 @@ export async function mcpUpdateOperation(
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   }
+  const insertShape = operationInsert(parsed.data);
   const { error } = await ctx.supabase
     .from("operations")
-    .update(operationInsert(parsed.data))
+    .update(insertShape)
     .eq("id", opId);
   if (error) return { ok: false, message: error.message };
+  const { error: finErr } = await ctx.supabase
+    .from("operation_financials")
+    .upsert(operationFinancialInsert(opId, parsed.data), {
+      onConflict: "operation_id",
+    });
+  if (finErr) return { ok: false, message: finErr.message };
+  if (
+    parsed.data.notification_webhook_url !== undefined &&
+    parsed.data.notification_webhook_url !== null
+  ) {
+  const { data: opRow } = await ctx.supabase
+      .from("operations")
+      .select("client_id")
+      .eq("id", opId)
+      .maybeSingle();
+    if (opRow?.client_id) {
+      const url = (parsed.data.notification_webhook_url ?? "").trim();
+      if (url.length > 0) {
+        const { data: existing } = await ctx.supabase
+          .from("client_tech_items")
+          .select("id")
+          .eq("operation_id", opId)
+          .eq("category", "n8n_webhook")
+          .maybeSingle();
+        if (existing?.id) {
+          await ctx.supabase
+            .from("client_tech_items")
+            .update({ url, client_id: opRow.client_id })
+            .eq("id", existing.id);
+        } else {
+          await ctx.supabase.from("client_tech_items").insert({
+            client_id: opRow.client_id,
+            operation_id: opId,
+            name: "Webhook n8n",
+            category: "n8n_webhook",
+            url,
+            sort_order: -100,
+          });
+        }
+      }
+    }
+  }
   return { ok: true, data: { id: opId } };
 }
 
