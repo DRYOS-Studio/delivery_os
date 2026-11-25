@@ -14,6 +14,8 @@ describe("rota meetings/new (onboarding)", () => {
     expect(src).toContain("loadNewMeetingPageData");
     expect(src).toMatch(/frentes=\{frentes\}/);
     expect(src).toMatch(/attendeeCandidates=\{attendeeCandidates\}/);
+    expect(src).toContain("MeetingFormDynamic");
+    expect(src).toContain('dynamic = "force-dynamic"');
     expect(src).toContain('"onboarding"');
     expect(src).toContain("returnTo");
   });

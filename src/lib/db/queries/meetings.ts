@@ -1,5 +1,9 @@
 import { createServer } from "@/lib/db/client";
-import { mergeAttendeeCandidates } from "@/lib/db/queries/meetings-attendee-candidates";
+import {
+  dedupeAttendeeCandidates,
+  mergeAttendeeCandidates,
+} from "@/lib/db/queries/meetings-attendee-candidates";
+import { isUuid } from "@/lib/utils/uuid";
 import type { Database } from "@/lib/db/types";
 
 export type MeetingRow = Database["public"]["Tables"]["meetings"]["Row"];
@@ -190,6 +194,11 @@ export async function getMeetingNextStep(
 export async function listAttendeeCandidates(
   clientId: string,
 ): Promise<AttendeeRef[]> {
+  if (!isUuid(clientId)) {
+    throw new Error(
+      `listAttendeeCandidates: client_id inválido (${clientId || "vazio"})`,
+    );
+  }
   const supabase = await createServer();
   // Dois filtros .eq() em vez de .or() com UUID embutido: hífens no UUID
   // quebram o parser do PostgREST (ex.: client_id.eq.eeb2…-e5be…) → 400/500.
@@ -216,10 +225,19 @@ export async function listAttendeeCandidates(
       `listAttendeeCandidates.external: ${externalRes.error.message}`,
     );
   }
-  const mapRow = (p: { id: string; name: string; kind: AttendeeRef["kind"] }) =>
-    ({ id: p.id, name: p.name, kind: p.kind });
-  return mergeAttendeeCandidates(
-    (internalRes.data ?? []).map(mapRow),
-    (externalRes.data ?? []).map(mapRow),
+  const mapRow = (p: {
+    id: string;
+    name: string;
+    kind: AttendeeRef["kind"];
+  }): AttendeeRef | null => {
+    if (!p.id || !isUuid(p.id) || !p.name?.trim()) return null;
+    return { id: p.id, name: p.name.trim(), kind: p.kind };
+  };
+  const mapped = dedupeAttendeeCandidates(
+    mergeAttendeeCandidates(
+      (internalRes.data ?? []).map(mapRow).filter((r): r is AttendeeRef => r !== null),
+      (externalRes.data ?? []).map(mapRow).filter((r): r is AttendeeRef => r !== null),
+    ),
   );
+  return mapped;
 }

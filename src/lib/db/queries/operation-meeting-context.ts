@@ -1,6 +1,7 @@
 import { createServer } from "@/lib/db/client";
 import { normalizeEmbedOne } from "@/lib/db/normalize-embed";
 import type { Database } from "@/lib/db/types";
+import { isUuid } from "@/lib/utils/uuid";
 
 type Op = Database["public"]["Tables"]["operations"]["Row"];
 
@@ -40,7 +41,6 @@ export async function getOperationMeetingContext(
     .select(OPERATION_MEETING_NEW_SELECT)
     .eq("id", operationId)
     .is("archived_at", null)
-    .is("client.archived_at", null)
     .maybeSingle();
 
   if (error) {
@@ -57,7 +57,12 @@ export async function getOperationMeetingContext(
   };
 
   const clientEmbed = normalizeEmbedOne(row.client);
-  if (!clientEmbed) return null;
+  if (!clientEmbed || clientEmbed.archived_at !== null) return null;
+  if (!isUuid(clientEmbed.id)) {
+    throw new Error(
+      "getOperationMeetingContext: embed client sem id válido",
+    );
+  }
 
   return {
     id: row.id,
