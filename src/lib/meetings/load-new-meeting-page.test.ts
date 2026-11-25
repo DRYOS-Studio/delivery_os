@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { loadNewMeetingPageData } from "@/lib/meetings/load-new-meeting-page";
 
-vi.mock("@/lib/db/queries/operations", () => ({
-  getOperation: vi.fn(),
+vi.mock("@/lib/db/queries/operation-meeting-context", () => ({
+  getOperationMeetingContext: vi.fn(),
 }));
 
 vi.mock("@/lib/db/queries/meetings", () => ({
@@ -15,24 +15,26 @@ vi.mock("@/lib/db/queries/frentes", () => ({
 
 import { listActiveFrentesByOperation } from "@/lib/db/queries/frentes";
 import { listAttendeeCandidates } from "@/lib/db/queries/meetings";
-import { getOperation } from "@/lib/db/queries/operations";
+import { getOperationMeetingContext } from "@/lib/db/queries/operation-meeting-context";
 
 const op = {
   id: "881c0252-a269-4296-8af3-d235b3c78efc",
   name: "Op teste",
-  client: { id: "5d7942fe-577c-45f4-853f-822c49cbdba6", name: "Cliente" },
-} as Awaited<ReturnType<typeof getOperation>>;
+  productLine: "core",
+  status: "em_operacao",
+  client: { id: "5d7942fe-577c-45f4-853f-822c49cbdba6", name: "Cliente", slug: "cliente" },
+} as Awaited<ReturnType<typeof getOperationMeetingContext>>;
 
 describe("loadNewMeetingPageData", () => {
   it("retorna null se a operação não existir", async () => {
-    vi.mocked(getOperation).mockResolvedValueOnce(null);
+    vi.mocked(getOperationMeetingContext).mockResolvedValueOnce(null);
     await expect(
       loadNewMeetingPageData("881c0252-a269-4296-8af3-d235b3c78efc"),
     ).resolves.toBeNull();
   });
 
   it("carrega participantes e frentes em paralelo para o formulário", async () => {
-    vi.mocked(getOperation).mockResolvedValueOnce(op);
+    vi.mocked(getOperationMeetingContext).mockResolvedValueOnce(op);
     vi.mocked(listAttendeeCandidates).mockResolvedValueOnce([
       { id: "p1", name: "Ana", kind: "internal" },
     ]);

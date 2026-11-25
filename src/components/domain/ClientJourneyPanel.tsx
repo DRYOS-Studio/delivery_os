@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import type { ClientDetail } from "@/lib/db/queries/clients";
 import type { OperationCardData } from "@/lib/db/queries/operations";
+import { pickOnboardingScheduleHref } from "@/lib/utils/client-onboarding-schedule";
 
 type Props = {
   client: ClientDetail;
@@ -107,20 +108,4 @@ export function ClientJourneyPanel({
       )}
     </section>
   );
-}
-
-function pickOnboardingScheduleHref(
-  clientId: string,
-  operations: OperationCardData[],
-): string | null {
-  const returnTo = encodeURIComponent(`/clients/${clientId}`);
-  if (operations.length === 1) {
-    const op = operations[0];
-    if (!op) return null;
-    return `/operations/${op.id}/meetings/new?kind=onboarding&returnTo=${returnTo}`;
-  }
-  if (operations.length > 1) {
-    return `/clients/${clientId}/onboarding?returnTo=${returnTo}`;
-  }
-  return null;
 }

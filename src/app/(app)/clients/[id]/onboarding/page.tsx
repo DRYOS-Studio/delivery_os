@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { getClient } from "@/lib/db/queries/clients";
 import { getActiveOperations } from "@/lib/db/queries/operations";
+import { isActiveStatus } from "@/lib/utils/operation-status";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -21,7 +22,8 @@ export default async function ClientOnboardingPickPage({
   const client = await getClient(id);
   if (!client) notFound();
 
-  const operations = await getActiveOperations({ clientId: id, scope: "visivel" });
+  const allVisible = await getActiveOperations({ clientId: id, scope: "visivel" });
+  const operations = allVisible.filter((op) => isActiveStatus(op.status));
   const back = returnTo?.startsWith("/clients/") ? returnTo : `/clients/${id}`;
 
   return (
