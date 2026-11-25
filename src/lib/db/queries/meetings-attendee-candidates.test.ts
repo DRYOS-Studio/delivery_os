@@ -11,6 +11,14 @@ function person(
 }
 
 describe("mergeAttendeeCandidates", () => {
+  it("não quebra com nome vazio no sort", () => {
+    const merged = mergeAttendeeCandidates(
+      [{ id: "1", name: "", kind: "internal" }],
+      [{ id: "2", name: "Ana", kind: "external" }],
+    );
+    expect(merged).toHaveLength(2);
+  });
+
   it("ordena por kind e depois nome", () => {
     const merged = mergeAttendeeCandidates(
       [person("1", "Zeca", "internal"), person("2", "Ana", "internal")],

@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
-import { MeetingForm } from "@/components/domain/MeetingForm";
+import { MeetingFormDynamic } from "@/components/domain/MeetingFormDynamic";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { loadNewMeetingPageData } from "@/lib/meetings/load-new-meeting-page";
 import { isActiveStatus } from "@/lib/utils/operation-status";
+import { UUID_RE } from "@/lib/utils/uuid";
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<{ kind?: string; returnTo?: string }>;
 
@@ -37,7 +38,7 @@ export default async function Page({
         title="Nova reunião"
         subtitle={`${op.client.name} · ${op.name}`}
       />
-      <MeetingForm
+      <MeetingFormDynamic
         mode="create"
         operationId={op.id}
         clientName={op.client.name}
