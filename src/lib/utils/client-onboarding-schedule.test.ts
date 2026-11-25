@@ -9,8 +9,6 @@ function op(
     Partial<OperationCardData>,
 ): OperationCardData {
   return {
-    id: partial.id,
-    status: partial.status,
     clientName: "Acme",
     operationName: "Core",
     productLine: "core",
