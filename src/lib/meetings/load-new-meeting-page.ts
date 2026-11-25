@@ -2,12 +2,12 @@ import type { AttendeeRef } from "@/lib/db/queries/meetings";
 import { listAttendeeCandidates } from "@/lib/db/queries/meetings";
 import { listActiveFrentesByOperation } from "@/lib/db/queries/frentes";
 import {
-  getOperation,
-  type OperationDetail,
-} from "@/lib/db/queries/operations";
+  getOperationMeetingContext,
+  type OperationMeetingContext,
+} from "@/lib/db/queries/operation-meeting-context";
 
 export type NewMeetingPageData = {
-  operation: OperationDetail;
+  operation: OperationMeetingContext;
   attendeeCandidates: AttendeeRef[];
   frentes: { id: string; name: string }[];
 };
@@ -16,7 +16,7 @@ export type NewMeetingPageData = {
 export async function loadNewMeetingPageData(
   operationId: string,
 ): Promise<NewMeetingPageData | null> {
-  const operation = await getOperation(operationId);
+  const operation = await getOperationMeetingContext(operationId);
   if (!operation) return null;
 
   const [attendeeCandidates, frentes] = await Promise.all([
