@@ -51,10 +51,16 @@ export function ProductRow({
       {isAdmin && (
         <div className="flex items-center gap-2">
           <Link
-            href={`/catalog/products/${product.id}/edit`}
+            href={`/catalog/products/${product.id}`}
             className="font-mono text-xs text-oak hover:underline"
           >
-            Editar →
+            Ver escopo →
+          </Link>
+          <Link
+            href={`/catalog/products/${product.id}/edit`}
+            className="font-mono text-xs text-mute hover:text-oak hover:underline"
+          >
+            Editar
           </Link>
           <ArchiveServiceProductButton
             productId={product.id}
