@@ -117,6 +117,7 @@ export async function updateServiceProductAction(
   }
 
   revalidatePath("/catalog/products");
+  revalidatePath(`/catalog/products/${id}`);
   revalidatePath(`/catalog/products/${id}/edit`);
   return ok({ id });
 }

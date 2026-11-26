@@ -27,6 +27,7 @@ import {
   type ServiceProductInput,
   type ServiceProductOutput,
 } from "@/lib/validators/service-product";
+import { SERVICE_PRODUCT_DESCRIPTION_MAX } from "@/lib/validators/service-product-limits";
 
 type Props =
   | { mode: "create" }
@@ -270,14 +271,14 @@ export function ProductForm(props: Props): React.JSX.Element {
         label="Descrição"
         htmlFor="description"
         error={errors.description?.message}
-        hint="Opcional. Aparece no card do catálogo. Máx 1000 chars."
+        hint={`Opcional. Markdown (títulos, listas). Máx. ${SERVICE_PRODUCT_DESCRIPTION_MAX.toLocaleString("pt-BR")} caracteres.`}
       >
         <textarea
           id="description"
-          rows={4}
+          rows={18}
           {...register("description")}
           disabled={isSubmitting}
-          className={textareaCn}
+          className={`${textareaCn} min-h-[20rem]`}
         />
       </Field>
 

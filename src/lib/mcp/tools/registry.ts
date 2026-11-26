@@ -653,7 +653,8 @@ const BASE_MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
   {
     name: "list_service_products",
     access: "read",
-    description: "Catálogo de produtos (sem preços secretos).",
+    description:
+      "Catálogo de produtos (inclui description e content_ref; sem preços secretos).",
     inputSchema: {
       type: "object",
       properties: { include_archived: { type: "boolean" }, limit: { type: "number" } },

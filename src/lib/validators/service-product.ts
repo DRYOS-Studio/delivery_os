@@ -3,6 +3,7 @@ import {
   CATALOG_OFFER_GROUPS,
   CATALOG_OFFER_KINDS,
 } from "@/lib/catalog/catalog-offer";
+import { SERVICE_PRODUCT_DESCRIPTION_MAX } from "@/lib/validators/service-product-limits";
 
 const optionalString = (max: number) =>
   z
@@ -28,7 +29,7 @@ export const serviceProductSchema = z.object({
           "Slug inválido (use minúsculas, dígitos e hífens).",
         ),
     ),
-  description: optionalString(1000),
+  description: optionalString(SERVICE_PRODUCT_DESCRIPTION_MAX),
   default_cycle_type: z
     .enum(["a", "b", "c", "d", "e"])
     .optional()

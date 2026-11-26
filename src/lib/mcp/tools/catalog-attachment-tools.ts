@@ -19,7 +19,7 @@ export async function mcpListServiceProducts(
   let q = ctx.supabase
     .from("service_products")
     .select(
-      "id, name, slug, catalog_group, catalog_kind, default_cycle_type, archived_at, sort_order",
+      "id, name, slug, description, content_ref, catalog_group, catalog_kind, default_cycle_type, archived_at, sort_order",
     )
     .order("sort_order", { ascending: true })
     .limit(clampLimit(args.limit, 50, 100));

@@ -57,7 +57,8 @@ Contratos: `create_client_contract` / `update_client_contract` expõem `status` 
 | `create/updateOperationCommentAction` | `list/add/update_operation_comment` | sem delete |
 | `assign/updateOperationVillainAction` | `assign_operation_villain` / `update_operation_villain` | `list_operation_villains` |
 | `deleteOperationVillainAction` | — | **Excluído** (admin) |
-| `create/update/archive/restoreServiceProductAction` | `create/update/archive/restore_service_product` | admin |
+| `create/update/archive/restoreServiceProductAction` | `create/update/archive/restore_service_product` | admin; `description` até 20 000 chars (markdown) |
+| — | `list_service_products` | read; devolve `description` e `content_ref` por produto |
 | `create/archive/restoreQuickWinCatalogAction` | `create/archive/restore_quick_win_catalog_item` | admin |
 | `saveBriefingAction` | `get/upsert_operation_briefing` | |
 | `upsertDiagnosticAction` | `get_client_diagnostic` / `upsert_client_diagnostic` | |
