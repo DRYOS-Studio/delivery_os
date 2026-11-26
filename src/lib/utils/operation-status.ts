@@ -92,7 +92,9 @@ export const WRITABLE_STATUSES = ALL_STATUSES.filter(
 ) as [OperationStatus, ...OperationStatus[]];
 
 export function isActiveStatus(status: OperationStatus): boolean {
-  return OPERATION_STATUS[status].active;
+  const meta = OPERATION_STATUS[status];
+  if (!meta) return false;
+  return meta.active;
 }
 
 export function statusLabel(status: OperationStatus): string {
