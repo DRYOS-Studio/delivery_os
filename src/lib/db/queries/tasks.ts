@@ -1,5 +1,6 @@
 import { createServer } from "@/lib/db/client";
 import type { Database } from "@/lib/db/types";
+import type { TaskListScope } from "@/lib/tasks/task-list-scope";
 
 export type TaskStatus = Database["public"]["Enums"]["task_status"];
 
@@ -366,6 +367,17 @@ function filterInheritedRows<
  * `countTasks` → `{open:0,done:0,all:0}`) em vez de rodar `.or()` com lista
  * vazia (sintaxe inválida no PostgREST).
  */
+function applyTaskListScope<Q extends { eq: (column: string, value: string) => Q }>(
+  query: Q,
+  scope?: TaskListScope,
+): Q {
+  if (!scope) return query;
+  if (scope.clientId) query = query.eq("operation.client_id", scope.clientId);
+  if (scope.operationId) query = query.eq("operation_id", scope.operationId);
+  if (scope.frenteId) query = query.eq("frente_id", scope.frenteId);
+  return query;
+}
+
 async function resolveInheritanceFilter(
   supabase: Awaited<ReturnType<typeof createServer>>,
   assigneePersonId: string,
@@ -426,6 +438,7 @@ export const TASKS_PAGE_LIMIT = 200;
 export async function listTasks(
   filter: TaskListFilter,
   assigneePersonId?: string,
+  scope?: TaskListScope,
 ): Promise<CrossFrenteTaskRow[]> {
   const supabase = await createServer();
   let query = supabase
@@ -438,6 +451,7 @@ export async function listTasks(
   // nulo, Inv. 15) da tela, em silêncio.
   // O `!inner` no embed é obrigatório: sem ele o supabase-js descarta este filtro.
   query = query.is("operation.archived_at", null);
+  query = applyTaskListScope(query, scope);
 
   // Herança de visibilidade: subtarefa sem responsável próprio aparece
   // quando a tarefa-pai bate o filtro de P, mesmo sem responsável dela
@@ -486,9 +500,9 @@ export async function listTasks(
 }
 
 const COUNT_SELECT = `
-  id, parent_task_id, status,
+  id, parent_task_id, status, operation_id, frente_id,
   assigneeLinks:task_assignees ( person_id ),
-  operation:operations!fk_tasks_operation_id!inner ( archived_at )
+  operation:operations!fk_tasks_operation_id!inner ( archived_at, client_id )
 `;
 
 type CountJoinedRow = {
@@ -514,18 +528,22 @@ type CountJoinedRow = {
  */
 export async function countTasks(
   assigneePersonId?: string,
+  scope?: TaskListScope,
 ): Promise<{ open: number; done: number; all: number }> {
   const supabase = await createServer();
 
   if (!assigneePersonId) {
     const base = () =>
-      supabase
-        .from("tasks")
-        .select(
-          "id, operation:operations!fk_tasks_operation_id!inner(archived_at)",
-          { count: "exact", head: true },
-        )
-        .is("operation.archived_at", null);
+      applyTaskListScope(
+        supabase
+          .from("tasks")
+          .select(
+            "id, operation:operations!fk_tasks_operation_id!inner(archived_at, client_id)",
+            { count: "exact", head: true },
+          )
+          .is("operation.archived_at", null),
+        scope,
+      );
     const [openRes, doneRes, allRes] = await Promise.all([
       base().in("status", OPEN_STATUSES),
       base().eq("status", "done"),
@@ -544,11 +562,13 @@ export async function countTasks(
   if (ids.length === 0) return { open: 0, done: 0, all: 0 };
   const assignedIds = new Set(ids);
 
-  const { data, error } = await supabase
+  let countQuery = supabase
     .from("tasks")
     .select(COUNT_SELECT)
     .is("operation.archived_at", null)
     .or(orFilter);
+  countQuery = applyTaskListScope(countQuery, scope);
+  const { data, error } = await countQuery;
   if (error) throw new Error(`countTasks: ${error.message}`);
   if (!data) return { open: 0, done: 0, all: 0 };
   const filtered = filterInheritedRows(data as unknown as CountJoinedRow[], assignedIds);

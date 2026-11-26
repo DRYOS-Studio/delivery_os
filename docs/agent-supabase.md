@@ -80,7 +80,7 @@ Opcional: `idempotency_key` (8–200 caracteres) nos tools de escrita. O servido
 |---|---|---|
 | `list_operations` | read | `limit` 1–50 |
 | `get_operation` | read | `operation_id` |
-| `list_tasks` | read | Filtros: `operation_id`, `client_id`, `status[]`, `assignee_person_id`, `limit`, `offset` |
+| `list_tasks` | read | Filtros: `operation_id`, `client_id`, `frente_id`, `status[]`, `assignee_person_id`, `area_tasks_only`, `limit`, `offset` |
 | `list_activity_events` | read | `task_id` **ou** `operation_id`; filtros `category`, `date_preset` (`today`/`7d`/`30d`), `limit`, `offset` |
 | `get_task` | read | `task_id` |
 | `create_task` | write | Tarefa de **entrega**: `frente_id` obrigatório; demais campos alinhados a `taskSchema` (título, status, datas, tags, `quick_win_id`, `sla_incident_id`, `assignee_person_ids`, …). **Não** cria tarefa de área pelo MCP. |

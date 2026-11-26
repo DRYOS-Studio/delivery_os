@@ -75,7 +75,10 @@ todas as Frentes e Operações **não arquivadas**, com dropdown de responsável
 - **`?assignee=all`** → tudo que a RLS deixa ver, sem herança (não precisa —
   já mostra tudo).
 
-Combina com `?filter=open|done|all`. Criar direto daqui em `/tasks/new`
+Combina com `?filter=open|done|all` e filtros de escopo combináveis (AND) na
+URL: `client_id`, `operation_id`, `frente_id` (cascata Cliente → Operação →
+Frente; opções respeitam RLS/alocação; parse tolerante de UUID inválido;
+"Limpar filtros" zera os três). Criar direto daqui em `/tasks/new`
 (`TaskQuickCreateForm`, cascade Operação → Frente; Quick Win e incidente SLA
 ficam fora — dependem da Operação e moram no form por Frente).
 
