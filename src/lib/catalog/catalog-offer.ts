@@ -4,6 +4,7 @@ export const CATALOG_OFFER_GROUPS = [
   "funcionarios_digitais",
   "automacoes",
   "dryos_os",
+  "revenue",
   "studio",
 ] as const;
 
@@ -17,6 +18,7 @@ export const CATALOG_GROUP_LABELS: Record<CatalogOfferGroup, string> = {
   funcionarios_digitais: "Funcionários Digitais",
   automacoes: "Automações",
   dryos_os: "DRYOS OS",
+  revenue: "Revenue",
   studio: "Studio",
 };
 

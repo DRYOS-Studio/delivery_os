@@ -24,6 +24,7 @@ describe("getOperationMeetingContext", () => {
       data: {
         id: "881c0252-a269-4296-8af3-d235b3c78efc",
         name: "Op",
+        catalog_group: "dryos_os",
         product_line: "core",
         status: "em_operacao",
         client: [
@@ -49,6 +50,7 @@ describe("getOperationMeetingContext", () => {
       data: {
         id: "881c0252-a269-4296-8af3-d235b3c78efc",
         name: "Op",
+        catalog_group: "dryos_os",
         product_line: "core",
         status: "em_operacao",
         client: {
@@ -70,6 +72,7 @@ describe("getOperationMeetingContext", () => {
       data: {
         id: "881c0252-a269-4296-8af3-d235b3c78efc",
         name: "Op",
+        catalog_group: "dryos_os",
         product_line: "core",
         status: "em_operacao",
         client: [],

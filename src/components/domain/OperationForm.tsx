@@ -14,6 +14,12 @@ import {
 import type { OperationDetail } from "@/lib/db/queries/operations";
 import { formatMoneyBR, parseMoneyBR } from "@/lib/utils/money";
 import {
+  CATALOG_GROUP_LABELS,
+  CATALOG_OFFER_GROUPS,
+} from "@/lib/catalog/catalog-offer";
+import { operationCatalogLineLabel } from "@/lib/catalog/operation-catalog-group";
+import type { CatalogOfferGroup } from "@/lib/catalog/catalog-offer";
+import {
   operationSchema,
   type OperationInput,
   type OperationOutput,
@@ -45,20 +51,22 @@ type Props =
       isAdmin?: boolean;
     };
 
-const PRODUCT_LINE_LABEL: Record<"core" | "spark" | "studio", string> = {
-  core: "Core",
-  spark: "Spark",
-  studio: "Studio",
-};
-
 const EDITABLE_STATUS_VALUES = new Set(
   selectableStatuses("edit").map((o) => o.value),
 );
 
-function nameFromCombo(clientName: string, line: string): string {
-  if (!clientName || !line) return "";
-  const lineLabel = PRODUCT_LINE_LABEL[line as "core" | "spark" | "studio"];
+function nameFromCombo(clientName: string, group: string): string {
+  if (!clientName || !group) return "";
+  const lineLabel = isCatalogOfferGroupOption(group)
+    ? CATALOG_GROUP_LABELS[group]
+    : group;
   return `${clientName} ${lineLabel}`;
+}
+
+function isCatalogOfferGroupOption(
+  value: string,
+): value is CatalogOfferGroup {
+  return (CATALOG_OFFER_GROUPS as readonly string[]).includes(value);
 }
 
 export function OperationForm(props: Props): React.JSX.Element {
@@ -77,7 +85,8 @@ export function OperationForm(props: Props): React.JSX.Element {
   const defaultValues: OperationInput = isEdit
     ? {
         client_id: props.initialData.client.id,
-        product_line: props.initialData.productLine,
+        catalog_group: (props.initialData.catalogGroup ??
+          "") as unknown as CatalogOfferGroup,
         name: props.initialData.name,
         // Só reescreve status não-selecionável (hoje só `arquivada`, legado). Generalizar
         // isso para "todo status terminal" apagaria Concluída/Cancelada ao salvar — o ato
@@ -101,7 +110,7 @@ export function OperationForm(props: Props): React.JSX.Element {
           "defaultClientId" in props && props.defaultClientId
             ? props.defaultClientId
             : "",
-        product_line: "core",
+        catalog_group: "dryos_os",
         name: "",
         status: "em_construcao",
         recurrence: undefined,
@@ -129,7 +138,7 @@ export function OperationForm(props: Props): React.JSX.Element {
   const busy = isSubmitting || isArchiving;
 
   const watchedClientId = watch("client_id");
-  const watchedLine = watch("product_line");
+  const watchedLine = watch("catalog_group");
 
   useEffect(() => {
     if (nameTouched) return;
@@ -146,7 +155,7 @@ export function OperationForm(props: Props): React.JSX.Element {
     setGeneralError(null);
     const fd = new FormData();
     fd.set("client_id", data.client_id);
-    fd.set("product_line", data.product_line);
+    fd.set("catalog_group", data.catalog_group);
     fd.set("name", data.name);
     fd.set("status", data.status);
     if (isAdmin) {
@@ -276,20 +285,37 @@ export function OperationForm(props: Props): React.JSX.Element {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Field
           label="Linha de produto"
-          htmlFor="product_line"
+          htmlFor="catalog_group"
           required
-          error={errors.product_line?.message}
+          error={errors.catalog_group?.message}
         >
           <select
-            id="product_line"
-            {...register("product_line")}
+            id="catalog_group"
+            {...register("catalog_group")}
             disabled={busy}
             className={selectCn}
           >
-            <option value="core">Core</option>
-            <option value="spark">Spark</option>
-            <option value="studio">Studio</option>
+            {isEdit && props.initialData.catalogGroup === null && (
+              <option value="">Selecione…</option>
+            )}
+            {CATALOG_OFFER_GROUPS.map((g) => (
+              <option key={g} value={g}>
+                {CATALOG_GROUP_LABELS[g]}
+              </option>
+            ))}
           </select>
+          {isEdit &&
+            props.initialData.catalogGroup === null &&
+            props.initialData.legacyProductLine !== null && (
+              <p className="font-mono text-[10px] text-mute-soft mt-1">
+                Legado:{" "}
+                {operationCatalogLineLabel(
+                  null,
+                  props.initialData.legacyProductLine,
+                )}
+                . Escolha o grupo comercial ao salvar.
+              </p>
+            )}
         </Field>
 
         <Field

@@ -14,6 +14,7 @@ import { upsertOperationFinancials } from "@/lib/db/queries/operation-financials
 import {
   getOperation,
 } from "@/lib/db/queries/operations";
+import type { CatalogOfferGroup } from "@/lib/catalog/catalog-offer";
 import { operationSchema } from "@/lib/validators/operation";
 import {
   isActiveStatus,
@@ -24,7 +25,7 @@ type PostgresError = { code?: string; message: string };
 
 type CreateInput = {
   client_id: string;
-  product_line: "core" | "spark" | "studio";
+  catalog_group: CatalogOfferGroup;
   name: string;
   status: OperationStatus;
   recurrence: "mensal" | "trimestral" | "anual" | "unica" | null;
@@ -39,7 +40,7 @@ type CreateInput = {
 
 function parseFormDataToInput(formData: FormData): {
   client_id: string;
-  product_line: string;
+  catalog_group: string;
   name: string;
   status: string;
   recurrence: string;
@@ -55,7 +56,7 @@ function parseFormDataToInput(formData: FormData): {
   const mrrNumber = mrrRaw === "" ? null : Number(mrrRaw);
   return {
     client_id: ((formData.get("client_id") as string | null) ?? "").trim(),
-    product_line: ((formData.get("product_line") as string | null) ?? "").trim(),
+    catalog_group: ((formData.get("catalog_group") as string | null) ?? "").trim(),
     name: ((formData.get("name") as string | null) ?? "").trim(),
     status: ((formData.get("status") as string | null) ?? "").trim(),
     recurrence: ((formData.get("recurrence") as string | null) ?? "").trim(),
@@ -83,7 +84,7 @@ function validate(formData: FormData): ActionResult<CreateInput> {
   }
   return ok({
     client_id: parsed.data.client_id,
-    product_line: parsed.data.product_line,
+    catalog_group: parsed.data.catalog_group,
     name: parsed.data.name,
     status: parsed.data.status,
     recurrence: parsed.data.recurrence ?? null,
@@ -109,7 +110,7 @@ export async function createOperationAction(
   const adminGuard = await requireAdminAction();
   const insertRow = {
     client_id: v.data.client_id,
-    product_line: v.data.product_line,
+    catalog_group: v.data.catalog_group,
     name: v.data.name,
     status: v.data.status,
     response_hours: v.data.response_hours,
@@ -175,7 +176,7 @@ export async function updateOperationAction(
   // client_id não pode mudar — força o valor atual
   const supabase = await createServer();
   const patch: Database["public"]["Tables"]["operations"]["Update"] = {
-    product_line: v.data.product_line,
+    catalog_group: v.data.catalog_group,
     name: v.data.name,
     status: v.data.status,
     response_hours: v.data.response_hours,

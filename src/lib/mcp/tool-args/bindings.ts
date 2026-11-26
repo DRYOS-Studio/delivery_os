@@ -33,6 +33,7 @@ import {
   mcpUpdateMeetingNextStepSchema,
 } from "@/lib/mcp/tool-args/meeting-update";
 import { taskFieldsSchema, taskStatusEnum } from "@/lib/validators/task";
+import { CATALOG_OFFER_GROUPS } from "@/lib/catalog/catalog-offer";
 import { WRITABLE_STATUSES } from "@/lib/utils/operation-status";
 import type { McpToolDefinition } from "@/lib/mcp/tools/registry-types";
 import { z } from "zod";
@@ -65,7 +66,7 @@ const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const operationMcpBody = z
   .object({
     client_id: uuid.optional(),
-    product_line: z.enum(["core", "spark", "studio"]),
+    catalog_group: z.enum(CATALOG_OFFER_GROUPS),
     name: z.string().trim().min(1).max(160),
     status: z.enum(WRITABLE_STATUSES as [string, ...string[]]),
     recurrence: z.enum(["mensal", "trimestral", "anual", "unica"]).optional(),

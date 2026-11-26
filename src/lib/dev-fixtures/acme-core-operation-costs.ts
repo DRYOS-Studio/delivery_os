@@ -89,7 +89,9 @@ export const acmeCoreCostsBreakdown: OperationMonthlyCostsSnapshot = {
 export const acmeCoreOperationEditFixture: OperationDetail = {
   id: ACME_CORE_OPERATION_ID,
   name: "Acme Core",
-  productLine: "core",
+  catalogGroup: "dryos_os",
+  legacyProductLine: "core",
+  catalogLineLabel: "DRYOS OS",
   status: "em_operacao",
   recurrence: "mensal",
   monthlyRecurringRevenue: 3000,

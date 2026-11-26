@@ -11,7 +11,7 @@ function op(
   return {
     clientName: "Acme",
     operationName: "Core",
-    productLine: "core",
+    catalogLineLabel: "DRYOS OS",
     firstFrente: null,
     teamSize: 0,
     ...partial,

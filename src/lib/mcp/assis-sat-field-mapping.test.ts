@@ -36,7 +36,7 @@ describe("Assis Sat field mapping (validators only)", () => {
 
     const operation = operationSchema.safeParse({
       client_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-      product_line: "core",
+      catalog_group: "dryos_os",
       name: "Assis Sat — DRYOS OS Basic",
       status: "em_construcao",
       recurrence: "mensal",

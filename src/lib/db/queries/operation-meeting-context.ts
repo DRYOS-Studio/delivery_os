@@ -1,3 +1,4 @@
+import { operationCatalogLineLabel } from "@/lib/catalog/operation-catalog-group";
 import { createServer } from "@/lib/db/client";
 import { normalizeEmbedOne } from "@/lib/db/normalize-embed";
 import type { Database } from "@/lib/db/types";
@@ -7,14 +8,14 @@ type Op = Database["public"]["Tables"]["operations"]["Row"];
 
 /** Select mínimo para `/operations/[id]/meetings/new` — sem financeiro nem frentes aninhadas. */
 export const OPERATION_MEETING_NEW_SELECT = `
-  id, name, product_line, status,
+  id, name, catalog_group, product_line, status,
   client:clients!fk_operations_client_id!inner(id, name, slug, archived_at)
 `;
 
 export type OperationMeetingContext = {
   id: string;
   name: string;
-  productLine: Op["product_line"];
+  catalogLineLabel: string;
   status: Op["status"];
   client: { id: string; name: string; slug: string };
 };
@@ -51,6 +52,7 @@ export async function getOperationMeetingContext(
   const row = data as {
     id: string;
     name: string;
+    catalog_group: Op["catalog_group"];
     product_line: Op["product_line"];
     status: Op["status"];
     client: ClientEmbed | ClientEmbed[] | null;
@@ -67,7 +69,10 @@ export async function getOperationMeetingContext(
   return {
     id: row.id,
     name: row.name,
-    productLine: row.product_line,
+    catalogLineLabel: operationCatalogLineLabel(
+      row.catalog_group,
+      row.product_line,
+    ),
     status: row.status,
     client: {
       id: clientEmbed.id,

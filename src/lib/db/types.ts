@@ -1955,7 +1955,10 @@ export type Database = {
           end_date: string | null
           id: string
           name: string
-          product_line: Database["public"]["Enums"]["product_line"]
+          catalog_group:
+            | Database["public"]["Enums"]["catalog_offer_group"]
+            | null
+          product_line: Database["public"]["Enums"]["product_line"] | null
           resolution_hours: number | null
           response_hours: number | null
           start_date: string | null
@@ -1970,7 +1973,10 @@ export type Database = {
           end_date?: string | null
           id?: string
           name: string
-          product_line: Database["public"]["Enums"]["product_line"]
+          catalog_group?:
+            | Database["public"]["Enums"]["catalog_offer_group"]
+            | null
+          product_line?: Database["public"]["Enums"]["product_line"] | null
           resolution_hours?: number | null
           response_hours?: number | null
           start_date?: string | null
@@ -1985,7 +1991,10 @@ export type Database = {
           end_date?: string | null
           id?: string
           name?: string
-          product_line?: Database["public"]["Enums"]["product_line"]
+          catalog_group?:
+            | Database["public"]["Enums"]["catalog_offer_group"]
+            | null
+          product_line?: Database["public"]["Enums"]["product_line"] | null
           resolution_hours?: number | null
           response_hours?: number | null
           start_date?: string | null
@@ -3117,6 +3126,7 @@ export type Database = {
         | "funcionarios_digitais"
         | "automacoes"
         | "dryos_os"
+        | "revenue"
         | "studio"
       catalog_offer_kind: "product" | "plan" | "studio_category"
       cost_recurrence: "mensal" | "unica"
@@ -3342,6 +3352,7 @@ export const Constants = {
         "funcionarios_digitais",
         "automacoes",
         "dryos_os",
+        "revenue",
         "studio",
       ],
       catalog_offer_kind: ["product", "plan", "studio_category"],

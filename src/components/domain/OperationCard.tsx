@@ -9,12 +9,6 @@ import {
   statusPillVariant,
 } from "@/lib/utils/operation-status";
 
-const PRODUCT_LINE_LABEL: Record<OperationCardData["productLine"], string> = {
-  core: "Core",
-  spark: "Spark",
-  studio: "Studio",
-};
-
 export function OperationCard({ data }: { data: OperationCardData }) {
   const { firstFrente, teamSize } = data;
 
@@ -23,7 +17,7 @@ export function OperationCard({ data }: { data: OperationCardData }) {
       <Card interactive>
         <div className="flex items-center justify-between mb-4">
           <Pill variant="oak" showDot>
-            {PRODUCT_LINE_LABEL[data.productLine]}
+            {data.catalogLineLabel}
           </Pill>
           <Pill variant={statusPillVariant(data.status)}>
             {statusLabel(data.status)}

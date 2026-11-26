@@ -60,7 +60,7 @@ describe("catalog-offer", () => {
     ]);
   });
 
-  it("builds four commercial group sections", () => {
+  it("builds five commercial group sections", () => {
     const products = CATALOG_OFFER_GROUPS.flatMap((g, gi) => [
       {
         id: `${g}-a`,

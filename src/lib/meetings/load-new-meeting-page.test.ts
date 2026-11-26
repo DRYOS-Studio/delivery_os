@@ -20,7 +20,7 @@ import { getOperationMeetingContext } from "@/lib/db/queries/operation-meeting-c
 const op = {
   id: "881c0252-a269-4296-8af3-d235b3c78efc",
   name: "Op teste",
-  productLine: "core",
+  catalogLineLabel: "DRYOS OS",
   status: "em_operacao",
   client: { id: "5d7942fe-577c-45f4-853f-822c49cbdba6", name: "Cliente", slug: "cliente" },
 } as Awaited<ReturnType<typeof getOperationMeetingContext>>;
