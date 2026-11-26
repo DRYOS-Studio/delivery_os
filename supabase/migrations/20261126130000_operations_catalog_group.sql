@@ -1,7 +1,6 @@
 -- operacao: linha de produto passa a ser catalog_group (grupo comercial do catálogo).
 -- product_line (core/spark/studio) permanece legível, sem backfill nesta migration.
-
-ALTER TYPE public.catalog_offer_group ADD VALUE IF NOT EXISTS 'revenue';
+-- Depende de 20261126125900_catalog_offer_group_add_revenue.sql (enum 'revenue').
 
 ALTER TABLE public.operations
   ADD COLUMN IF NOT EXISTS catalog_group public.catalog_offer_group;
@@ -17,7 +16,7 @@ COMMENT ON COLUMN public.operations.product_line IS
 
 CREATE OR REPLACE FUNCTION public.trg_log_activity_operations()
 RETURNS trigger
-LANGUAGE plpgsql
+LANGUAGE plplpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
