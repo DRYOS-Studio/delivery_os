@@ -18,5 +18,7 @@ describe("rota meetings/new (onboarding)", () => {
     expect(src).toContain('dynamic = "force-dynamic"');
     expect(src).toContain('"onboarding"');
     expect(src).toContain("returnTo");
+    expect(src).toContain("parseNewMeetingSearchParams");
+    expect(src).toContain("logRouteError");
   });
 });

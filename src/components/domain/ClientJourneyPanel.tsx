@@ -9,11 +9,12 @@ import {
   clientJourneyOptionsForManualSelect,
   clientJourneyVariant,
 } from "@/lib/utils/client-journey-status";
-import { Button } from "@/components/ui/Button";
+import { Button, buttonClassName } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import type { ClientDetail } from "@/lib/db/queries/clients";
 import type { OperationCardData } from "@/lib/db/queries/operations";
 import { pickOnboardingScheduleHref } from "@/lib/utils/client-onboarding-schedule";
+import { cn } from "@/lib/utils/cn";
 
 type Props = {
   client: ClientDetail;
@@ -89,18 +90,25 @@ export function ClientJourneyPanel({
           </div>
           <div className="flex flex-col gap-2 sm:ml-auto shrink-0">
             {scheduleHref ? (
-              <Link href={scheduleHref}>
-                <Button variant="sage" className="w-full min-h-[44px]">
-                  Agendar onboarding
-                </Button>
+              <Link
+                href={scheduleHref}
+                prefetch
+                className={cn(
+                  buttonClassName("sage", "md"),
+                  "w-full min-h-[44px] justify-center",
+                )}
+              >
+                Agendar onboarding
               </Link>
             ) : (
               <Link
                 href={`/operations/new?clientId=${encodeURIComponent(client.id)}&returnTo=${encodeURIComponent(`/clients/${client.id}`)}`}
+                className={cn(
+                  buttonClassName("sage", "md"),
+                  "w-full min-h-[44px] justify-center",
+                )}
               >
-                <Button variant="sage" className="w-full min-h-[44px]">
-                  Criar operação para agendar
-                </Button>
+                Criar operação para agendar
               </Link>
             )}
           </div>

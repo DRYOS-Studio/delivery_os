@@ -7,6 +7,7 @@ import { getProfile } from "@/lib/auth/server";
 import { getClientFinancialSummary } from "@/lib/db/queries/client-financial-summary";
 import { getClient, getClientSummary } from "@/lib/db/queries/clients";
 import { getActiveOperations } from "@/lib/db/queries/operations";
+import { logRouteError } from "@/lib/utils/log-route-error";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -24,17 +25,38 @@ export default async function ClientVisaoPage({
   const tab = Array.isArray(tabRaw) ? tabRaw[0] : tabRaw;
   const legacy = clientHubPathFromLegacyTab(id, tab);
   if (legacy && legacy !== `/clients/${id}`) redirect(legacy);
-  const client = await getClient(id);
+  const route = `/clients/${id}`;
+  let client;
+  try {
+    client = await getClient(id);
+  } catch (error) {
+    logRouteError(route, error, { clientId: id, phase: "getClient" });
+    throw error;
+  }
   if (!client) notFound();
-  const profile = await getProfile();
+  let profile;
+  try {
+    profile = await getProfile();
+  } catch (error) {
+    logRouteError(route, error, { clientId: id, phase: "getProfile" });
+    throw error;
+  }
   const isAdmin = profile?.role === "admin";
-  const [operations, summary, financial] = await Promise.all([
-    getActiveOperations({ clientId: id, scope: "visivel" }),
-    getClientSummary(id),
-    isAdmin
-      ? getClientFinancialSummary(id, { includeCac: true })
-      : Promise.resolve(null),
-  ]);
+  let operations;
+  let summary;
+  let financial;
+  try {
+    [operations, summary, financial] = await Promise.all([
+      getActiveOperations({ clientId: id, scope: "visivel" }),
+      getClientSummary(id),
+      isAdmin
+        ? getClientFinancialSummary(id, { includeCac: true })
+        : Promise.resolve(null),
+    ]);
+  } catch (error) {
+    logRouteError(route, error, { clientId: id, phase: "batch" });
+    throw error;
+  }
 
   return (
     <div className="space-y-7">

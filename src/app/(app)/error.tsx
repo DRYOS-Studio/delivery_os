@@ -1,10 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { appErrorDetail } from "@/lib/utils/app-error-message";
+import { buildAppErrorDisplay } from "@/lib/utils/app-error-message";
 
 // Boundary do route group autenticado: pega erro das queries das pages
-// (batches). Exibe mensagens prefixadas de query (`fn: …`) ou detalhe em dev.
+// (batches). Digest sempre visível; admin e erros de cliente/hidratação veem mais.
 export default function AppError({
   error,
   reset,
@@ -12,7 +13,31 @@ export default function AppError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  const detail = appErrorDetail(error.message, error.digest);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/me/role", { credentials: "same-origin" });
+        if (!res.ok) return;
+        const body = (await res.json()) as { role?: string | null };
+        if (!cancelled && body.role === "admin") setIsAdmin(true);
+      } catch {
+        /* boundary já falhou — diagnóstico best-effort */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const { digestLine, detailLine, technicalBlock } = buildAppErrorDisplay(
+    error.message,
+    error.digest,
+    error.stack,
+    { isAdmin },
+  );
 
   return (
     <div className="flex items-center justify-center py-24 px-6">
@@ -26,13 +51,29 @@ export default function AppError({
         <p className="text-sm text-mute mb-6">
           Não foi possível carregar esta página. Tente de novo em instantes.
         </p>
-        {detail && (
+        {digestLine && (
           <p
-            className="text-left text-xs font-mono text-ink-soft bg-card border border-line rounded px-3 py-2 mb-6 break-words"
+            className="text-left text-xs font-mono text-ink-soft bg-card border border-line rounded px-3 py-2 mb-3 break-words"
             role="status"
           >
-            {detail}
+            {digestLine}
           </p>
+        )}
+        {detailLine && (
+          <p
+            className="text-left text-xs font-mono text-ink-soft bg-card border border-line rounded px-3 py-2 mb-3 break-words whitespace-pre-wrap"
+            role="status"
+          >
+            {detailLine}
+          </p>
+        )}
+        {technicalBlock && (
+          <pre
+            className="text-left text-[10px] font-mono text-mute bg-bg border border-line rounded px-3 py-2 mb-6 overflow-x-auto max-h-40"
+            role="status"
+          >
+            {technicalBlock}
+          </pre>
         )}
         <Button onClick={reset}>Tentar de novo</Button>
       </div>
