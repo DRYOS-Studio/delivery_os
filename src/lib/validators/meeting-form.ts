@@ -43,36 +43,47 @@ const optionalEndedAt = z.preprocess(
   z.string().min(1, "Data de término inválida.").optional(),
 );
 
-export const meetingFormSchema = z
-  .object({
-    title: z
-      .string()
-      .trim()
-      .min(3, "Mínimo 3 caracteres.")
-      .max(200, "Máximo 200 caracteres."),
-    scheduled_at: z.string().min(1, "Data obrigatória."),
-    ended_at: optionalEndedAt,
-    notes: optionalText,
-    visibility: z.enum(["interno", "cliente"], {
-      message: "Visibility obrigatória.",
-    }),
-    kind: z.enum(["general", "onboarding"]).default("general"),
-    attendee_ids: z.array(z.string().uuid()).default([]),
-    granola_suggestion_text: optionalText,
-    granola_source_ref: z.preprocess(
-      (v) => (v === "" || v === null || v === undefined ? undefined : v),
-      z.string().max(500, "Máximo 500 caracteres.").optional(),
-    ),
-    agenda_items: z.array(agendaItemLineSchema).default([]),
-    next_steps: z.array(nextStepLineSchema).default([]),
-    auto_create_tasks_from_next_steps: z
-      .preprocess((v) => v === true || v === "1" || v === "on", z.boolean())
-      .default(true),
-  })
-  .refine(
-    (d) => !d.ended_at || !d.scheduled_at || d.ended_at >= d.scheduled_at,
-    { message: "Término deve ser após o início.", path: ["ended_at"] },
-  );
+const meetingScheduledEndedRefine = {
+  check: (d: { ended_at?: string | undefined; scheduled_at: string }) =>
+    !d.ended_at || !d.scheduled_at || d.ended_at >= d.scheduled_at,
+  message: "Término deve ser após o início." as const,
+  path: ["ended_at" as const],
+};
+
+/** Objeto base — sem `.refine()` (Zod 4 proíbe `.omit()`/.pick()` em schema refinado). */
+export const meetingFormFieldsSchema = z.object({
+  title: z
+    .string()
+    .trim()
+    .min(3, "Mínimo 3 caracteres.")
+    .max(200, "Máximo 200 caracteres."),
+  scheduled_at: z.string().min(1, "Data obrigatória."),
+  ended_at: optionalEndedAt,
+  notes: optionalText,
+  visibility: z.enum(["interno", "cliente"], {
+    message: "Visibility obrigatória.",
+  }),
+  kind: z.enum(["general", "onboarding"]).default("general"),
+  attendee_ids: z.array(z.string().uuid()).default([]),
+  granola_suggestion_text: optionalText,
+  granola_source_ref: z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? undefined : v),
+    z.string().max(500, "Máximo 500 caracteres.").optional(),
+  ),
+  agenda_items: z.array(agendaItemLineSchema).default([]),
+  next_steps: z.array(nextStepLineSchema).default([]),
+  auto_create_tasks_from_next_steps: z
+    .preprocess((v) => v === true || v === "1" || v === "on", z.boolean())
+    .default(true),
+});
+
+export const meetingFormSchema = meetingFormFieldsSchema.refine(
+  meetingScheduledEndedRefine.check,
+  {
+    message: meetingScheduledEndedRefine.message,
+    path: meetingScheduledEndedRefine.path,
+  },
+);
 
 export type MeetingFormOutput = z.output<typeof meetingFormSchema>;
 
@@ -97,14 +108,21 @@ const nextStepLineClientSchema = z.object({
 });
 
 /** Resolver no cliente: permite linhas vazias; filtrar antes de `meetingFormSchema`. */
-export const meetingFormClientSchema = meetingFormSchema.omit({
-  agenda_items: true,
-  next_steps: true,
-}).extend({
-  agenda_items: z.array(agendaItemLineClientSchema).default([]),
-  next_steps: z.array(nextStepLineClientSchema).default([]),
-  auto_create_tasks_from_next_steps: z.boolean().default(true),
-});
+export const meetingFormClientSchema = meetingFormFieldsSchema
+  .omit({
+    agenda_items: true,
+    next_steps: true,
+    auto_create_tasks_from_next_steps: true,
+  })
+  .extend({
+    agenda_items: z.array(agendaItemLineClientSchema).default([]),
+    next_steps: z.array(nextStepLineClientSchema).default([]),
+    auto_create_tasks_from_next_steps: z.boolean().default(true),
+  })
+  .refine(meetingScheduledEndedRefine.check, {
+    message: meetingScheduledEndedRefine.message,
+    path: meetingScheduledEndedRefine.path,
+  });
 
 export type MeetingFormClientOutput = z.output<typeof meetingFormClientSchema>;
 export type MeetingFormClientInput = z.input<typeof meetingFormClientSchema>;
