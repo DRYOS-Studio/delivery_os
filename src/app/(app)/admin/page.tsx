@@ -1,5 +1,8 @@
+import { AdminGoogleCalendarSection } from "@/components/domain/AdminGoogleCalendarSection";
 import { AdminMcpTokensSection } from "@/components/domain/AdminMcpTokensSection";
 import { AdminUsersSection } from "@/components/domain/AdminUsersSection";
+import { getGoogleCalendarConnectionPublic } from "@/lib/db/queries/google-calendar-integration";
+import { googleOAuthConfigured } from "@/lib/google-calendar/config";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { requireAdmin } from "@/lib/auth/server";
 import {
@@ -31,11 +34,17 @@ export default async function Page() {
     /* migration não aplicada em dev */
   }
 
+  const googleCalendarConnection = await getGoogleCalendarConnectionPublic();
+
   return (
     <>
       <PageHeader
         title="Painel admin"
         subtitle="Gestão de usuários e métricas internas."
+      />
+      <AdminGoogleCalendarSection
+        configured={googleOAuthConfigured()}
+        connection={googleCalendarConnection}
       />
       <AdminMcpTokensSection
         appUrl={appUrl}

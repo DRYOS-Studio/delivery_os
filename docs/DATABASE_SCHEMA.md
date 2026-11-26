@@ -1,6 +1,6 @@
 # Database Schema
 
-**Última análise**: 2026-11-13 (member-access hardening — financeiro/compensação fora de tabelas legíveis por membro)
+**Última análise**: 2026-11-26 (integração Google Calendar — OAuth singleton + sync em meetings)
 **Projeto Supabase**: `Delivery OS` (`tmsaucxoeqpfluzwrwkc`)
 **Schema**: `public`
 
@@ -523,6 +523,12 @@ Registro temporal ligado à Operação. Visibility própria (Inv. 05).
 | `granola_suggestion_text` | text | sugestão editável (import/cola) |
 | `granola_captured_at` | timestamptz | opcional; quando houve captura de sugestão |
 | `granola_source_ref` | text | opcional; ref externa (ex. id no Granola) |
+| `google_event_id` | text | ID do evento no Google Calendar |
+| `google_event_html_link` | text | link HTML do evento |
+| `google_meet_link` | text | link Google Meet gerado |
+| `google_calendar_sync_status` | enum | `synced` \| `pending` \| `failed` \| `skipped` |
+| `google_calendar_sync_error` | text | último erro de sync (truncado) |
+| `google_calendar_send_invites` | boolean default true | controla `sendUpdates` na API Google |
 | `created_at`, `updated_at` | timestamptz | |
 
 Trigger `set_meetings_updated_at` + index `idx_meetings_operation_scheduled` (operation_id, scheduled_at DESC).
@@ -690,6 +696,22 @@ SLA prometido vive em `operations.response_hours/resolution_hours`. Breach calcu
 | `closed_via` | text | fechamento automático (ex. `ntfy:tag:resolved`) |
 | `ntfy_last_message_id` | text | idempotência / rastreio ntfy |
 | `created_at`, `updated_at` | timestamptz | |
+
+### `google_calendar_connections` — OAuth Calendar (singleton org)
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `singleton_key` | text UNIQUE default `dryos` | uma conexão por instância |
+| `account_email` | text NOT NULL | e-mail da conta Google conectada |
+| `calendar_id` | text NOT NULL default `primary` | calendário alvo dos eventos |
+| `calendar_summary` | text | nome legível do calendário |
+| `access_token_ciphertext`, `refresh_token_ciphertext` | text | OAuth cifrado (VAULT_ENCRYPTION_KEY) |
+| `token_expires_at` | timestamptz | refresh antes do expiry |
+| `connected_by` | uuid → auth.users | admin que conectou |
+
+RLS: somente `is_admin()`.
+
+---
 
 ### `operation_ntfy_topics` — mapeamento tópico → operação
 
