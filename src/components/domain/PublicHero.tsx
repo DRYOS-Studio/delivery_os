@@ -6,12 +6,6 @@ import {
   statusPillVariant,
 } from "@/lib/utils/operation-status";
 
-const PRODUCT_LABEL = {
-  core: "Core",
-  spark: "Spark",
-  studio: "Studio",
-} as const;
-
 export function PublicHero({
   op,
 }: {
@@ -27,7 +21,7 @@ export function PublicHero({
       </h1>
       <div className="flex items-center gap-2 flex-wrap">
         <Pill variant="sage" showDot>
-          {PRODUCT_LABEL[op.productLine]}
+          {op.catalogLineLabel}
         </Pill>
         <Pill variant={statusPillVariant(op.status)}>
           {statusLabel(op.status)}

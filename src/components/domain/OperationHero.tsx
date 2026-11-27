@@ -12,12 +12,6 @@ import { formatMoneyBR } from "@/lib/utils/money";
 import { formatHours } from "@/lib/utils/sla";
 import { statusLabel } from "@/lib/utils/operation-status";
 
-const PRODUCT_LINE_LABEL: Record<OperationDetail["productLine"], string> = {
-  core: "Core",
-  spark: "Spark",
-  studio: "Studio",
-};
-
 // classes overrides pra contraste no fundo oak
 // Overrides de contraste no fundo oak — local de propósito: são classes de tema
 // escuro do hero, não a variante canônica de Pill (essa vem de operation-status).
@@ -119,7 +113,7 @@ export function OperationHero({
         <div className="flex items-center gap-2 mb-4 flex-wrap">
           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 font-mono text-[10px] font-medium rounded-pill bg-sage-bg text-sage">
             <span className="w-1.5 h-1.5 rounded-full bg-current" />
-            {PRODUCT_LINE_LABEL[op.productLine]}
+            {op.catalogLineLabel}
           </span>
           <span
             className={`inline-flex items-center gap-1.5 px-2 py-0.5 font-mono text-[10px] font-medium rounded-pill ${STATUS_PILL_DARK[op.status]}`}

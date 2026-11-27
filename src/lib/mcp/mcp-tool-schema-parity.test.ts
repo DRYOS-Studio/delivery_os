@@ -1,3 +1,4 @@
+import { CATALOG_OFFER_GROUPS } from "@/lib/catalog/catalog-offer";
 import { describe, expect, it } from "vitest";
 import { MCP_TOOL_DEFINITIONS } from "@/lib/mcp/tools/registry";
 import { MCP_TOOL_ZOD_ARGS } from "@/lib/mcp/tool-args/bindings";
@@ -71,7 +72,9 @@ describe("MCP tools/list schema parity (Zod-derived)", () => {
   it("update_operation exposes writable status enum (not truncated client_id-only)", () => {
     const schema = toolSchema("update_operation");
     expect(schema.properties?.status).toBeDefined();
-    expect(schema.properties?.product_line?.enum ?? schema.properties?.product_line).toBeDefined();
+    expect(schema.properties?.catalog_group?.enum).toEqual([
+      ...CATALOG_OFFER_GROUPS,
+    ]);
     expect(schema.required).toEqual(expect.arrayContaining(["operation_id"]));
   });
 

@@ -9,6 +9,7 @@ import {
 import { normalizeEmbedOne } from "@/lib/db/normalize-embed";
 import { ACTIVE_STATUSES } from "@/lib/utils/operation-status";
 import type { Database } from "@/lib/db/types";
+import { operationCatalogLineLabel } from "@/lib/catalog/operation-catalog-group";
 import { isOpenStatus, type TaskStatus } from "@/lib/db/queries/tasks";
 
 type Op = Database["public"]["Tables"]["operations"]["Row"];
@@ -28,7 +29,7 @@ export type OperationCardData = {
   id: string;
   clientName: string;
   operationName: string;
-  productLine: Op["product_line"];
+  catalogLineLabel: string;
   status: Op["status"];
   firstFrente: FrenteForCard | null;
   teamSize: number;
@@ -52,6 +53,7 @@ export async function getActiveOperations(
       id,
       name,
       status,
+      catalog_group,
       product_line,
       client:clients!inner(name, slug, archived_at),
       frentes(
@@ -103,7 +105,10 @@ export async function getActiveOperations(
       id: op.id,
       clientName: op.client?.name ?? "—",
       operationName: op.name,
-      productLine: op.product_line,
+      catalogLineLabel: operationCatalogLineLabel(
+        op.catalog_group,
+        op.product_line,
+      ),
       status: op.status,
       firstFrente: firstFrenteRow
         ? {
@@ -132,7 +137,7 @@ export type OperationListItem = {
   clientId: string;
   clientName: string;
   clientSlug: string;
-  productLine: Op["product_line"];
+  catalogLineLabel: string;
   status: Op["status"];
   recurrence: OpRecurrence | null;
   monthlyRecurringRevenue: number | null;
@@ -217,6 +222,7 @@ type ListRow = {
   id: string;
   name: string;
   client_id: string;
+  catalog_group: Op["catalog_group"];
   product_line: Op["product_line"];
   status: Op["status"];
   start_date: string | null;
@@ -238,7 +244,10 @@ function toListItem(row: ListRow): OperationListItem {
     clientId: row.client_id,
     clientName: row.client?.name ?? "—",
     clientSlug: row.client?.slug ?? "—",
-    productLine: row.product_line,
+    catalogLineLabel: operationCatalogLineLabel(
+      row.catalog_group,
+      row.product_line,
+    ),
     status: row.status,
     recurrence: normalizeEmbedOne(row.financial ?? null)?.recurrence ?? null,
     monthlyRecurringRevenue:
@@ -272,7 +281,9 @@ export type FrenteListItem = {
 export type OperationDetail = {
   id: string;
   name: string;
-  productLine: Op["product_line"];
+  catalogGroup: Op["catalog_group"];
+  legacyProductLine: Op["product_line"];
+  catalogLineLabel: string;
   status: Op["status"];
   recurrence: OpRecurrence | null;
   monthlyRecurringRevenue: number | null;
@@ -332,6 +343,7 @@ export async function getOperation(
   type DetailBase = {
     id: string;
     name: string;
+    catalog_group: Op["catalog_group"];
     product_line: Op["product_line"];
     status: Op["status"];
     response_hours: number | null;
@@ -407,7 +419,12 @@ export async function getOperation(
   return {
     id: row.id,
     name: row.name,
-    productLine: row.product_line,
+    catalogGroup: row.catalog_group,
+    legacyProductLine: row.product_line,
+    catalogLineLabel: operationCatalogLineLabel(
+      row.catalog_group,
+      row.product_line,
+    ),
     status: row.status,
     recurrence: fin?.recurrence ?? null,
     monthlyRecurringRevenue: fin?.monthly_recurring_revenue ?? null,

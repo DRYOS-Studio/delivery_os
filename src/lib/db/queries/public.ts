@@ -1,6 +1,7 @@
 // Queries para a view pública (sem auth). Todas usam createAdmin pra bypassar RLS.
 // Filtros explícitos por visibility/archived garantem que só conteúdo apropriado vaza.
 
+import { operationCatalogLineLabel } from "@/lib/catalog/operation-catalog-group";
 import { createAdmin } from "@/lib/db/client";
 import type { Database } from "@/lib/db/types";
 
@@ -8,7 +9,7 @@ export type PublicOperationView = {
   id: string;
   name: string;
   clientName: string;
-  productLine: Database["public"]["Enums"]["product_line"];
+  catalogLineLabel: string;
   status: Database["public"]["Enums"]["operation_status"];
   responseHours: number | null;
   resolutionHours: number | null;
@@ -31,7 +32,7 @@ export async function getOperationPublicView(
     .from("operations")
     .select(
       `
-      id, name, product_line, status,
+      id, name, catalog_group, product_line, status,
       response_hours, resolution_hours,
       client:clients!fk_operations_client_id (name),
       frentes!fk_frentes_operation_id (
@@ -60,7 +61,10 @@ export async function getOperationPublicView(
     id: data.id,
     name: data.name,
     clientName: data.client?.name ?? "—",
-    productLine: data.product_line,
+    catalogLineLabel: operationCatalogLineLabel(
+      data.catalog_group,
+      data.product_line,
+    ),
     status: data.status,
     // archived_at deliberadamente FORA do view: operação arquivada nunca chega
     // aqui — o resolver do token já retornou null (não reintroduzir o vazamento).

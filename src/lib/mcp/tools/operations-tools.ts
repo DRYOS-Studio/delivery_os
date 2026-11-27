@@ -11,21 +11,21 @@ import {
 import { z } from "zod";
 
 const OP_LIST_ADMIN =
-  "id, name, status, product_line, client_id, start_date, end_date, archived_at, financial:operation_financials (recurrence, monthly_recurring_revenue), client:clients!fk_operations_client_id ( id, name, slug )";
+  "id, name, status, catalog_group, product_line, client_id, start_date, end_date, archived_at, financial:operation_financials (recurrence, monthly_recurring_revenue), client:clients!fk_operations_client_id ( id, name, slug )";
 
 const OP_LIST_MEMBER =
-  "id, name, status, product_line, client_id, start_date, end_date, archived_at, client:clients!fk_operations_client_id ( id, name, slug )";
+  "id, name, status, catalog_group, product_line, client_id, start_date, end_date, archived_at, client:clients!fk_operations_client_id ( id, name, slug )";
 
 const OP_DETAIL_ADMIN =
-  "id, name, status, product_line, client_id, start_date, end_date, response_hours, resolution_hours, archived_at, financial:operation_financials (recurrence, monthly_recurring_revenue, monthly_fixed_cost, tax_rate_pct, notification_webhook_url), client:clients!fk_operations_client_id ( id, name, slug )";
+  "id, name, status, catalog_group, product_line, client_id, start_date, end_date, response_hours, resolution_hours, archived_at, financial:operation_financials (recurrence, monthly_recurring_revenue, monthly_fixed_cost, tax_rate_pct, notification_webhook_url), client:clients!fk_operations_client_id ( id, name, slug )";
 
 const OP_DETAIL_MEMBER =
-  "id, name, status, product_line, client_id, start_date, end_date, response_hours, resolution_hours, archived_at, client:clients!fk_operations_client_id ( id, name, slug )";
+  "id, name, status, catalog_group, product_line, client_id, start_date, end_date, response_hours, resolution_hours, archived_at, client:clients!fk_operations_client_id ( id, name, slug )";
 
 function operationInsert(data: z.infer<typeof operationSchema>) {
   return {
     client_id: data.client_id,
-    product_line: data.product_line,
+    catalog_group: data.catalog_group,
     name: data.name,
     status: data.status,
     start_date: data.start_date ?? null,

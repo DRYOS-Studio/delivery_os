@@ -9,6 +9,7 @@ import {
   operationCostCategoryLabel,
   type OperationCostCategory,
 } from "@/lib/utils/operation-cost-category";
+import { formatCatalogGroupActivityValue } from "@/lib/catalog/operation-catalog-group";
 import type { Database } from "@/lib/db/types";
 
 type TaskStatus = Database["public"]["Enums"]["task_status"];
@@ -49,7 +50,8 @@ const FIELD_LABELS: Record<string, string> = {
   archived_at: "arquivamento",
   journey_status: "jornada",
   status: "status",
-  product_line: "linha de produto",
+  catalog_group: "linha de produto",
+  product_line: "linha de produto (legado)",
   recurrence: "recorrência",
   monthly_recurring_revenue: "MRR",
   monthly_fixed_cost: "custo fixo mensal",
@@ -151,6 +153,11 @@ function resolveEntityName(
 ): string {
   const v = jsonScalar(raw);
   if (v === null || v === undefined || v === "") return "—";
+
+  if (fieldKey === "catalog_group" && typeof v === "string") {
+    const label = formatCatalogGroupActivityValue(v);
+    if (label) return label;
+  }
 
   if (fieldKey === "status" && typeof v === "string") {
     const taskLabel = TASK_STATUS_LABEL[v as TaskStatus];

@@ -10,11 +10,6 @@ import {
   statusPillVariant,
 } from "@/lib/utils/operation-status";
 
-const PRODUCT_LINE_LABEL: Record<OperationListItem["productLine"], string> = {
-  core: "Core",
-  spark: "Spark",
-  studio: "Studio",
-};
 export function OperationsTable({
   operations,
   hasSearch,
@@ -75,7 +70,7 @@ export function OperationsTable({
             pills={
               <>
                 <Pill variant="oak" showDot>
-                  {PRODUCT_LINE_LABEL[op.productLine]}
+                  {op.catalogLineLabel}
                 </Pill>
                 <Pill variant={statusPillVariant(op.status)}>
                   {statusLabel(op.status)}
@@ -120,7 +115,7 @@ export function OperationsTable({
               <Td className="text-ink-soft">{op.name}</Td>
               <Td>
                 <Pill variant="oak" showDot>
-                  {PRODUCT_LINE_LABEL[op.productLine]}
+                  {op.catalogLineLabel}
                 </Pill>
               </Td>
               <Td>

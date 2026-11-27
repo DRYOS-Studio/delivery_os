@@ -3,6 +3,7 @@ import {
   WEBHOOK_URL_PROBLEM_MESSAGE,
   checkWebhookUrl,
 } from "@/lib/notifications/webhook-url";
+import { CATALOG_OFFER_GROUPS } from "@/lib/catalog/catalog-offer";
 import { WRITABLE_STATUSES } from "@/lib/utils/operation-status";
 
 const emptyToUndefined = (v: unknown) => (v === "" ? undefined : v);
@@ -51,8 +52,8 @@ const optionalIntHours = z.preprocess(
 export const operationSchema = z
   .object({
     client_id: z.string().uuid("Cliente obrigatório."),
-    product_line: z.enum(["core", "spark", "studio"], {
-      message: "Linha obrigatória.",
+    catalog_group: z.enum(CATALOG_OFFER_GROUPS, {
+      message: "Grupo comercial obrigatório.",
     }),
     name: z
       .string()

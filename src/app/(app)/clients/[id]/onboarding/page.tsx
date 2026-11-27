@@ -49,7 +49,7 @@ export default async function ClientOnboardingPickPage({
             >
               <p className="font-medium text-ink-soft">{op.operationName}</p>
               <p className="font-mono text-[10px] text-mute uppercase mt-1">
-                {op.productLine} · {op.status}
+                {op.catalogLineLabel} · {op.status}
               </p>
             </Link>
           </li>

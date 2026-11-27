@@ -272,13 +272,14 @@ CHECK `chk_persons_kind_consistency`: garante exclusividade.
 
 ---
 
-### `operations` — contrato comercial (Core / Spark / Studio)
+### `operations` — contrato comercial (grupo do catálogo)
 
 | Coluna | Tipo | Notas |
 |---|---|---|
 | `id` | uuid PK | |
 | `client_id` | uuid NOT NULL → clients (RESTRICT) | |
-| `product_line` | enum `product_line` | core / spark / studio |
+| `catalog_group` | enum `catalog_offer_group` | nullable; linha de produto (FD, Automações, DRYOS OS, Revenue, Studio) |
+| `product_line` | enum `product_line` | **legado** core / spark / studio — nullable; deprecado em favor de `catalog_group` |
 | `name` | text NOT NULL | |
 | `status` | enum `operation_status` default `em_construcao` | ativos: em_construcao / em_operacao / janela_critica · terminais: concluida / cancelada (e arquivada, legado — nunca escrito). Terminal e `archived_at` são eixos distintos: terminal sai dos agregados, `archived_at` tira da vista |
 | *(financeiro)* | — | MRR, recorrência, custo fixo mensal, alíquota e webhook de notificação migrados para `operation_financials` (RLS admin-only). Colunas removidas de `operations`. |
@@ -795,7 +796,7 @@ Ofertas canônicas alinhadas ao repo **dryos-conteudo** (`funcionarios_digitais`
 | `slug` | text NOT NULL UNIQUE | CHECK regex `^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$` (URL-safe kebab-case) |
 | `description` | text | opcional, livre |
 | `default_cycle_type` | enum `frente_cycle_type` | nullable; sugestão de ciclo ao usar este produto na Frente |
-| `catalog_group` | enum `catalog_offer_group` | nullable; grupo comercial (FD, Automações, DRYOS OS, Studio) |
+| `catalog_group` | enum `catalog_offer_group` | nullable; grupo comercial (FD, Automações, DRYOS OS, Revenue, Studio) |
 | `catalog_kind` | enum `catalog_offer_kind` | `product` / `plan` / `studio_category`; default `product` |
 | `sort_order` | smallint NOT NULL default 0 | ordem dentro do grupo na UI |
 | `content_ref` | text | path relativo no dryos-conteudo (referência, sem preço) |
@@ -1034,7 +1035,8 @@ cross-tenant.
 
 | Enum | Valores |
 |---|---|
-| `product_line` | core, spark, studio |
+| `catalog_offer_group` | funcionarios_digitais, automacoes, dryos_os, revenue, studio |
+| `product_line` | core, spark, studio (legado em `operations`) |
 | `frente_cycle_type` | a, b, c, d, e |
 | `frente_domain` | infra, dados_analiticos, dados_tecnicos |
 | `operation_status` | em_construcao, em_operacao, janela_critica, concluida, cancelada, arquivada (legado) |
