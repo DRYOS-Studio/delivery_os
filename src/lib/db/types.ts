@@ -1456,11 +1456,70 @@ export type Database = {
           },
         ]
       }
+      google_calendar_connections: {
+        Row: {
+          access_token_ciphertext: string
+          access_token_key_version: number
+          account_email: string
+          calendar_id: string
+          calendar_summary: string | null
+          connected_by: string | null
+          created_at: string
+          id: string
+          refresh_token_ciphertext: string
+          refresh_token_key_version: number
+          scopes: string
+          singleton_key: string
+          token_expires_at: string
+          updated_at: string
+        }
+        Insert: {
+          access_token_ciphertext: string
+          access_token_key_version?: number
+          account_email: string
+          calendar_id?: string
+          calendar_summary?: string | null
+          connected_by?: string | null
+          created_at?: string
+          id?: string
+          refresh_token_ciphertext: string
+          refresh_token_key_version?: number
+          scopes?: string
+          singleton_key?: string
+          token_expires_at: string
+          updated_at?: string
+        }
+        Update: {
+          access_token_ciphertext?: string
+          access_token_key_version?: number
+          account_email?: string
+          calendar_id?: string
+          calendar_summary?: string | null
+          connected_by?: string | null
+          created_at?: string
+          id?: string
+          refresh_token_ciphertext?: string
+          refresh_token_key_version?: number
+          scopes?: string
+          singleton_key?: string
+          token_expires_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       meetings: {
         Row: {
           auto_create_tasks_from_next_steps: boolean
           created_at: string
           ended_at: string | null
+          google_calendar_send_invites: boolean
+          google_calendar_sync_error: string | null
+          google_calendar_sync_status:
+            | Database["public"]["Enums"]["google_calendar_sync_status"]
+            | null
+          google_event_html_link: string | null
+          google_event_id: string | null
+          google_meet_link: string | null
           granola_captured_at: string | null
           granola_source_ref: string | null
           granola_suggestion_text: string | null
@@ -1477,6 +1536,14 @@ export type Database = {
           auto_create_tasks_from_next_steps?: boolean
           created_at?: string
           ended_at?: string | null
+          google_calendar_send_invites?: boolean
+          google_calendar_sync_error?: string | null
+          google_calendar_sync_status?:
+            | Database["public"]["Enums"]["google_calendar_sync_status"]
+            | null
+          google_event_html_link?: string | null
+          google_event_id?: string | null
+          google_meet_link?: string | null
           granola_captured_at?: string | null
           granola_source_ref?: string | null
           granola_suggestion_text?: string | null
@@ -1493,6 +1560,14 @@ export type Database = {
           auto_create_tasks_from_next_steps?: boolean
           created_at?: string
           ended_at?: string | null
+          google_calendar_send_invites?: boolean
+          google_calendar_sync_error?: string | null
+          google_calendar_sync_status?:
+            | Database["public"]["Enums"]["google_calendar_sync_status"]
+            | null
+          google_event_html_link?: string | null
+          google_event_id?: string | null
+          google_meet_link?: string | null
           granola_captured_at?: string | null
           granola_source_ref?: string | null
           granola_suggestion_text?: string | null
@@ -3168,6 +3243,11 @@ export type Database = {
         | "ativo"
         | "pausado"
         | "encerrado"
+      google_calendar_sync_status:
+        | "synced"
+        | "pending"
+        | "failed"
+        | "skipped"
       meeting_kind: "general" | "onboarding"
       mcp_agent_token_scope: "read" | "write"
     }
@@ -3397,6 +3477,12 @@ export const Constants = {
         "ativo",
         "pausado",
         "encerrado",
+      ],
+      google_calendar_sync_status: [
+        "synced",
+        "pending",
+        "failed",
+        "skipped",
       ],
       meeting_kind: ["general", "onboarding"],
       mcp_agent_token_scope: ["read", "write"],

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { MeetingGoogleCalendarPanel } from "@/components/domain/MeetingGoogleCalendarPanel";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
@@ -81,6 +82,14 @@ export default async function Page({
             </a>
           </p>
         )}
+        <MeetingGoogleCalendarPanel
+          meetingId={meeting.id}
+          syncStatus={meeting.google_calendar_sync_status}
+          syncError={meeting.google_calendar_sync_error}
+          htmlLink={meeting.google_event_html_link}
+          meetLink={meeting.google_meet_link}
+          sendInvitesDefault={meeting.google_calendar_send_invites}
+        />
       </Card>
 
       <section className="mb-8">

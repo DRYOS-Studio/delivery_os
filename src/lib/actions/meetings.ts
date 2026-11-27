@@ -5,6 +5,7 @@ import { type ActionResult, dbErr, err, ok } from "@/lib/actions/_types";
 import { requireAdminAction, requireUserAction } from "@/lib/auth/server";
 import { createServer } from "@/lib/db/client";
 import { getMeeting } from "@/lib/db/queries/meetings";
+import { syncMeetingWithGoogleCalendar } from "@/lib/google-calendar/sync-meeting";
 import { syncAutoTasksForMeeting } from "@/lib/meetings/meeting-next-step-tasks";
 import {
   formDataToMeetingFormInput,
@@ -100,6 +101,7 @@ export async function createMeetingAction(
       granola_captured_at: granolaCapturedAt,
       auto_create_tasks_from_next_steps:
         data.auto_create_tasks_from_next_steps,
+      google_calendar_send_invites: data.google_calendar_send_invites,
     })
     .select("id")
     .single();
@@ -152,6 +154,17 @@ export async function createMeetingAction(
     ];
   }
 
+  try {
+    await syncMeetingWithGoogleCalendar({
+      meetingId: meeting.id,
+      mode: "create",
+      sendInvites: data.google_calendar_send_invites,
+      attendeeIds: data.attendee_ids,
+    });
+  } catch {
+    /* syncMeetingWithGoogleCalendar já marca pending e loga */
+  }
+
   revalidatePath(`/operations/${operationId}`);
   return ok({
     id: meeting.id,
@@ -201,6 +214,7 @@ export async function updateMeetingAction(
       granola_captured_at: granolaCapturedAt,
       auto_create_tasks_from_next_steps:
         data.auto_create_tasks_from_next_steps,
+      google_calendar_send_invites: data.google_calendar_send_invites,
     })
     .eq("id", meetingId);
   if (upErr) return dbErr(upErr, "updateMeetingAction");
@@ -374,6 +388,17 @@ export async function updateMeetingAction(
   const ins = await insertAttendees(meetingId, data.attendee_ids);
   if (!ins.ok) return ins;
 
+  try {
+    await syncMeetingWithGoogleCalendar({
+      meetingId,
+      mode: current.google_event_id ? "update" : "create",
+      sendInvites: data.google_calendar_send_invites,
+      attendeeIds: data.attendee_ids,
+    });
+  } catch {
+    /* syncMeetingWithGoogleCalendar já marca pending e loga */
+  }
+
   revalidatePath(`/operations/${current.operation_id}`);
   return ok({
     id: meetingId,
@@ -393,6 +418,22 @@ export async function deleteMeetingAction(
 
   const current = await getMeeting(meetingId);
   if (!current) return err("Reunião não encontrada.", "not_found");
+
+  const sendInvites = current.google_calendar_send_invites ?? true;
+  const attendeeIds = current.attendees.map((a) => a.id);
+
+  if (current.google_event_id) {
+    try {
+      await syncMeetingWithGoogleCalendar({
+        meetingId,
+        mode: "cancel",
+        sendInvites,
+        attendeeIds,
+      });
+    } catch {
+      /* best-effort; reunião ainda será removida no Delivery */
+    }
+  }
 
   const supabase = await createServer();
   const { error } = await supabase

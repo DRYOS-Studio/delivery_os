@@ -110,6 +110,8 @@ export function MeetingForm(props: Props): React.JSX.Element {
             : [{ description: "", due_date: "", assignee_person_id: "", frente_id: "" }],
         auto_create_tasks_from_next_steps:
           props.initialData.auto_create_tasks_from_next_steps ?? true,
+        google_calendar_send_invites:
+          props.initialData.google_calendar_send_invites ?? true,
       }
     : {
         title:
@@ -132,6 +134,7 @@ export function MeetingForm(props: Props): React.JSX.Element {
           { description: "", due_date: "", assignee_person_id: "", frente_id: "" },
         ],
         auto_create_tasks_from_next_steps: true,
+        google_calendar_send_invites: true,
       };
 
   const {
@@ -568,6 +571,21 @@ export function MeetingForm(props: Props): React.JSX.Element {
           </p>
         )}
       </fieldset>
+
+      <label className="flex items-center gap-2 text-sm text-ink-soft">
+        <input
+          type="checkbox"
+          className="rounded border-line"
+          {...register("google_calendar_send_invites")}
+          disabled={busy}
+        />
+        Enviar convite aos participantes
+      </label>
+      <p className="text-xs text-mute -mt-1">
+        Quando marcado, o Google Calendar envia convites por e-mail aos
+        participantes com e-mail cadastrado. Desmarque para salvar ou remarcar
+        sem notificar.
+      </p>
 
       <div className="flex items-center justify-between pt-2">
         <div className="flex items-center gap-2">

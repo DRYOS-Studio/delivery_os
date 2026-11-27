@@ -116,7 +116,7 @@ export async function mcpListMeetings(
   const { data, error } = await ctx.supabase
     .from("meetings")
     .select(
-      "id, operation_id, title, scheduled_at, ended_at, visibility, notes, granola_suggestion_text, granola_source_ref, granola_captured_at, created_at",
+      "id, operation_id, title, scheduled_at, ended_at, visibility, notes, granola_suggestion_text, granola_source_ref, granola_captured_at, google_event_id, google_event_html_link, google_meet_link, google_calendar_sync_status, google_calendar_sync_error, google_calendar_send_invites, created_at",
     )
     .eq("operation_id", opId)
     .order("scheduled_at", { ascending: false })

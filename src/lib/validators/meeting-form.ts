@@ -75,6 +75,9 @@ export const meetingFormFieldsSchema = z.object({
   auto_create_tasks_from_next_steps: z
     .preprocess((v) => v === true || v === "1" || v === "on", z.boolean())
     .default(true),
+  google_calendar_send_invites: z
+    .preprocess((v) => v === true || v === "1" || v === "on", z.boolean())
+    .default(true),
 });
 
 export const meetingFormSchema = meetingFormFieldsSchema.refine(
@@ -113,11 +116,13 @@ export const meetingFormClientSchema = meetingFormFieldsSchema
     agenda_items: true,
     next_steps: true,
     auto_create_tasks_from_next_steps: true,
+    google_calendar_send_invites: true,
   })
   .extend({
     agenda_items: z.array(agendaItemLineClientSchema).default([]),
     next_steps: z.array(nextStepLineClientSchema).default([]),
     auto_create_tasks_from_next_steps: z.boolean().default(true),
+    google_calendar_send_invites: z.boolean().default(true),
   })
   .refine(meetingScheduledEndedRefine.check, {
     message: meetingScheduledEndedRefine.message,
@@ -227,6 +232,12 @@ export function formDataToMeetingFormInput(formData: FormData) {
     next_steps,
     auto_create_tasks_from_next_steps:
       autoRaw === "1" || autoRaw === "on" || autoRaw === "true",
+    google_calendar_send_invites: (() => {
+      const raw = (
+        (formData.get("google_calendar_send_invites") as string | null) ?? "1"
+      ).trim();
+      return raw === "1" || raw === "on" || raw === "true";
+    })(),
   };
 }
 
@@ -250,6 +261,10 @@ export function appendMeetingOutputToFormData(
   fd.set(
     "auto_create_tasks_from_next_steps",
     data.auto_create_tasks_from_next_steps ? "1" : "0",
+  );
+  fd.set(
+    "google_calendar_send_invites",
+    data.google_calendar_send_invites ? "1" : "0",
   );
 
   for (const row of data.agenda_items) {
