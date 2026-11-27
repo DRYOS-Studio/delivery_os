@@ -22,6 +22,7 @@ const listArgs = z.object({
   offset: z.number().int().min(0).max(10000).optional(),
   operation_id: z.string().uuid().optional(),
   client_id: z.string().uuid().optional(),
+  frente_id: z.string().uuid().optional(),
   status: z.array(taskStatusEnum).max(4).optional(),
   assignee_person_id: z.string().uuid().optional(),
   /** Quando true, só tarefas de área (area_id NOT NULL). Quando false, só entrega. Omitir = ambas (RLS). */
@@ -69,6 +70,7 @@ export async function mcpListTasks(
     .range(offset, offset + limit - 1);
 
   if (a.operation_id) q = q.eq("operation_id", a.operation_id);
+  if (a.frente_id) q = q.eq("frente_id", a.frente_id);
   if (opFilterIds) q = q.in("operation_id", opFilterIds);
   if (taskIdFilter) q = q.in("id", taskIdFilter);
   if (a.status && a.status.length > 0) q = q.in("status", a.status);

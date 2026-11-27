@@ -494,8 +494,21 @@ const BASE_MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
   {
     name: "list_tasks",
     access: "read",
-    description: "Lista tarefas (RLS).",
-    inputSchema: { type: "object", properties: {} },
+    description:
+      "Lista tarefas (RLS). Filtros opcionais combináveis: client_id, operation_id, frente_id, status[], assignee_person_id, area_tasks_only.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        client_id: { type: "string" },
+        operation_id: { type: "string" },
+        frente_id: { type: "string" },
+        assignee_person_id: { type: "string" },
+        area_tasks_only: { type: "boolean" },
+        status: { type: "array", items: { type: "string" } },
+        limit: { type: "number" },
+        offset: { type: "number" },
+      },
+    },
   },
   {
     name: "list_activity_events",

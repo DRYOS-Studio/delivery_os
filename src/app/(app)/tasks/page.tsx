@@ -5,9 +5,20 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { requireProfile } from "@/lib/auth/server";
 import { listInternalPersons } from "@/lib/db/queries/persons";
+import { listTaskScopeFilterOptions } from "@/lib/db/queries/task-scope-filters";
 import { countTasks, listTasks, type TaskListFilter } from "@/lib/db/queries/tasks";
+import {
+  parseTaskListScopeParams,
+  resolveTaskListScope,
+} from "@/lib/tasks/task-list-scope";
 
-type SearchParams = Promise<{ filter?: string; assignee?: string }>;
+type SearchParams = Promise<{
+  filter?: string;
+  assignee?: string;
+  client_id?: string;
+  operation_id?: string;
+  frente_id?: string;
+}>;
 
 function parseFilter(raw: string | undefined): TaskListFilter {
   if (raw === "done" || raw === "all") return raw;
@@ -20,29 +31,31 @@ export default async function Page({
   searchParams: SearchParams;
 }) {
   const profile = await requireProfile("/tasks");
-  const { filter: rawFilter, assignee: rawAssignee } = await searchParams;
-  const filter = parseFilter(rawFilter);
+  const raw = await searchParams;
+  const filter = parseFilter(raw.filter);
 
-  // Resolve o responsável efetivo:
-  //  - "all"            → todas as tarefas visíveis (RLS aplica gating)
-  //  - <personId>       → só daquela pessoa
-  //  - sem param        → minhas tarefas; cai pra "Todos" se não houver vínculo
   let effectiveAssignee: string | undefined;
   let selectedAssignee: string;
-  if (rawAssignee === "all") {
+  if (raw.assignee === "all") {
     effectiveAssignee = undefined;
     selectedAssignee = "all";
-  } else if (rawAssignee) {
-    effectiveAssignee = rawAssignee;
-    selectedAssignee = rawAssignee;
+  } else if (raw.assignee) {
+    effectiveAssignee = raw.assignee;
+    selectedAssignee = raw.assignee;
   } else {
     effectiveAssignee = profile.personId ?? undefined;
     selectedAssignee = profile.personId ?? "all";
   }
 
+  const scopeOptions = await listTaskScopeFilterOptions();
+  const scope = resolveTaskListScope(
+    parseTaskListScopeParams(raw),
+    scopeOptions,
+  );
+
   const [tasks, counts, persons] = await Promise.all([
-    listTasks(filter, effectiveAssignee),
-    countTasks(effectiveAssignee),
+    listTasks(filter, effectiveAssignee, scope),
+    countTasks(effectiveAssignee, scope),
     listInternalPersons(),
   ]);
 
@@ -69,6 +82,8 @@ export default async function Page({
         persons={persons}
         selectedAssignee={selectedAssignee}
         myPersonId={profile.personId}
+        scope={scope}
+        scopeOptions={scopeOptions}
       />
     </>
   );
