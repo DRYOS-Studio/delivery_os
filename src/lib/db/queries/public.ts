@@ -3,6 +3,7 @@
 
 import { operationCatalogLineLabel } from "@/lib/catalog/operation-catalog-group";
 import { createAdmin } from "@/lib/db/client";
+import { withCatalogGroupSelectFallback } from "@/lib/db/queries/operation-catalog-fallback";
 import type { Database } from "@/lib/db/types";
 
 export type PublicOperationView = {
@@ -24,28 +25,52 @@ export type PublicOperationView = {
   }>;
 };
 
-export async function getOperationPublicView(
-  operationId: string,
-): Promise<PublicOperationView | null> {
-  const admin = createAdmin();
-  const { data, error } = await admin
-    .from("operations")
-    .select(
-      `
+const OPERATION_PUBLIC_VIEW_SELECT = `
       id, name, catalog_group, product_line, status,
       response_hours, resolution_hours,
       client:clients!fk_operations_client_id (name),
       frentes!fk_frentes_operation_id (
         id, name, cycle_type, domain, phase, actionable_status, actionable_status_since, archived_at
       )
-      `,
-    )
-    .eq("id", operationId)
-    .maybeSingle();
+      `;
+
+export async function getOperationPublicView(
+  operationId: string,
+): Promise<PublicOperationView | null> {
+  const admin = createAdmin();
+  const { data, error } = await withCatalogGroupSelectFallback(
+    OPERATION_PUBLIC_VIEW_SELECT,
+    async (select) =>
+      await admin.from("operations").select(select).eq("id", operationId).maybeSingle(),
+  );
   if (error) throw new Error(`getOperationPublicView: ${error.message}`);
   if (!data) return null;
 
-  const frentes = (data.frentes ?? [])
+  type PublicRow = {
+    id: string;
+    name: string;
+    catalog_group?: Database["public"]["Tables"]["operations"]["Row"]["catalog_group"];
+    product_line: Database["public"]["Tables"]["operations"]["Row"]["product_line"];
+    status: PublicOperationView["status"];
+    response_hours: number | null;
+    resolution_hours: number | null;
+    client: { name: string } | null;
+    frentes:
+      | Array<{
+          id: string;
+          name: string;
+          cycle_type: Database["public"]["Enums"]["frente_cycle_type"];
+          domain: Database["public"]["Enums"]["frente_domain"];
+          phase: Database["public"]["Enums"]["frente_phase"];
+          actionable_status: string;
+          actionable_status_since: string;
+          archived_at: string | null;
+        }>
+      | null;
+  };
+  const row = data as unknown as PublicRow;
+
+  const frentes = (row.frentes ?? [])
     .filter((f) => f.archived_at === null)
     .map((f) => ({
       id: f.id,
@@ -58,18 +83,18 @@ export async function getOperationPublicView(
     }));
 
   return {
-    id: data.id,
-    name: data.name,
-    clientName: data.client?.name ?? "—",
+    id: row.id,
+    name: row.name,
+    clientName: row.client?.name ?? "—",
     catalogLineLabel: operationCatalogLineLabel(
-      data.catalog_group,
-      data.product_line,
+      row.catalog_group,
+      row.product_line,
     ),
-    status: data.status,
+    status: row.status,
     // archived_at deliberadamente FORA do view: operação arquivada nunca chega
     // aqui — o resolver do token já retornou null (não reintroduzir o vazamento).
-    responseHours: data.response_hours,
-    resolutionHours: data.resolution_hours,
+    responseHours: row.response_hours,
+    resolutionHours: row.resolution_hours,
     frentes,
   };
 }

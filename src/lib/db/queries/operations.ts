@@ -10,6 +10,7 @@ import { normalizeEmbedOne } from "@/lib/db/normalize-embed";
 import { ACTIVE_STATUSES } from "@/lib/utils/operation-status";
 import type { Database } from "@/lib/db/types";
 import { operationCatalogLineLabel } from "@/lib/catalog/operation-catalog-group";
+import { withCatalogGroupSelectFallback } from "@/lib/db/queries/operation-catalog-fallback";
 import { isOpenStatus, type TaskStatus } from "@/lib/db/queries/tasks";
 
 type Op = Database["public"]["Tables"]["operations"]["Row"];
@@ -35,6 +36,44 @@ export type OperationCardData = {
   teamSize: number;
 };
 
+const ACTIVE_OPERATION_CARD_SELECT_WITH_CATALOG = `
+  id,
+  name,
+  status,
+  catalog_group,
+  product_line,
+  client:clients!inner(name, slug, archived_at),
+  frentes(
+    id,
+    name,
+    cycle_type,
+    actionable_status,
+    actionable_status_since,
+    created_at,
+    allocations(id)
+  )
+`;
+
+type ActiveOperationCardRow = {
+  id: string;
+  name: string;
+  status: Op["status"];
+  catalog_group?: Op["catalog_group"] | null;
+  product_line: Op["product_line"];
+  client: { name: string; slug: string; archived_at: string | null } | null;
+  frentes:
+    | {
+        id: string;
+        name: string;
+        cycle_type: Frente["cycle_type"];
+        actionable_status: string;
+        actionable_status_since: string;
+        created_at: string;
+        allocations: { id: string }[] | null;
+      }[]
+    | null;
+};
+
 /**
  * `scope: "ativa"`  → agregados e grids (exclui status terminal).
  * `scope: "visivel"` → listas de detalhe (Cliente, Pessoa): a Operação encerrada
@@ -46,40 +85,29 @@ export async function getActiveOperations(
 ): Promise<OperationCardData[]> {
   const supabase = await createServer();
 
-  let query = supabase
-    .from("operations")
-    .select(
-      `
-      id,
-      name,
-      status,
-      catalog_group,
-      product_line,
-      client:clients!inner(name, slug, archived_at),
-      frentes(
-        id,
-        name,
-        cycle_type,
-        actionable_status,
-        actionable_status_since,
-        created_at,
-        allocations(id)
-      )
-      `,
-    )
-    .is("archived_at", null)
-    .is("client.archived_at", null)
-    .order("created_at", { ascending: false });
+  function buildQuery(select: string) {
+    let query = supabase
+      .from("operations")
+      .select(select)
+      .is("archived_at", null)
+      .is("client.archived_at", null)
+      .order("created_at", { ascending: false });
 
-  if ((options.scope ?? "ativa") === "ativa") {
-    query = query.in("status", ACTIVE_STATUSES);
+    if ((options.scope ?? "ativa") === "ativa") {
+      query = query.in("status", ACTIVE_STATUSES);
+    }
+
+    if (options.clientId) {
+      query = query.eq("client_id", options.clientId);
+    }
+
+    return query;
   }
 
-  if (options.clientId) {
-    query = query.eq("client_id", options.clientId);
-  }
-
-  const { data, error } = await query;
+  const { data, error } = await withCatalogGroupSelectFallback(
+    ACTIVE_OPERATION_CARD_SELECT_WITH_CATALOG,
+    async (select) => await buildQuery(select),
+  );
 
   if (error) {
     throw new Error(`getActiveOperations: ${error.message}`);
@@ -87,7 +115,9 @@ export async function getActiveOperations(
 
   if (!data) return [];
 
-  return data.map((op): OperationCardData => {
+  const rows = data as unknown as ActiveOperationCardRow[];
+
+  return rows.map((op): OperationCardData => {
     const frentes = (op.frentes ?? []).slice().sort((a, b) => {
       const aTime = new Date(a.created_at).getTime();
       const bTime = new Date(b.created_at).getTime();
@@ -170,42 +200,59 @@ export async function listOperations(
   const search = options.search?.trim();
   const includeArchived = options.includeArchived ?? false;
 
-  const base = () => {
-    const q = isAdmin
-      ? supabase.from("operations").select(OPERATION_LIST_SELECT_ADMIN)
-      : supabase.from("operations").select(OPERATION_LIST_SELECT_MEMBER);
+  const listSelect = isAdmin
+    ? OPERATION_LIST_SELECT_ADMIN
+    : OPERATION_LIST_SELECT_MEMBER;
+
+  const base = (select: string) => {
+    const q = supabase.from("operations").select(select);
     return includeArchived ? q : q.is("archived_at", null);
+  };
+
+  const listWithSelect = async <T>(
+    build: (
+      select: string,
+    ) => Promise<{ data: T; error: { message: string } | null }>,
+  ): Promise<T> => {
+    const { data, error } = await withCatalogGroupSelectFallback(
+      listSelect,
+      build,
+    );
+    if (error) throw new Error(`listOperations: ${error.message}`);
+    return data ?? ([] as T);
   };
 
   // Sem search: query direta com embed
   if (!search) {
-    const { data, error } = await base()
-      .is("client.archived_at", null)
-      .order("created_at", { ascending: false });
-    if (error) throw new Error(`listOperations: ${error.message}`);
-    return (data ?? []).map(toListItem);
+    const data = await listWithSelect(async (select) =>
+      await base(select)
+        .is("client.archived_at", null)
+        .order("created_at", { ascending: false }),
+    );
+    return (data as unknown as ListRow[]).map(toListItem);
   }
 
   // Com search: PostgREST não suporta OR cross-table simples;
   // 2 queries paralelas + dedupe.
   const escaped = search.replace(/[%_]/g, (m) => `\\${m}`);
   const [byOpName, byClientName] = await Promise.all([
-    base()
-      .is("client.archived_at", null)
-      .ilike("name", `%${escaped}%`)
-      .order("created_at", { ascending: false }),
-    base()
-      .is("client.archived_at", null)
-      .ilike("client.name", `%${escaped}%`)
-      .order("created_at", { ascending: false }),
+    listWithSelect(async (select) =>
+      await base(select)
+        .is("client.archived_at", null)
+        .ilike("name", `%${escaped}%`)
+        .order("created_at", { ascending: false }),
+    ),
+    listWithSelect(async (select) =>
+      await base(select)
+        .is("client.archived_at", null)
+        .ilike("client.name", `%${escaped}%`)
+        .order("created_at", { ascending: false }),
+    ),
   ]);
-  if (byOpName.error) throw new Error(`listOperations(byOp): ${byOpName.error.message}`);
-  if (byClientName.error)
-    throw new Error(`listOperations(byClient): ${byClientName.error.message}`);
-
   const merged = new Map<string, ReturnType<typeof toListItem>>();
-  for (const row of byOpName.data ?? []) merged.set(row.id, toListItem(row));
-  for (const row of byClientName.data ?? [])
+  for (const row of byOpName as unknown as ListRow[])
+    merged.set(row.id, toListItem(row));
+  for (const row of byClientName as unknown as ListRow[])
     if (!merged.has(row.id)) merged.set(row.id, toListItem(row));
 
   return Array.from(merged.values()).sort((a, b) =>
@@ -222,7 +269,7 @@ type ListRow = {
   id: string;
   name: string;
   client_id: string;
-  catalog_group: Op["catalog_group"];
+  catalog_group?: Op["catalog_group"] | null;
   product_line: Op["product_line"];
   status: Op["status"];
   start_date: string | null;
@@ -314,14 +361,20 @@ export async function getOperation(
 ): Promise<OperationDetail | null> {
   const isAdmin = await callerIsAdmin();
   const supabase = await createServer();
-  const base = isAdmin
-    ? supabase.from("operations").select(OPERATION_DETAIL_SELECT_ADMIN)
-    : supabase.from("operations").select(OPERATION_DETAIL_SELECT_MEMBER);
-  const q = base.eq("id", id).is("client.archived_at", null);
-  const { data, error } = await (options.includeArchived
-    ? q
-    : q.is("archived_at", null)
-  ).maybeSingle();
+  const detailSelect = isAdmin
+    ? OPERATION_DETAIL_SELECT_ADMIN
+    : OPERATION_DETAIL_SELECT_MEMBER;
+  const { data, error } = await withCatalogGroupSelectFallback(
+    detailSelect,
+    async (select) => {
+      const q = supabase
+        .from("operations")
+        .select(select)
+        .eq("id", id)
+        .is("client.archived_at", null);
+      return await (options.includeArchived ? q : q.is("archived_at", null)).maybeSingle();
+    },
+  );
   if (error) throw new Error(`getOperation: ${error.message}`);
   if (!data) return null;
 
@@ -343,7 +396,7 @@ export async function getOperation(
   type DetailBase = {
     id: string;
     name: string;
-    catalog_group: Op["catalog_group"];
+    catalog_group?: Op["catalog_group"] | null;
     product_line: Op["product_line"];
     status: Op["status"];
     response_hours: number | null;
@@ -370,7 +423,7 @@ export async function getOperation(
     }> | null;
   };
 
-  const row = data as DetailBase;
+  const row = data as unknown as DetailBase;
 
   const clientEmbed = normalizeEmbedOne(row.client);
   if (!clientEmbed) return null;
@@ -419,7 +472,7 @@ export async function getOperation(
   return {
     id: row.id,
     name: row.name,
-    catalogGroup: row.catalog_group,
+    catalogGroup: row.catalog_group ?? null,
     legacyProductLine: row.product_line,
     catalogLineLabel: operationCatalogLineLabel(
       row.catalog_group,

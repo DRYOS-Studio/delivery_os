@@ -1,5 +1,6 @@
 import { operationCatalogLineLabel } from "@/lib/catalog/operation-catalog-group";
 import { createServer } from "@/lib/db/client";
+import { withCatalogGroupSelectFallback } from "@/lib/db/queries/operation-catalog-fallback";
 import { normalizeEmbedOne } from "@/lib/db/normalize-embed";
 import type { Database } from "@/lib/db/types";
 import { isUuid } from "@/lib/utils/uuid";
@@ -37,22 +38,26 @@ export async function getOperationMeetingContext(
   operationId: string,
 ): Promise<OperationMeetingContext | null> {
   const supabase = await createServer();
-  const { data, error } = await supabase
-    .from("operations")
-    .select(OPERATION_MEETING_NEW_SELECT)
-    .eq("id", operationId)
-    .is("archived_at", null)
-    .maybeSingle();
+  const { data, error } = await withCatalogGroupSelectFallback(
+    OPERATION_MEETING_NEW_SELECT,
+    async (select) =>
+      await supabase
+        .from("operations")
+        .select(select)
+        .eq("id", operationId)
+        .is("archived_at", null)
+        .maybeSingle(),
+  );
 
   if (error) {
     throw new Error(`getOperationMeetingContext: ${error.message}`);
   }
   if (!data) return null;
 
-  const row = data as {
+  const row = data as unknown as {
     id: string;
     name: string;
-    catalog_group: Op["catalog_group"];
+    catalog_group?: Op["catalog_group"] | null;
     product_line: Op["product_line"];
     status: Op["status"];
     client: ClientEmbed | ClientEmbed[] | null;
