@@ -35,6 +35,71 @@ export type OperationCardData = {
   teamSize: number;
 };
 
+const ACTIVE_OPERATION_CARD_SELECT_WITH_CATALOG = `
+  id,
+  name,
+  status,
+  catalog_group,
+  product_line,
+  client:clients!inner(name, slug, archived_at),
+  frentes(
+    id,
+    name,
+    cycle_type,
+    actionable_status,
+    actionable_status_since,
+    created_at,
+    allocations(id)
+  )
+`;
+
+const ACTIVE_OPERATION_CARD_SELECT_LEGACY = `
+  id,
+  name,
+  status,
+  product_line,
+  client:clients!inner(name, slug, archived_at),
+  frentes(
+    id,
+    name,
+    cycle_type,
+    actionable_status,
+    actionable_status_since,
+    created_at,
+    allocations(id)
+  )
+`;
+
+function isMissingCatalogGroupColumnError(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes("catalog_group") &&
+    (lower.includes("does not exist") ||
+      lower.includes("schema cache") ||
+      lower.includes("could not find"))
+  );
+}
+
+type ActiveOperationCardRow = {
+  id: string;
+  name: string;
+  status: Op["status"];
+  catalog_group?: Op["catalog_group"] | null;
+  product_line: Op["product_line"];
+  client: { name: string; slug: string; archived_at: string | null } | null;
+  frentes:
+    | {
+        id: string;
+        name: string;
+        cycle_type: Frente["cycle_type"];
+        actionable_status: string;
+        actionable_status_since: string;
+        created_at: string;
+        allocations: { id: string }[] | null;
+      }[]
+    | null;
+};
+
 /**
  * `scope: "ativa"`  → agregados e grids (exclui status terminal).
  * `scope: "visivel"` → listas de detalhe (Cliente, Pessoa): a Operação encerrada
@@ -46,40 +111,29 @@ export async function getActiveOperations(
 ): Promise<OperationCardData[]> {
   const supabase = await createServer();
 
-  let query = supabase
-    .from("operations")
-    .select(
-      `
-      id,
-      name,
-      status,
-      catalog_group,
-      product_line,
-      client:clients!inner(name, slug, archived_at),
-      frentes(
-        id,
-        name,
-        cycle_type,
-        actionable_status,
-        actionable_status_since,
-        created_at,
-        allocations(id)
-      )
-      `,
-    )
-    .is("archived_at", null)
-    .is("client.archived_at", null)
-    .order("created_at", { ascending: false });
+  function buildQuery(select: string) {
+    let query = supabase
+      .from("operations")
+      .select(select)
+      .is("archived_at", null)
+      .is("client.archived_at", null)
+      .order("created_at", { ascending: false });
 
-  if ((options.scope ?? "ativa") === "ativa") {
-    query = query.in("status", ACTIVE_STATUSES);
+    if ((options.scope ?? "ativa") === "ativa") {
+      query = query.in("status", ACTIVE_STATUSES);
+    }
+
+    if (options.clientId) {
+      query = query.eq("client_id", options.clientId);
+    }
+
+    return query;
   }
 
-  if (options.clientId) {
-    query = query.eq("client_id", options.clientId);
+  let { data, error } = await buildQuery(ACTIVE_OPERATION_CARD_SELECT_WITH_CATALOG);
+  if (error && isMissingCatalogGroupColumnError(error.message)) {
+    ({ data, error } = await buildQuery(ACTIVE_OPERATION_CARD_SELECT_LEGACY));
   }
-
-  const { data, error } = await query;
 
   if (error) {
     throw new Error(`getActiveOperations: ${error.message}`);
@@ -87,7 +141,9 @@ export async function getActiveOperations(
 
   if (!data) return [];
 
-  return data.map((op): OperationCardData => {
+  const rows = data as unknown as ActiveOperationCardRow[];
+
+  return rows.map((op): OperationCardData => {
     const frentes = (op.frentes ?? []).slice().sort((a, b) => {
       const aTime = new Date(a.created_at).getTime();
       const bTime = new Date(b.created_at).getTime();
